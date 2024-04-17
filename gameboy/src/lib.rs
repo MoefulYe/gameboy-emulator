@@ -1,4 +1,7 @@
-mod utils;
+pub mod cartridge;
+pub mod error;
+pub mod types;
+pub mod utils;
 
 use wasm_bindgen::prelude::*;
 
