@@ -1,6 +1,7 @@
 pub mod cartridge;
 pub mod cpu;
 pub mod dev;
+pub mod emulator;
 pub mod error;
 pub mod types;
 pub mod utils;
