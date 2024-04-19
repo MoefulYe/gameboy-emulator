@@ -1,8 +1,7 @@
 use super::Rom;
 use core::mem::offset_of;
 use log::error;
-use num_enum::{FromPrimitive, TryFromPrimitive};
-use std::fmt::Display;
+use std::mem::size_of;
 
 const KB: usize = 1024;
 const ENTRY_SIZE: usize = 0x04;
@@ -95,20 +94,26 @@ impl Header {
         }
     }
 
-    pub fn dest(&self) -> Dest {
-        Dest::from_primitive(self.dest_code)
+    pub fn dest(&self) -> &'static str {
+        match self.dest_code {
+            0x00 => "Japan",
+            0x01 => "Overseas",
+            _ => "Unknown",
+        }
     }
 
     pub fn checksum(&self) -> bool {
-        const OFFSET_OF_VERSION: usize = offset_of!(Header, version);
+        const OFFSET_OF_TITLE: usize = offset_of!(Header, title);
         const OFFSET_OF_CHECKSUM: usize = offset_of!(Header, checksum);
         let to_check = unsafe {
             core::slice::from_raw_parts(
-                self as *const _ as u8 as *const u8,
-                OFFSET_OF_CHECKSUM - OFFSET_OF_VERSION,
+                &self.title as *const _ as usize as *const u8,
+                OFFSET_OF_CHECKSUM - OFFSET_OF_TITLE,
             )
         };
-        let sum = to_check.iter().fold(0u8, |acc, &i| acc - i - 1);
+        let sum = to_check
+            .iter()
+            .fold(0u8, |acc, &i| acc.wrapping_sub(i).wrapping_sub(1));
         if sum == self.checksum {
             true
         } else {
@@ -120,12 +125,42 @@ impl Header {
         }
     }
 
-    pub fn cart_code(&self) -> u8 {
+    pub fn cart_type(&self) -> u8 {
         self.cart_type
     }
 
-    pub fn cart_type(&self) -> Option<CartType> {
-        CartType::try_from_primitive(self.cart_type).ok()
+    pub fn cart_typename(&self) -> &'static str {
+        match self.cart_type {
+            0x00 => "ROM ONLY",
+            0x01 => "MBC1",
+            0x02 => "MBC1+RAM",
+            0x03 => "MBC1+RAM+BATTERY",
+            0x05 => "MBC2",
+            0x06 => "MBC2+BATTERY",
+            0x08 => "ROM+RAM",
+            0x09 => "ROM+RAM+BATTERY",
+            0x0B => "MMM01",
+            0x0C => "MMM01+RAM",
+            0x0D => "MMM01+RAM+BATTERY",
+            0x0F => "MBC3+TIMER+BATTERY",
+            0x10 => "MBC3+TIMER+RAM+BATTERY",
+            0x11 => "MBC3",
+            0x12 => "MBC3+RAM",
+            0x13 => "MBC3+RAM+BATTERY",
+            0x19 => "MBC5",
+            0x1A => "MBC5+RAM",
+            0x1B => "MBC5+RAM+BATTERY",
+            0x1C => "MBC5+RUMBLE",
+            0x1D => "MBC5+RUMBLE+RAM",
+            0x1E => "MBC5+RUMBLE+RAM+BATTERY",
+            0x20 => "MBC6",
+            0x22 => "MBC7+SENSOR+RUMBLE+RAM+BATTERY",
+            0xFC => "POCKET CAMERA",
+            0xFD => "BANDAI TAMA5",
+            0xFE => "HuC3",
+            0xFF => "HuC1+RAM+BATTERY",
+            _ => "UNKNOWN",
+        }
     }
 
     pub fn publisher(&self) -> &'static str {
@@ -365,140 +400,14 @@ impl Header {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
-#[repr(u8)]
-pub enum Dest {
-    Japan = 0x00,
-    Overseas = 0x01,
-    #[num_enum(default)]
-    Unknown = 0x02,
-}
-
-impl Dest {
-    pub fn str(self) -> &'static str {
-        match self {
-            Dest::Japan => "japan",
-            Dest::Overseas => "overseas",
-            Dest::Unknown => "unknown",
-        }
-    }
-}
-
-impl Display for Dest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.str())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
-#[repr(u8)]
-pub enum CartType {
-    RomOnly = 0x00,
-    /// 有mbc但没有ram
-    Mbc1 = 0x01,
-    /// 有mbc和ram
-    Mbc1Ram = 0x02,
-    /// 有mbc和ram和电池
-    Mbc1RamBattery = 0x03,
-    /// mbc2
-    Mbc2 = 0x05,
-    /// mbc2和电池
-    Mbc2Battery = 0x06,
-    /// rom+ram
-    RomRam = 0x08,
-    /// rom+ram+电池
-    RomRamBattery = 0x09,
-    /// MMM01
-    Mmm01 = 0x0B,
-    /// MMM01 + ram
-    Mmm01Ram = 0x0C,
-    /// MMM01 + ram + 电池
-    Mmm01RamBattery = 0x0D,
-    /// MBC3 + Timer + Battery
-    Mbc3TimerBattery = 0x0F,
-    /// MBC3 + Timer + Ram + Battery
-    Mbc3TimerRamBattery = 0x10,
-    /// MBC3
-    Mbc3 = 0x11,
-    /// MBC3 + Ram
-    Mbc3Ram = 0x12,
-    /// MBC3 + Ram + Battery
-    Mbc3RamBattery = 0x13,
-    /// MBC5
-    Mbc5 = 0x19,
-    /// MBC5 + Ram
-    Mbc5Ram = 0x1A,
-    /// MBC5 + Ram + Battery
-    Mbc5RamBattery = 0x1B,
-    /// MBC5 + Rumble
-    Mbc5Rumble = 0x1C,
-    /// MBC5 + Rumble + Ram
-    Mbc5RumbleRam = 0x1D,
-    /// MBC5 + Rumble + Ram + Battery
-    Mbc5RumbleRamBattery = 0x1E,
-    /// MBC6
-    Mbc6 = 0x20,
-    /// MBC7 + Sensor + Rumble + Ram + Battery
-    Mbc7SensorRumbleRamBattery = 0x22,
-    /// Pocket Camera
-    PocketCamera = 0xFC,
-    /// Bandai TAMA5
-    BandaiTama5 = 0xFD,
-    /// HuC3
-    HuC3 = 0xFE,
-    /// HuC1 + Ram + Battery
-    HuC1RamBattery = 0xFF,
-}
-
-impl Display for CartType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.str())
-    }
-}
-
-impl CartType {
-    pub fn str(self) -> &'static str {
-        match self {
-            CartType::RomOnly => "ROM ONLY",
-            CartType::Mbc1 => "MBC1",
-            CartType::Mbc1Ram => "MBC1+RAM",
-            CartType::Mbc1RamBattery => "MBC1+RAM+BATTERY",
-            CartType::Mbc2 => "MBC2",
-            CartType::Mbc2Battery => "MBC2+BATTERY",
-            CartType::RomRam => "ROM+RAM",
-            CartType::RomRamBattery => "ROM+RAM+BATTERY",
-            CartType::Mmm01 => "MMM01",
-            CartType::Mmm01Ram => "MMM01+RAM",
-            CartType::Mmm01RamBattery => "MMM01+RAM+BATTERY",
-            CartType::Mbc3TimerBattery => "MBC3+TIMER+BATTERY",
-            CartType::Mbc3TimerRamBattery => "MBC3+TIMER+RAM+BATTERY",
-            CartType::Mbc3 => "MBC3",
-            CartType::Mbc3Ram => "MBC3+RAM",
-            CartType::Mbc3RamBattery => "MBC3+RAM+BATTERY",
-            CartType::Mbc5 => "MBC5",
-            CartType::Mbc5Ram => "MBC5+RAM",
-            CartType::Mbc5RamBattery => "MBC5+RAM+BATTERY",
-            CartType::Mbc5Rumble => "MBC5+RUMBLE",
-            CartType::Mbc5RumbleRam => "MBC5+RUMBLE+RAM",
-            CartType::Mbc5RumbleRamBattery => "MBC5+RUMBLE+RAM+BATTERY",
-            CartType::Mbc6 => "MBC6",
-            CartType::Mbc7SensorRumbleRamBattery => "MBC7+SENSOR+RUMBLE+RAM+BATTERY",
-            CartType::PocketCamera => "POCKET CAMERA",
-            CartType::BandaiTama5 => "BANDAI TAMA5",
-            CartType::HuC3 => "HuC3",
-            CartType::HuC1RamBattery => "HuC1+RAM+BATTERY",
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::fs;
 
     const ROMS_PATH: &'static str = "../public/roms";
     fn read_roms() -> Vec<Vec<u8>> {
-        let entries = fs::read_dir(ROMS_PATH).unwrap();
-        entries
+        fs::read_dir(ROMS_PATH)
+            .unwrap()
             .map(|entry| fs::read(entry.unwrap().path()).unwrap())
             .collect()
     }
@@ -513,7 +422,7 @@ mod test {
             println!("testing rom {}", i + 1);
             let header = Header::from_rom(&rom);
             let title = header.title();
-            let ty = header.cart_type().unwrap();
+            let ty = header.cart_typename();
             let rom_size = header.rom_size();
             let ram_size = header
                 .ram_size()
