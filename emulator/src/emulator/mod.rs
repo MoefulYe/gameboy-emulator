@@ -10,5 +10,11 @@ impl Emulator {
         Self { cpu, bus }
     }
 
-    pub fn step(&mut self) {}
+    pub fn step(&mut self) {
+        self.cpu.step(&mut self.bus)
+    }
+
+    pub fn reset(&mut self) {
+        todo!()
+    }
 }

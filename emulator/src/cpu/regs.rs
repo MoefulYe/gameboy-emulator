@@ -1,4 +1,7 @@
-use crate::{types::Addr, utils::bit_proxy::BitProxy};
+use crate::{
+    types::{Addr, DWord, Word},
+    utils::bit_proxy::BitProxy,
+};
 use std::default::Default;
 
 /// https://gbdev.io/pandocs/CPU_Registers_and_Flags.html#registers
@@ -18,7 +21,7 @@ use std::default::Default;
 ///
 /// 8个8位寄存器(可以组成4个16位寄存器) 2个16位寄存器
 #[derive(Default)]
-pub struct Regs([u16; 4 + 2]);
+pub struct Regs([DWord; 6]);
 
 impl Regs {
     const A: usize = 0;
@@ -53,142 +56,142 @@ impl Regs {
     }
 
     #[inline]
-    fn as_double_word_registers(&self) -> &[u16; 6] {
+    fn as_double_word_registers(&self) -> &[DWord; 6] {
         &self.0
     }
 
     #[inline]
-    fn as_double_word_registers_mut(&mut self) -> &mut [u16; 6] {
+    fn as_double_word_registers_mut(&mut self) -> &mut [DWord; 6] {
         &mut self.0
     }
 
     #[inline]
-    fn as_single_word_registers(&self) -> &[u8; 8] {
+    fn as_single_word_registers(&self) -> &[Word; 8] {
         unsafe { &*(self as *const Self as *const _) }
     }
 
     #[inline]
-    fn as_single_word_registers_mut(&mut self) -> &mut [u8; 8] {
+    fn as_single_word_registers_mut(&mut self) -> &mut [Word; 8] {
         unsafe { &mut *(self as *mut Self as *mut _) }
     }
 
     #[inline]
-    pub fn a(&self) -> u8 {
+    pub fn a(&self) -> Word {
         self.as_single_word_registers()[Self::A]
     }
 
     #[inline]
-    pub fn a_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn a_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::A]
     }
 
     #[inline]
-    pub fn b(&self) -> u8 {
+    pub fn b(&self) -> Word {
         self.as_single_word_registers()[Self::B]
     }
 
     #[inline]
-    pub fn b_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn b_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::B]
     }
 
     #[inline]
-    pub fn c(&self) -> u8 {
+    pub fn c(&self) -> Word {
         self.as_single_word_registers()[Self::C]
     }
 
     #[inline]
-    pub fn c_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn c_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::C]
     }
 
     #[inline]
-    pub fn d(&self) -> u8 {
+    pub fn d(&self) -> Word {
         self.as_single_word_registers()[Self::D]
     }
 
     #[inline]
-    pub fn d_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn d_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::D]
     }
 
     #[inline]
-    pub fn e(&self) -> u8 {
+    pub fn e(&self) -> Word {
         self.as_single_word_registers()[Self::E]
     }
 
     #[inline]
-    pub fn e_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn e_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::E]
     }
 
     #[inline]
-    pub fn f(&self) -> u8 {
+    pub fn f(&self) -> Word {
         self.as_single_word_registers()[Self::F]
     }
 
     #[inline]
-    pub fn f_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn f_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::F]
     }
 
     #[inline]
-    pub fn h(&self) -> u8 {
+    pub fn h(&self) -> Word {
         self.as_single_word_registers()[Self::H]
     }
 
     #[inline]
-    pub fn h_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn h_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::H]
     }
 
     #[inline]
-    pub fn l(&self) -> u8 {
+    pub fn l(&self) -> Word {
         self.as_single_word_registers()[Self::L]
     }
 
     #[inline]
-    pub fn l_mut<'a>(&'a mut self) -> &'a mut u8 {
+    pub fn l_mut<'a>(&'a mut self) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[Self::L]
     }
 
     #[inline]
-    pub fn af(&self) -> u16 {
+    pub fn af(&self) -> DWord {
         self.as_double_word_registers()[Self::AF]
     }
 
     #[inline]
-    pub fn af_mut<'a>(&'a mut self) -> &'a mut u16 {
+    pub fn af_mut<'a>(&'a mut self) -> &'a mut DWord {
         &mut self.as_double_word_registers_mut()[Self::AF]
     }
 
     #[inline]
-    pub fn bc(&self) -> u16 {
+    pub fn bc(&self) -> DWord {
         self.as_double_word_registers()[Self::BC]
     }
 
     #[inline]
-    pub fn bc_mut<'a>(&'a mut self) -> &'a mut u16 {
+    pub fn bc_mut<'a>(&'a mut self) -> &'a mut DWord {
         &mut self.as_double_word_registers_mut()[Self::BC]
     }
 
     #[inline]
-    pub fn de(&self) -> u16 {
+    pub fn de(&self) -> DWord {
         self.as_double_word_registers()[Self::DE]
     }
 
     #[inline]
-    pub fn de_mut<'a>(&'a mut self) -> &'a mut u16 {
+    pub fn de_mut<'a>(&'a mut self) -> &'a mut DWord {
         &mut self.as_double_word_registers_mut()[Self::DE]
     }
 
     #[inline]
-    pub fn hl(&self) -> u16 {
+    pub fn hl(&self) -> DWord {
         self.as_double_word_registers()[Self::HL]
     }
 
     #[inline]
-    pub fn hl_mut<'a>(&'a mut self) -> &'a mut u16 {
+    pub fn hl_mut<'a>(&'a mut self) -> &'a mut DWord {
         &mut self.as_double_word_registers_mut()[Self::HL]
     }
 
@@ -213,22 +216,22 @@ impl Regs {
     }
 
     #[inline]
-    pub fn dw_reg(&self, idx: usize) -> u16 {
+    pub fn dw_reg(&self, idx: usize) -> DWord {
         self.as_double_word_registers()[idx]
     }
 
     #[inline]
-    pub fn dw_reg_mut<'a>(&'a mut self, idx: usize) -> &'a mut u16 {
+    pub fn dw_reg_mut<'a>(&'a mut self, idx: usize) -> &'a mut DWord {
         &mut self.as_double_word_registers_mut()[idx]
     }
 
     #[inline]
-    pub fn w_reg(&self, idx: usize) -> u8 {
+    pub fn w_reg(&self, idx: usize) -> Word {
         self.as_single_word_registers()[idx]
     }
 
     #[inline]
-    pub fn w_reg_mut<'a>(&'a mut self, idx: usize) -> &'a mut u8 {
+    pub fn w_reg_mut<'a>(&'a mut self, idx: usize) -> &'a mut Word {
         &mut self.as_single_word_registers_mut()[idx]
     }
 
@@ -270,5 +273,10 @@ impl Regs {
     #[inline]
     pub fn carry_flag_mut<'a>(&'a mut self) -> BitProxy<'a> {
         BitProxy::new(self.f_mut(), Self::CARRY_FLAG)
+    }
+
+    #[inline]
+    pub fn reset(&mut self) {
+        self.0 = [0; 6];
     }
 }

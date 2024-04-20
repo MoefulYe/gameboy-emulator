@@ -1,10 +1,12 @@
+use crate::types::Word;
+
 pub struct BitProxy<'a> {
-    byte: &'a mut u8,
+    byte: &'a mut Word,
     pos: u8,
 }
 
 impl<'a> BitProxy<'a> {
-    pub fn new(byte: &'a mut u8, pos: u8) -> Self {
+    pub fn new(byte: &'a mut Word, pos: u8) -> Self {
         BitProxy { byte, pos }
     }
 
