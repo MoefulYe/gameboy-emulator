@@ -15,6 +15,7 @@ const ROM_OFFSET: usize = 0x0100;
 #[repr(C)]
 pub struct Header {
     /// 卡带加载后的首先被执行的指令
+    #[allow(unused)]
     entry: [u8; ENTRY_SIZE],
     /// 任天堂公司标志，固定值
     nintendo_logo: [u8; LOGO_SIZE],
@@ -43,10 +44,6 @@ impl Header {
             let base = rom.as_ptr().add(ROM_OFFSET) as *const Self;
             &*base
         }
-    }
-
-    pub fn entry(&self) -> [u8; ENTRY_SIZE] {
-        self.entry
     }
 
     //TODO The CGB and later models only check the top half of the logo (the first $18 bytes).

@@ -1,5 +1,5 @@
 [package]
-name = "gameboy"
+name = "emulator"
 version = "0.1.0"
 authors = ["ashenye <luren145@gmail.com>"]
 edition = "2018"
