@@ -1,6 +1,7 @@
 use crate::{
     cpu::CPU,
     dev::{bus::Bus, clock::Clock},
+    types::ClockCycle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +38,7 @@ pub struct Emulator {
     cpu: CPU,
     bus: Bus,
     clock: Clock,
+    paused: bool,
 }
 
 impl Emulator {
@@ -45,14 +47,15 @@ impl Emulator {
             cpu,
             bus,
             clock: Clock::new(),
+            paused: false,
         }
     }
 
-    fn clock_devices(&mut self, cycles: u32, cycles_n: u32) {
+    fn clock_devices(&mut self, cycles: ClockCycle, cycles_n: ClockCycle) {
         todo!()
     }
 
-    fn clock(&mut self) -> u32 {
+    fn clock(&mut self) -> ClockCycle {
         let cycles = self.cpu.clock(&mut self.bus);
         //TODO GameBoySpeed
         let cycles_n = cycles;
@@ -61,8 +64,11 @@ impl Emulator {
     }
 
     pub fn update(&mut self, delta_time: f64) {
+        if self.paused {
+            return;
+        }
         let ticks = self.clock.ticks(delta_time);
-        let mut clocks = 0u32;
+        let mut clocks = 0;
         while clocks < ticks {
             clocks += self.clock()
         }
@@ -72,5 +78,21 @@ impl Emulator {
 
     pub fn reset(&mut self) {
         todo!()
+    }
+
+    pub fn bus(&self) -> &Bus {
+        &self.bus
+    }
+
+    pub fn bus_mut(&mut self) -> &mut Bus {
+        &mut self.bus
+    }
+
+    pub fn pause(&mut self) {
+        self.paused = true;
+    }
+
+    pub fn resume(&mut self) {
+        self.paused = false;
     }
 }

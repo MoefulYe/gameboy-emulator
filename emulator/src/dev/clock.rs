@@ -1,18 +1,29 @@
+use crate::types::ClockCycle;
+
 pub struct Clock {
+    /// 时钟频率 MHZ
     freq: f64,
-    cycles: u32,
+    /// 计划运行的时钟周期数
+    planned_cycles: ClockCycle,
+    /// 已经运行的时钟周期数
+    actutal_cycles: ClockCycle,
 }
 
 impl Clock {
     pub fn new() -> Self {
         Self {
             freq: Self::BASE_FREQ,
-            cycles: 0,
+            planned_cycles: 0,
+            actutal_cycles: 0,
         }
     }
 
     pub fn with_freq(freq: f64) -> Self {
-        Self { freq, cycles: 0 }
+        Self {
+            freq,
+            planned_cycles: 0,
+            actutal_cycles: 0,
+        }
     }
 
     pub fn set_freq(&mut self, freq: f64) {
@@ -20,20 +31,24 @@ impl Clock {
     }
 
     pub fn reset(&mut self) {
-        self.freq = Self::BASE_FREQ
+        self.freq = Self::BASE_FREQ;
+        self.planned_cycles = 0;
+        self.actutal_cycles = 0;
     }
 
     const BASE_FREQ: f64 = 4_194_304.0;
 
-    pub fn ticks(&self, delta_time: f64) -> u32 {
-        (self.freq * delta_time) as u32
+    pub fn ticks(&mut self, delta_time: f64) -> ClockCycle {
+        let ticks = (self.freq * delta_time) as ClockCycle;
+        self.planned_cycles += ticks;
+        if self.planned_cycles <= self.actutal_cycles {
+            0
+        } else {
+            self.planned_cycles - self.actutal_cycles
+        }
     }
 
-    pub fn add_cycles(&mut self, clocks: u32) {
-        self.cycles += clocks
-    }
-
-    pub fn cycles(&self) -> u32 {
-        self.cycles
+    pub fn add_cycles(&mut self, clocks: ClockCycle) {
+        self.actutal_cycles += clocks as ClockCycle;
     }
 }
