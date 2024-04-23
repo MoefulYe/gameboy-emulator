@@ -2,10 +2,12 @@ use std::fmt::Display;
 
 pub enum EmulatorError {
     InvalidLogo,
-    InvalidRamSize,
-    InvalidDestCode,
     /// 卡带校验和不正确
-    InvalidChecksum,
+    InvalidDestCode,
+    /// 未插入卡带
+    NoCartridge,
+    /// 不合法的指令
+    IllegalInstruction,
 }
 
 impl Display for EmulatorError {

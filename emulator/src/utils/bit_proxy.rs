@@ -25,4 +25,12 @@ impl<'a> BitProxy<'a> {
     pub fn clear(&mut self) {
         *self.byte &= !(1 << self.pos);
     }
+
+    pub fn set_value(&mut self, val: bool) {
+        if val {
+            self.set();
+        } else {
+            self.clear();
+        }
+    }
 }

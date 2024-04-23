@@ -1,5 +1,6 @@
 use crate::{
     cartridge::Cartridge,
+    error::{EmulatorError, Result},
     types::{Addr, Word},
 };
 use log::warn;
@@ -44,7 +45,7 @@ impl Bus {
         }
     }
 
-    pub fn read(&self, addr: Addr) -> Word {
+    pub fn read(&self, addr: Addr) -> Result<Word> {
         match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
@@ -52,7 +53,7 @@ impl Bus {
                     c.read(addr)
                 } else {
                     warn!("no cartridge is plugged in! illegal read at address: 0x:{addr:04X}");
-                    0x00
+                    Err(EmulatorError::NoCartridge)
                 }
             }
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.read(addr),
@@ -60,30 +61,37 @@ impl Bus {
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.read(addr),
             IO_LOW_BOUND..=IO_HIGH_BOUND_INCLUDED => self.io_regs.read(addr),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
-            IE_REG_ADDR => self.ie_reg,
+            IE_REG_ADDR => Ok(self.ie_reg),
             _ => {
                 warn!("illegal read at address: 0x{addr:04X}");
-                0xFF
+                Ok(0xFF)
             }
         }
     }
 
-    pub fn write(&mut self, addr: Addr, data: Word) {
+    pub fn write(&mut self, addr: Addr, data: Word) -> Result {
         match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
                 if let Some(ref mut c) = self.cartridge {
-                    c.write(addr, data);
+                    c.write(addr, data)
                 } else {
                     warn!("no cartridge is plugged in! illegal write at address: 0x:{addr:04X}");
+                    Err(EmulatorError::NoCartridge)
                 }
             }
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.write(addr, data),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.write(addr, data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),
-            IE_REG_ADDR => self.ie_reg = data,
-            _ => warn!("illegal write at address: 0x{addr:04X}"),
+            IE_REG_ADDR => {
+                self.ie_reg = data;
+                Ok(())
+            }
+            _ => {
+                warn!("illegal write at address: 0x{addr:04X}");
+                Ok(())
+            }
         }
     }
 }
@@ -123,13 +131,14 @@ pub const HRAM_HIGH_BOUND_INCLUDED: Addr = HRAM_HIGH_BOUND - 1;
 
 pub trait BusDevice {
     /// 默认返回0xFF
-    fn read(&self, addr: Addr) -> Word {
+    fn read(&self, addr: Addr) -> Result<Word> {
         warn!("illegal read at address: 0x{addr:04X}");
-        0xFF
+        Ok(0xFF)
     }
 
     #[allow(unused)]
-    fn write(&mut self, addr: Addr, data: Word) {
+    fn write(&mut self, addr: Addr, data: Word) -> Result {
         warn!("illegal write at address: 0x{addr:04X}");
+        Ok(())
     }
 }

@@ -1,6 +1,7 @@
 use crate::{
     cpu::CPU,
     dev::{bus::Bus, clock::Clock},
+    error::{EmulatorError, Result},
     types::ClockCycle,
 };
 
@@ -51,29 +52,36 @@ impl Emulator {
         }
     }
 
-    fn clock_devices(&mut self, cycles: ClockCycle, cycles_n: ClockCycle) {
+    fn clock_devices(&mut self, cycles: ClockCycle, cycles_n: ClockCycle) -> Result {
         todo!()
     }
 
-    fn clock(&mut self) -> ClockCycle {
-        let cycles = self.cpu.clock(&mut self.bus);
+    fn clock(&mut self) -> Result<ClockCycle> {
+        let cycles = self.cpu.clock(&mut self.bus)?;
         //TODO GameBoySpeed
         let cycles_n = cycles;
-        self.clock_devices(cycles, cycles_n);
-        cycles
+        self.clock_devices(cycles, cycles_n)?;
+        Ok(cycles)
     }
 
-    pub fn update(&mut self, delta_time: f64) {
+    pub fn update(&mut self, delta_time: f64) -> Result {
         if self.paused {
-            return;
+            return Ok(());
         }
         let ticks = self.clock.ticks(delta_time);
         let mut clocks = 0;
         while clocks < ticks {
-            clocks += self.clock()
+            clocks += self.clock()?;
         }
         self.clock.add_cycles(clocks);
-        todo!();
+        Ok(())
+    }
+
+    pub fn handle_err(&mut self, err: EmulatorError) {
+        self.paused = true;
+        // match err {
+        //
+        // }
     }
 
     pub fn reset(&mut self) {

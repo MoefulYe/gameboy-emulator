@@ -4,9 +4,9 @@ pub struct Clock {
     /// 时钟频率 MHZ
     freq: f64,
     /// 计划运行的时钟周期数
-    planned_cycles: ClockCycle,
+    planned_cycles: u64,
     /// 已经运行的时钟周期数
-    actutal_cycles: ClockCycle,
+    actutal_cycles: u64,
 }
 
 impl Clock {
@@ -40,15 +40,15 @@ impl Clock {
 
     pub fn ticks(&mut self, delta_time: f64) -> ClockCycle {
         let ticks = (self.freq * delta_time) as ClockCycle;
-        self.planned_cycles += ticks;
+        self.planned_cycles += ticks as u64;
         if self.planned_cycles <= self.actutal_cycles {
             0
         } else {
-            self.planned_cycles - self.actutal_cycles
+            (self.planned_cycles - self.actutal_cycles) as ClockCycle
         }
     }
 
     pub fn add_cycles(&mut self, clocks: ClockCycle) {
-        self.actutal_cycles += clocks as ClockCycle;
+        self.actutal_cycles += clocks as u64;
     }
 }
