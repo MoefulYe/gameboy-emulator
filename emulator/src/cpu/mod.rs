@@ -17,6 +17,20 @@ pub struct CPU {
     halted: bool,
 }
 
+impl std::ops::DerefMut for CPU {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.regs
+    }
+}
+
+impl std::ops::Deref for CPU {
+    type Target = Regs;
+
+    fn deref(&self) -> &Self::Target {
+        &self.regs
+    }
+}
+
 impl CPU {
     pub fn new() -> Self {
         Self {
@@ -71,10 +85,6 @@ impl CPU {
         self.halted
     }
 
-    pub fn pc(&self) -> Addr {
-        self.regs.pc()
-    }
-
     fn pc_inc(&mut self) {
         *self.regs.pc_mut() += 1;
     }
@@ -96,12 +106,12 @@ impl CPU {
     }
 
     fn jr(&mut self, offset: Word) {
-        let pc = self.regs().pc_mut();
+        let pc = self.regs_mut().pc_mut();
         let offset = offset as i8 as i16 as Addr;
         *pc = pc.wrapping_add(offset)
     }
 
-    fn enable_int(&mut self, bus: &mut Bus) {
+    fn enable_int(&mut self, _: &mut Bus) {
         todo!()
     }
 }
@@ -788,8 +798,8 @@ impl CPU {
         let sp = regs.sp() as i16;
         let result = sp.wrapping_add(imme8);
         let check = sp ^ imme8 ^ result;
-        regs.half_carry_flag_mut().set_value((check & 0x10) != 0);
-        regs.carry_flag_mut().set_value((check & 0x100) != 0);
+        regs.half_carry_flag_mut().set_value(check & 0x10 != 0);
+        regs.carry_flag_mut().set_value(check & 0x100 != 0);
         Ok(12)
     }
 }
@@ -1221,5 +1231,792 @@ impl CPU {
         self.push_dword(bus, self.pc());
         self.jp(0x0038);
         Ok(16)
+    }
+}
+
+/// 算术逻辑运算指令
+impl CPU {
+    /// INC B
+    fn inst_0x04_inc_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let b = regs.b_mut();
+        let result = b.wrapping_add(1);
+        *b = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC B
+    fn inst_0x05_dec_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let b = regs.b_mut();
+        let result = b.wrapping_sub(1);
+        *b = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC C
+    fn inst_0x0c_inc_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let c = regs.c_mut();
+        let result = c.wrapping_add(1);
+        *c = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC C
+    fn inst_0x0d_dec_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let c = regs.c_mut();
+        let result = c.wrapping_sub(1);
+        *c = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC D
+    fn inst_0x14_inc_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let d = regs.d_mut();
+        let result = d.wrapping_add(1);
+        *d = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC D
+    fn inst_0x15_dec_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let d = regs.d_mut();
+        let result = d.wrapping_sub(1);
+        *d = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC E
+    fn inst_0x1c_inc_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let e = regs.e_mut();
+        let result = e.wrapping_add(1);
+        *e = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC E
+    fn inst_0x1d_dec_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let e = regs.e_mut();
+        let result = e.wrapping_sub(1);
+        *e = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC H
+    fn inst_0x24_inc_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let h = regs.h_mut();
+        let result = h.wrapping_add(1);
+        *h = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC HINC
+    fn inst_0x25_dec_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let h = regs.h_mut();
+        let result = h.wrapping_sub(1);
+        *h = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC L
+    fn inst_0x2c_inc_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let l = regs.l_mut();
+        let result = l.wrapping_add(1);
+        *l = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC L
+    fn inst_0x2d_dec_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let l = regs.l_mut();
+        let result = l.wrapping_sub(1);
+        *l = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC A
+    fn inst_0x3c_inc_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let a = regs.a_mut();
+        let result = a.wrapping_add(1);
+        *a = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0x0);
+        Ok(4)
+    }
+
+    /// DEC A
+    fn inst_0x3d_dec_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let a = regs.a_mut();
+        let result = a.wrapping_sub(1);
+        *a = result;
+        regs.zero_flag_mut().set_value(result == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((result & 0xF) == 0xF);
+        Ok(4)
+    }
+
+    /// INC (HL)
+    fn inst_0x34_inc_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let addr = regs.hl();
+        let data = bus.read(addr)? + 1;
+        regs.zero_flag_mut().set_value(data == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((data & 0xF) == 0x0);
+        bus.write(addr, data)?;
+        Ok(12)
+    }
+
+    /// DEC (HL)
+    fn inst_0x35_dec_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let regs = self.regs_mut();
+        let addr = regs.hl();
+        let data = bus.read(addr)? - 1;
+        regs.zero_flag_mut().set_value(data == 0);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut().set_value((data & 0xF) == 0xF);
+        bus.write(addr, data)?;
+        Ok(12)
+    }
+
+    /// INC BC
+    fn inst_0x03_inc_bc(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let bc = self.regs_mut().bc_mut();
+        *bc = bc.wrapping_add(1);
+        Ok(8)
+    }
+
+    /// DEC BC
+    fn inst_0x0b_dec_bc(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let bc = self.regs_mut().bc_mut();
+        *bc = bc.wrapping_sub(1);
+        Ok(8)
+    }
+
+    /// INC DE
+    fn inst_0x13_inc_de(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let de = self.regs_mut().de_mut();
+        *de = de.wrapping_add(1);
+        Ok(8)
+    }
+
+    /// DEC DE
+    fn inst_0x1b_dec_de(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let de = self.regs_mut().de_mut();
+        *de = de.wrapping_sub(1);
+        Ok(8)
+    }
+
+    /// INC HL
+    fn inst_0x23_inc_hl(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let hl = self.regs_mut().hl_mut();
+        *hl = hl.wrapping_add(1);
+        Ok(8)
+    }
+
+    /// DEC HL
+    fn inst_0x2b_dec_hl(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let hl = self.regs_mut().hl_mut();
+        *hl = hl.wrapping_sub(1);
+        Ok(8)
+    }
+
+    /// INC SP
+    fn inst_0x33_inc_sp(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let sp = self.regs_mut().sp_mut();
+        *sp = sp.wrapping_add(1);
+        Ok(8)
+    }
+
+    /// DEC SP
+    fn inst_0x3b_dec_sp(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let sp = self.regs_mut().sp_mut();
+        *sp = sp.wrapping_sub(1);
+        Ok(8)
+    }
+
+    fn add_a_with(&mut self, rhs: Word) {
+        let regs = self.regs_mut();
+        let lhs = regs.a() as u32;
+        let rhs = rhs as u32;
+        let result = lhs.wrapping_add(rhs);
+        regs.negative_flag_mut().clear();
+        regs.zero_flag_mut().set_value(result & 0xFF == 0);
+        regs.half_carry_flag_mut()
+            .set_value(lhs & 0xF + rhs & 0xF > 0xF);
+        regs.carry_flag_mut().set_value(result > 0xFF);
+        *regs.a_mut() = result as Word;
+    }
+
+    /// ADD A, B
+    fn inst_0x80_add_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().b());
+        Ok(4)
+    }
+
+    /// ADD A, C
+    fn inst_0x81_add_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().c());
+        Ok(4)
+    }
+
+    /// ADD A, D
+    fn inst_0x82_add_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().d());
+        Ok(4)
+    }
+
+    /// ADD A, E
+    fn inst_0x83_add_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().e());
+        Ok(4)
+    }
+
+    /// ADD A, H
+    fn inst_0x84_add_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().h());
+        Ok(4)
+    }
+
+    /// ADD A, L
+    fn inst_0x85_add_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().l());
+        Ok(4)
+    }
+
+    /// ADD A, A
+    fn inst_0x87_add_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_a_with(self.regs().a());
+        Ok(4)
+    }
+
+    /// ADD A, imm8
+    fn inst_0xc6_add_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.add_a_with(data);
+        Ok(8)
+    }
+
+    /// ADD A, (HL)
+    fn inst_0x86_add_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.regs().hl())?;
+        self.add_a_with(data);
+        Ok(8)
+    }
+
+    fn add_hl_with(&mut self, rhs: DWord) {
+        let regs = self.regs_mut();
+        let lhs = regs.hl() as u32;
+        let rhs = rhs as u32;
+        let result = lhs.wrapping_add(rhs);
+        regs.negative_flag_mut().clear();
+        regs.half_carry_flag_mut()
+            .set_value(lhs & 0xFFF + rhs & 0xFFF > 0xFFF);
+        regs.carry_flag_mut().set_value(result > 0xFFFF);
+        *regs.hl_mut() = result as DWord;
+    }
+
+    /// ADD HL, BC
+    fn inst_0x09_add_hl_bc(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_hl_with(self.bc());
+        Ok(8)
+    }
+
+    /// ADD HL, DE
+    fn inst_0x19_add_hl_de(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_hl_with(self.de());
+        Ok(8)
+    }
+
+    /// ADD HL, DE
+    fn inst_0x29_add_hl_hl(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_hl_with(self.hl());
+        Ok(8)
+    }
+
+    /// ADD HL, SP
+    fn inst_0x39_add_hl_sp(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.add_hl_with(self.sp());
+        Ok(8)
+    }
+
+    /// ADD SP, imm8
+    fn inst_0xe8_add_sp_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let lhs = self.sp();
+        let imm8 = self.read_imm8bit(bus)? as i8 as DWord;
+        let result = lhs.wrapping_add(imm8);
+        let check = lhs ^ result ^ imm8;
+        *self.sp_mut() = result;
+        self.zero_flag_mut().clear();
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().set_value(check & 0x10 != 0);
+        self.carry_flag_mut().set_value(check & 0x100 != 0);
+        Ok(16)
+    }
+
+    fn adc_a_with(&mut self, rhs: Word) {
+        let lhs = self.a() as u32;
+        let rhs = rhs as u32;
+        let carry: u32 = if self.carry_flag() { 1 } else { 0 };
+        let result = lhs + rhs + carry;
+        self.zero_flag_mut().set_value(result & 0xFF == 0);
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut()
+            .set_value(lhs & 0xF + rhs & 0xF + carry > 0xF);
+        self.carry_flag_mut().set_value(result > 0xFF);
+        *self.a_mut() = result as Word;
+    }
+
+    fn inst_0x88_adc_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.b());
+        Ok(4)
+    }
+
+    fn inst_0x89_adc_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.c());
+        Ok(4)
+    }
+
+    fn inst_0x8a_adc_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.d());
+        Ok(4)
+    }
+
+    fn inst_0x8b_adc_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.e());
+        Ok(4)
+    }
+
+    fn inst_0x8c_adc_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.h());
+        Ok(4)
+    }
+
+    fn inst_0x8d_adc_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.l());
+        Ok(4)
+    }
+
+    fn inst_0x8e_adc_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.adc_a_with(self.a());
+        Ok(4)
+    }
+
+    /// ADC A, imm8
+    fn inst_0xce_add_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.adc_a_with(data);
+        Ok(8)
+    }
+
+    /// ADC A, (HL)
+    fn inst_0x8e_adc_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.hl())?;
+        self.adc_a_with(data);
+        Ok(8)
+    }
+
+    fn sub_a_with(&mut self, rhs: Word) {
+        let lhs = self.a();
+        let result = lhs.wrapping_sub(rhs);
+        self.zero_flag_mut().set_value(result == 0);
+        self.negative_flag_mut().set();
+        self.half_carry_flag_mut().set_value(lhs & 0xF < rhs & 0xF);
+        self.carry_flag_mut().set_value(lhs < rhs);
+        *self.a_mut() = result;
+    }
+
+    fn inst_0x90_sub_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.b());
+        Ok(4)
+    }
+
+    fn inst_0x91_sub_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.c());
+        Ok(4)
+    }
+
+    fn inst_0x92_sub_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.d());
+        Ok(4)
+    }
+
+    fn inst_0x93_sub_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.e());
+        Ok(4)
+    }
+
+    fn inst_0x94_sub_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.h());
+        Ok(4)
+    }
+
+    fn inst_0x95_sub_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.l());
+        Ok(4)
+    }
+
+    fn inst_0x96_sub_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sub_a_with(self.a());
+        Ok(4)
+    }
+
+    /// SUB A, imm8
+    fn inst_0xd6_sub_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.sub_a_with(data);
+        Ok(8)
+    }
+
+    /// SUB A, (HL)
+    fn inst_0x96_sub_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.hl())?;
+        self.sub_a_with(data);
+        Ok(8)
+    }
+
+    fn sbc_a_with(&mut self, rhs: Word) {
+        let carry: Word = if self.carry_flag() { 1 } else { 0 };
+        let lhs = self.a();
+        let rhs = rhs;
+        let result = lhs.wrapping_sub(rhs).wrapping_sub(carry);
+        self.zero_flag_mut().set_value(result == 0);
+        self.negative_flag_mut().set();
+        self.half_carry_flag_mut()
+            .set_value(lhs & 0xF < rhs & 0xF + carry);
+        self.carry_flag_mut().set_value(lhs < rhs + carry);
+        *self.a_mut() = result as Word;
+    }
+
+    /// SBC A, B
+    fn inst_0x98_sbc_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.b());
+        Ok(4)
+    }
+
+    /// SBC A, C
+    fn inst_0x99_sbc_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.c());
+        Ok(4)
+    }
+
+    /// SBC A, D
+    fn inst_0x9a_sbc_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.d());
+        Ok(4)
+    }
+
+    /// SBC A, E
+    fn inst_0x9b_sbc_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.e());
+        Ok(4)
+    }
+
+    /// SBC A, H
+    fn inst_0x9c_sbc_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.h());
+        Ok(4)
+    }
+
+    /// SBC A, L
+    fn inst_0x9d_sbc_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.l());
+        Ok(4)
+    }
+
+    /// SBC A, A
+    fn inst_0x9f_sbc_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.sbc_a_with(self.a());
+        Ok(4)
+    }
+
+    /// SBC A, imm8
+    fn inst_0xde_sbc_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.sbc_a_with(data);
+        Ok(8)
+    }
+
+    /// SBC A, (HL)
+    fn inst_0x9e_sbc_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.hl())?;
+        self.sbc_a_with(data);
+        Ok(8)
+    }
+
+    fn and_a_with(&mut self, rhs: Word) {
+        let result = self.a() & rhs;
+        self.zero_flag_mut().set_value(result == 0);
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().set();
+        self.carry_flag_mut().clear();
+        *self.a_mut() = result;
+    }
+
+    fn inst_0xa0_and_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.b());
+        Ok(4)
+    }
+
+    fn inst_0xa1_and_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.c());
+        Ok(4)
+    }
+
+    fn inst_0xa2_and_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.d());
+        Ok(4)
+    }
+
+    fn inst_0xa3_and_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.e());
+        Ok(4)
+    }
+
+    fn inst_0xa4_and_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.h());
+        Ok(4)
+    }
+
+    fn inst_0xa5_and_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.l());
+        Ok(4)
+    }
+
+    fn inst_0xa7_and_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.and_a_with(self.a());
+        Ok(4)
+    }
+
+    fn inst_0xe6_and_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.and_a_with(data);
+        Ok(8)
+    }
+
+    fn inst_0xa6_and_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.hl())?;
+        self.and_a_with(data);
+        Ok(8)
+    }
+
+    fn xor_a_with(&mut self, rhs: Word) {
+        let result = self.a() ^ rhs;
+        self.zero_flag_mut().set_value(result == 0);
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
+        self.carry_flag_mut().clear();
+        *self.a_mut() = result;
+    }
+
+    fn inst_0xa8_xor_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.b());
+        Ok(4)
+    }
+
+    fn inst_0xa9_xor_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.c());
+        Ok(4)
+    }
+
+    fn inst_0xaa_xor_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.d());
+        Ok(4)
+    }
+
+    fn inst_0xab_xor_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.e());
+        Ok(4)
+    }
+
+    fn inst_0xac_xor_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.h());
+        Ok(4)
+    }
+
+    fn inst_0xad_xor_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.l());
+        Ok(4)
+    }
+
+    fn inst_0xaf_xor_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.xor_a_with(self.a());
+        Ok(4)
+    }
+
+    fn inst_0xee_xor_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.xor_a_with(data);
+        Ok(8)
+    }
+
+    fn inst_0xae_xor_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.hl())?;
+        self.xor_a_with(data);
+        Ok(8)
+    }
+
+    fn or_a_with(&mut self, rhs: Word) {
+        let result = self.a() | rhs;
+        self.zero_flag_mut().set_value(result == 0);
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
+        self.carry_flag_mut().clear();
+        *self.a_mut() = result;
+    }
+
+    fn inst_0xb0_or_a_b(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.b());
+        Ok(4)
+    }
+
+    fn inst_0xb1_or_a_c(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.c());
+        Ok(4)
+    }
+
+    fn inst_0xb2_or_a_d(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.d());
+        Ok(4)
+    }
+
+    fn inst_0xb3_or_a_e(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.e());
+        Ok(4)
+    }
+
+    fn inst_0xb4_or_a_h(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.h());
+        Ok(4)
+    }
+
+    fn inst_0xb5_or_a_l(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.l());
+        Ok(4)
+    }
+
+    fn inst_0xb7_or_a_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.or_a_with(self.a());
+        Ok(4)
+    }
+
+    fn inst_0xf6_or_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = self.read_imm8bit(bus)?;
+        self.or_a_with(data);
+        Ok(8)
+    }
+
+    fn inst_0xb6_or_a_mhl(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let data = bus.read(self.hl())?;
+        self.or_a_with(data);
+        Ok(8)
+    }
+
+    fn inst_0x2f_cpl_a(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        *self.a_mut() ^= 0xFF;
+        self.negative_flag_mut().set();
+        self.half_carry_flag_mut().set();
+        Ok(4)
+    }
+
+    fn inst_0x37_scf(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.carry_flag_mut().set();
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
+        Ok(4)
+    }
+
+    fn inst_0x3f_ccf(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        self.carry_flag_mut().flip();
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
+        Ok(4)
+    }
+
+    fn inst_0x27(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        let a = self.a();
+        let bcd = if self.negative_flag() {
+            if self.carry_flag() {
+                if self.half_carry_flag() {
+                    a.wrapping_add(0x9A)
+                } else {
+                    a.wrapping_add(0xA0)
+                }
+            } else {
+                if self.half_carry_flag() {
+                    a.wrapping_add(0xFA)
+                } else {
+                    a
+                }
+            }
+        } else {
+            if self.carry_flag() || a > 0x99 {
+                self.carry_flag_mut().set();
+                if self.half_carry_flag() || a & 0x0F > 0x09 {
+                    a.wrapping_add(0x66)
+                } else {
+                    a.wrapping_add(0x60)
+                }
+            } else {
+                if self.half_carry_flag() || a & 0x0F > 0x09 {
+                    a.wrapping_add(0x06)
+                } else {
+                    a
+                }
+            }
+        };
+        self.zero_flag_mut().set_value(bcd == 0);
+        self.half_carry_flag_mut().clear();
+        *self.a_mut() = bcd;
+        Ok(4)
     }
 }

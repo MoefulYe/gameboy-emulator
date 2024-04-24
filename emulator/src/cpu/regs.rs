@@ -24,22 +24,22 @@ use std::default::Default;
 pub struct Regs([DWord; 6]);
 
 impl Regs {
-    pub const A: usize = 0;
+    const A: usize = 0;
     /// F（flags）寄存器用于存储CPU在运行过程中产生的各种位，其只有高位的4个比特有效，低位的4个比特永远是0
-    pub const F: usize = 1;
-    pub const B: usize = 2;
-    pub const C: usize = 3;
-    pub const D: usize = 4;
-    pub const E: usize = 5;
-    pub const H: usize = 6;
-    pub const L: usize = 7;
+    const F: usize = 1;
+    const B: usize = 2;
+    const C: usize = 3;
+    const D: usize = 4;
+    const E: usize = 5;
+    const H: usize = 6;
+    const L: usize = 7;
 
-    pub const AF: usize = 0;
-    pub const BC: usize = 1;
-    pub const DE: usize = 2;
-    pub const HL: usize = 3;
-    pub const SP: usize = 4;
-    pub const PC: usize = 5;
+    const AF: usize = 0;
+    const BC: usize = 1;
+    const DE: usize = 2;
+    const HL: usize = 3;
+    const SP: usize = 4;
+    const PC: usize = 5;
 
     /// 当运算结果为0时设置为1，否则设置为0。
     const ZERO_FLAG: u8 = 7;
@@ -214,26 +214,6 @@ impl Regs {
     #[inline]
     pub fn pc_mut<'a>(&'a mut self) -> &'a mut Addr {
         &mut self.as_double_word_registers_mut()[Self::PC]
-    }
-
-    #[inline]
-    pub fn dw_reg(&self, idx: usize) -> DWord {
-        self.as_double_word_registers()[idx]
-    }
-
-    #[inline]
-    pub fn dw_reg_mut<'a>(&'a mut self, idx: usize) -> &'a mut DWord {
-        &mut self.as_double_word_registers_mut()[idx]
-    }
-
-    #[inline]
-    pub fn w_reg(&self, idx: usize) -> Word {
-        self.as_single_word_registers()[idx]
-    }
-
-    #[inline]
-    pub fn w_reg_mut<'a>(&'a mut self, idx: usize) -> &'a mut Word {
-        &mut self.as_single_word_registers_mut()[idx]
     }
 
     #[inline]
