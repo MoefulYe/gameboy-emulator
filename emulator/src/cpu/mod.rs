@@ -1,16 +1,14 @@
-use log::error;
-
+use self::regs::Regs;
 use crate::{
     dev::bus::{Bus, IO_LOW_BOUND},
     error::{EmulatorError, Result},
     types::{Addr, ClockCycle, DWord, OpCode, Word},
 };
+use log::error;
 
-use self::regs::Regs;
-
+mod cb;
+mod regs;
 type Inst = fn(&mut CPU, &mut Bus) -> Result<ClockCycle>;
-
-pub mod regs;
 
 pub struct CPU {
     regs: Regs,
@@ -633,7 +631,7 @@ impl CPU {
 /// LD from immediate 8bit data to 8bit register instructions
 impl CPU {
     #[inline]
-    fn read_imm8bit(&mut self, bus: &mut Bus) -> Result<Word> {
+    fn read_word(&mut self, bus: &mut Bus) -> Result<Word> {
         let pc = self.pc();
         let data = bus.read(pc)?;
         self.pc_inc();
@@ -641,43 +639,43 @@ impl CPU {
     }
 
     fn inst_0x06_ld_b_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().b_mut() = data;
         Ok(8)
     }
 
     fn inst_0x0e_ld_c_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().c_mut() = data;
         Ok(8)
     }
 
     fn inst_0x16_ld_d_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().d_mut() = data;
         Ok(8)
     }
 
     fn inst_0x1e_ld_e_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().e_mut() = data;
         Ok(8)
     }
 
     fn inst_0x26_ld_h_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().h_mut() = data;
         Ok(8)
     }
 
     fn inst_0x2e_ld_l_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().l_mut() = data;
         Ok(8)
     }
 
     fn inst_0x3e_ld_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         *self.regs_mut().a_mut() = data;
         Ok(8)
     }
@@ -686,7 +684,7 @@ impl CPU {
 /// LD (16 bits register pointers to memory), immediate 8bit data
 impl CPU {
     fn inst_0x36_ld_mdl_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let word = self.read_imm8bit(bus)?;
+        let word = self.read_word(bus)?;
         let hl = self.regs().hl();
         bus.write(hl, word)?;
         Ok(12)
@@ -696,7 +694,7 @@ impl CPU {
 /// LDH between (0xFF00 + immediate 8bit data) and A instructions
 impl CPU {
     fn inst_0xe0_ldh_mimm8_a(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let imme8 = self.read_imm8bit(bus)?;
+        let imme8 = self.read_word(bus)?;
         let addr = IO_LOW_BOUND + imme8 as Addr;
         let a = self.regs().a();
         bus.write(addr, a)?;
@@ -704,7 +702,7 @@ impl CPU {
     }
 
     fn inst_0xf0_ldh_a_mimm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let imme8 = self.read_imm8bit(bus)?;
+        let imme8 = self.read_word(bus)?;
         let addr = IO_LOW_BOUND + imme8 as Addr;
         let data = bus.read(addr)?;
         *self.regs_mut().a_mut() = data;
@@ -715,7 +713,7 @@ impl CPU {
 /// LD from 16bit immediate data to 16bit register instructions
 impl CPU {
     #[inline]
-    fn read_imm16bit(&mut self, bus: &mut Bus) -> Result<DWord> {
+    fn read_dword(&mut self, bus: &mut Bus) -> Result<DWord> {
         let pc = self.pc();
         let low = bus.read(pc)?;
         let high = bus.read(pc + 1)?;
@@ -725,25 +723,25 @@ impl CPU {
     }
 
     fn inst_0x01_ld_bc_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm16bit(bus)?;
+        let data = self.read_dword(bus)?;
         *self.regs_mut().bc_mut() = data;
         Ok(12)
     }
 
     fn inst_0x11_ld_de_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm16bit(bus)?;
+        let data = self.read_dword(bus)?;
         *self.regs_mut().de_mut() = data;
         Ok(12)
     }
 
     fn inst_0x21_ld_hl_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm16bit(bus)?;
+        let data = self.read_dword(bus)?;
         *self.regs_mut().hl_mut() = data;
         Ok(12)
     }
 
     fn inst_0x31_ld_sp_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm16bit(bus)?;
+        let data = self.read_dword(bus)?;
         *self.regs_mut().sp_mut() = data;
         Ok(12)
     }
@@ -752,7 +750,7 @@ impl CPU {
 /// LD from SP to (16 bits register pointers to memory)
 impl CPU {
     fn inst_0x08_ld_mimm16_sp(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let addr = self.read_imm16bit(bus)?;
+        let addr = self.read_dword(bus)?;
         let sp = self.regs().sp();
         let low = (sp & 0xFF) as Word;
         let high = (sp >> 8) as Word;
@@ -774,14 +772,14 @@ impl CPU {
 /// LD between 16bit immediate pointers to memory and A
 impl CPU {
     fn inst_0xea_ld_mimm16_a(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let addr = self.read_imm16bit(bus)?;
+        let addr = self.read_dword(bus)?;
         let a = self.regs().a();
         bus.write(addr, a)?;
         Ok(16)
     }
 
     fn inst_0xfa_ld_a_mimm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let addr = self.read_imm16bit(bus)?;
+        let addr = self.read_dword(bus)?;
         let data = bus.read(addr)?;
         *self.regs_mut().a_mut() = data;
         Ok(16)
@@ -791,7 +789,7 @@ impl CPU {
 impl CPU {
     /// LD HL, SP + imme8
     fn inst_0xf8_ld_hl_sp_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let imme8 = self.read_imm8bit(bus)? as i8 as i16;
+        let imme8 = self.read_word(bus)? as i8 as i16;
         let regs = self.regs_mut();
         regs.zero_flag_mut().clear();
         regs.negative_flag_mut().clear();
@@ -861,7 +859,7 @@ impl CPU {
 
     /// CP imme8
     fn inst_0xfe_cp_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.cp_a_with(data);
         Ok(8)
     }
@@ -871,14 +869,14 @@ impl CPU {
 impl CPU {
     /// JP imme16
     fn inst_0xc3_jp_imme16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let addr = self.read_imm16bit(bus)?;
+        let addr = self.read_dword(bus)?;
         self.jp(addr);
         Ok(16)
     }
 
     /// JP NZ, imme16
     fn inst_0xc2_jp_nz_imme16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if !self.regs.zero_flag() {
             self.jp(jump_to);
             Ok(16)
@@ -889,7 +887,7 @@ impl CPU {
 
     /// JP Z, imme16
     fn inst_0xca_jp_z_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if self.regs.zero_flag() {
             self.jp(jump_to);
             Ok(16)
@@ -900,7 +898,7 @@ impl CPU {
 
     /// JP NC, imme16
     fn inst_0xd1_jp_nc_imme16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if !self.regs.carry_flag() {
             self.jp(jump_to);
             Ok(16)
@@ -911,7 +909,7 @@ impl CPU {
 
     /// JP C, imme16
     fn inst_0xda_jp_c_imme16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if self.regs.carry_flag() {
             self.jp(jump_to);
             Ok(16)
@@ -930,14 +928,14 @@ impl CPU {
 
     /// JR imme8
     fn inst_0x18_jr_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let offset = self.read_imm8bit(bus)?;
+        let offset = self.read_word(bus)?;
         self.jr(offset);
         Ok(12)
     }
 
     /// JR NZ, imme8
     fn inst_0x20_jr_nz_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let offset = self.read_imm8bit(bus)?;
+        let offset = self.read_word(bus)?;
         if !self.regs.zero_flag() {
             self.jr(offset);
             Ok(12)
@@ -948,7 +946,7 @@ impl CPU {
 
     /// JR Z, imme8
     fn inst_0x28_jr_z_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let offset = self.read_imm8bit(bus)?;
+        let offset = self.read_word(bus)?;
         if self.regs.zero_flag() {
             self.jr(offset);
             Ok(12)
@@ -959,7 +957,7 @@ impl CPU {
 
     /// JR NC, imme8
     fn inst_0x30_jr_nc_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let offset = self.read_imm8bit(bus)?;
+        let offset = self.read_word(bus)?;
         if !self.regs.carry_flag() {
             self.jr(offset);
             Ok(12)
@@ -970,7 +968,7 @@ impl CPU {
 
     /// JR C, imme8
     fn inst_0x38_jr_c_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let offset = self.read_imm8bit(bus)?;
+        let offset = self.read_word(bus)?;
         if self.regs.carry_flag() {
             self.jr(offset);
             Ok(12)
@@ -1059,7 +1057,7 @@ impl CPU {
 
     /// CALL imme16
     fn inst_0xcd_call_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let addr = self.read_imm16bit(bus)?;
+        let addr = self.read_dword(bus)?;
         let pc = self.pc();
         self.push_dword(bus, pc)?;
         self.jp(addr);
@@ -1068,7 +1066,7 @@ impl CPU {
 
     /// CALL NZ, imme16
     fn inst_0xc4_call_nz_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if !self.regs.zero_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
@@ -1081,7 +1079,7 @@ impl CPU {
 
     /// CALL Z, imme16
     fn inst_0xcc_call_z_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if self.regs.zero_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
@@ -1094,7 +1092,7 @@ impl CPU {
 
     /// CALL NC, imme16
     fn inst_0xd4_call_nc_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if !self.regs.carry_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
@@ -1107,7 +1105,7 @@ impl CPU {
 
     /// CALL C, imme16
     fn inst_0xdc_call_c_imm16(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let jump_to = self.read_imm16bit(bus)?;
+        let jump_to = self.read_dword(bus)?;
         if self.regs.carry_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
@@ -1541,7 +1539,7 @@ impl CPU {
 
     /// ADD A, imm8
     fn inst_0xc6_add_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.add_a_with(data);
         Ok(8)
     }
@@ -1592,7 +1590,7 @@ impl CPU {
     /// ADD SP, imm8
     fn inst_0xe8_add_sp_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
         let lhs = self.sp();
-        let imm8 = self.read_imm8bit(bus)? as i8 as DWord;
+        let imm8 = self.read_word(bus)? as i8 as DWord;
         let result = lhs.wrapping_add(imm8);
         let check = lhs ^ result ^ imm8;
         *self.sp_mut() = result;
@@ -1653,7 +1651,7 @@ impl CPU {
 
     /// ADC A, imm8
     fn inst_0xce_add_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.adc_a_with(data);
         Ok(8)
     }
@@ -1712,7 +1710,7 @@ impl CPU {
 
     /// SUB A, imm8
     fn inst_0xd6_sub_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.sub_a_with(data);
         Ok(8)
     }
@@ -1781,7 +1779,7 @@ impl CPU {
 
     /// SBC A, imm8
     fn inst_0xde_sbc_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.sbc_a_with(data);
         Ok(8)
     }
@@ -1838,7 +1836,7 @@ impl CPU {
     }
 
     fn inst_0xe6_and_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.and_a_with(data);
         Ok(8)
     }
@@ -1894,7 +1892,7 @@ impl CPU {
     }
 
     fn inst_0xee_xor_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.xor_a_with(data);
         Ok(8)
     }
@@ -1950,7 +1948,7 @@ impl CPU {
     }
 
     fn inst_0xf6_or_a_imm8(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let data = self.read_imm8bit(bus)?;
+        let data = self.read_word(bus)?;
         self.or_a_with(data);
         Ok(8)
     }
@@ -1982,7 +1980,7 @@ impl CPU {
         Ok(4)
     }
 
-    fn inst_0x27(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+    fn inst_0x27_daa(&mut self, _: &mut Bus) -> Result<ClockCycle> {
         let a = self.a();
         let bcd = if self.negative_flag() {
             if self.carry_flag() {
@@ -2018,5 +2016,14 @@ impl CPU {
         self.half_carry_flag_mut().clear();
         *self.a_mut() = bcd;
         Ok(4)
+    }
+}
+
+impl CPU {
+    fn inst_0xcb_prefix_cb(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
+        let word = self.read_word(bus)?;
+        let opcode = word >> 3;
+        let operand = word & 0b111;
+        todo!()
     }
 }
