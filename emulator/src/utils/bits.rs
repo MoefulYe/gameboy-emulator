@@ -1,80 +1,51 @@
-use std::ops::{Deref, DerefMut};
-
+use super::bit_proxy::BitProxy;
 use crate::types::Word;
 
-use super::bit_proxy::BitProxy;
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Bits(Word);
-
-impl DerefMut for Bits {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
+pub trait BitMap {
+    fn empty() -> Self;
+    fn at(self, pos: u8) -> Word;
+    fn set_at(self, pos: u8) -> Self;
+    fn clear_at(self, pos: u8) -> Self;
+    fn at_mut<'a>(&'a mut self, pos: u8) -> BitProxy<'a>;
+    fn set_at_with(self, pos: u8, val: bool) -> Self;
 }
 
-impl Deref for Bits {
-    type Target = Word;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<Word> for Bits {
-    fn from(value: Word) -> Self {
-        Self(value)
-    }
-}
-
-impl Bits {
-    const SET: Word = 1;
-    const UNSET: Word = 0;
+impl BitMap for Word {
     #[inline]
-    pub fn new(word: Word) -> Self {
-        Self(word)
+    fn empty() -> Self {
+        0
     }
 
     #[inline]
-    pub fn into_word(self) -> Word {
-        self.0
-    }
-
-    #[inline]
-    pub fn at(self, pos: u8) -> Word {
-        if self.0 & (1 << pos) != 0 {
-            Self::SET
+    fn at(self, pos: u8) -> Word {
+        if self & (1 << pos) != 0 {
+            1
         } else {
-            Self::UNSET
+            0
         }
     }
 
     #[inline]
-    pub fn proxy_at<'a>(&'a mut self, pos: u8) -> BitProxy<'a> {
-        BitProxy::new(&mut self.0, pos)
+    fn set_at(self, pos: u8) -> Self {
+        self | (1 << pos)
     }
 
     #[inline]
-    pub fn set(self, pos: u8) -> Self {
-        Self(self.0 | (1 << pos))
+    fn clear_at(self, pos: u8) -> Self {
+        self & !(1 << pos)
     }
 
     #[inline]
-    pub fn clear(self, pos: u8) -> Self {
-        Self(self.0 & !(1 << pos))
+    fn at_mut<'a>(&'a mut self, pos: u8) -> BitProxy<'a> {
+        BitProxy::new(self, pos)
     }
 
     #[inline]
-    pub fn flip(self, pos: u8) -> Self {
-        Self(self.0 ^ (1 << pos))
-    }
-
-    #[inline]
-    pub fn set_value(self, pos: u8, val: bool) -> Self {
+    fn set_at_with(self, pos: u8, val: bool) -> Self {
         if val {
-            self.set(pos)
+            self.set_at(pos)
         } else {
-            self.clear(pos)
+            self.clear_at(pos)
         }
     }
 }

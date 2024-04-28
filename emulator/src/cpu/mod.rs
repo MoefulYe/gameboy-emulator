@@ -1,5 +1,9 @@
-use self::regs::Regs;
+use self::{
+    cb::{OPERAND_A, OPERAND_B, OPERAND_C, OPERAND_D, OPERAND_E, OPERAND_H, OPERAND_MHL},
+    regs::Regs,
+};
 use crate::{
+    cpu::cb::extended_inst_decode,
     dev::bus::{Bus, IO_LOW_BOUND},
     error::{EmulatorError, Result},
     types::{Addr, ClockCycle, DWord, OpCode, Word},
@@ -13,6 +17,7 @@ type Inst = fn(&mut CPU, &mut Bus) -> Result<ClockCycle>;
 pub struct CPU {
     regs: Regs,
     halted: bool,
+    ime: bool,
 }
 
 impl std::ops::DerefMut for CPU {
@@ -2021,9 +2026,87 @@ impl CPU {
 
 impl CPU {
     fn inst_0xcb_prefix_cb(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let word = self.read_word(bus)?;
-        let opcode = word >> 3;
-        let operand = word & 0b111;
-        todo!()
+        let code = self.read_word(bus)?;
+        let (inst, operand) = extended_inst_decode(code);
+        match operand {
+            OPERAND_B => {
+                let val = self.b();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.b_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_C => {
+                let val = self.c();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.c_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_D => {
+                let val = self.d();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.d_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_E => {
+                let val = self.e();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.e_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_E => {
+                let val = self.e();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.e_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_H => {
+                let val = self.h();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.h_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_L => {
+                let val = self.l();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.l_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            OPERAND_MHL => {
+                let addr = self.hl();
+                let val = bus.read(addr)?;
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                bus.write(addr, new_val);
+                *self.f_mut() = new_flag;
+                Ok(16)
+            }
+            OPERAND_A => {
+                let val = self.a();
+                let flag = self.f();
+                let (new_val, new_flag) = inst(val, flag);
+                *self.a_mut() = new_val;
+                *self.f_mut() = new_flag;
+                Ok(8)
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn inst_0x10_stop(&mut self, _: &mut Bus) -> Result<ClockCycle> {
+        Err(EmulatorError::InstructionStop)
     }
 }
