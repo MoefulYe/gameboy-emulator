@@ -48,10 +48,8 @@ const EXTENDED_INSTS: &[ExtendedInst; 32] = &[
     cb_inst_0b11111_set7,
 ];
 
-const OPCODE_WIDTH: usize = 5;
 const OPCODE_MASK: Word = 0b1111_1000;
 const OPCODE_SHIFT: usize = 3;
-const OPERAND_WIDTH: usize = 3;
 const OPERAND_MASK: Word = 0b0000_0111;
 pub fn extended_inst_decode(word: Word) -> (ExtendedInst, Operand) {
     let opcode = (word & OPCODE_MASK) >> OPCODE_SHIFT;

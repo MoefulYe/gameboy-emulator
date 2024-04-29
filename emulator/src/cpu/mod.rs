@@ -1,5 +1,6 @@
 use self::{
     cb::{OPERAND_A, OPERAND_B, OPERAND_C, OPERAND_D, OPERAND_E, OPERAND_H, OPERAND_MHL},
+    ime::InterruptMasterEnableRegsiter,
     regs::Regs,
 };
 use crate::{
@@ -12,14 +13,14 @@ use crate::{
 use log::{error, info};
 
 mod cb;
+mod ime;
 mod regs;
 type Inst = fn(&mut CPU, &mut Bus) -> Result<ClockCycle>;
 
 pub struct CPU {
     regs: Regs,
     halted: bool,
-    ime: bool,
-    ime_delay: u8,
+    ime: InterruptMasterEnableRegsiter,
 }
 
 impl std::ops::DerefMut for CPU {
@@ -41,8 +42,7 @@ impl CPU {
         Self {
             regs: Regs::new(),
             halted: false,
-            ime: false,
-            ime_delay: 0,
+            ime: InterruptMasterEnableRegsiter::new(),
         }
     }
 
@@ -86,16 +86,8 @@ impl CPU {
         *self.regs.pc_mut() += 1;
     }
 
-    fn pc_dec(&mut self) {
-        *self.regs.pc_mut() -= 1;
-    }
-
     fn pc_inc_by(&mut self, n: Addr) {
         *self.regs.pc_mut() += n;
-    }
-
-    fn pc_dec_by(&mut self, n: Addr) {
-        *self.regs.pc_mut() -= n;
     }
 
     fn jp(&mut self, addr: Addr) {
@@ -106,14 +98,6 @@ impl CPU {
         let pc = self.regs_mut().pc_mut();
         let offset = offset as i8 as i16 as Addr;
         *pc = pc.wrapping_add(offset)
-    }
-
-    fn enable_int(&mut self) {
-        todo!()
-    }
-
-    fn disable_int(&mut self) {
-        todo!()
     }
 }
 
@@ -668,12 +652,12 @@ impl CPU {
     }
 
     fn inst_0xf3_di(&mut self, _: &mut Bus) -> Result<ClockCycle> {
-        self.disable_int();
+        self.ime.disable();
         Ok(4)
     }
 
     fn inst_0xfb_ei(&mut self, _: &mut Bus) -> Result<ClockCycle> {
-        self.enable_int();
+        self.ime.enable();
         Ok(4)
     }
 }
@@ -1718,7 +1702,7 @@ impl CPU {
     fn inst_0xd9_reti(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
         let addr = self.pop_dword(bus)?;
         self.jp(addr);
-        self.enable_int();
+        self.ime.enable();
         Ok(16)
     }
 
