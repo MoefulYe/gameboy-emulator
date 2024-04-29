@@ -8,7 +8,7 @@ pub enum EmulatorError {
     NoCartridge,
     /// 不合法的指令
     IllegalInstruction,
-    InstructionStop,
+    StopInstruction,
 }
 
 impl Display for EmulatorError {

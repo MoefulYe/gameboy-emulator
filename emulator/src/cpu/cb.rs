@@ -1,9 +1,5 @@
+use super::regs::{CARRY, HALF_CARRY, NEGATIVE, ZERO};
 use crate::{types::Word, utils::bits::BitMap};
-
-const ZERO: Word = 7;
-const NEGATIVE: Word = 6;
-const HALF_CARRY: Word = 5;
-const CARRY: Word = 4;
 
 pub const OPERAND_B: u8 = 0b000;
 pub const OPERAND_C: u8 = 0b001;

@@ -1,7 +1,6 @@
 use super::Rom;
 use core::mem::offset_of;
 use log::error;
-use std::mem::size_of;
 
 const KB: usize = 1024;
 const ENTRY_SIZE: usize = 0x04;

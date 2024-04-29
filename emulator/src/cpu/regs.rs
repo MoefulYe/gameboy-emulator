@@ -4,6 +4,10 @@ use crate::{
 };
 use std::default::Default;
 
+pub const ZERO: Word = 7;
+pub const NEGATIVE: Word = 6;
+pub const HALF_CARRY: Word = 5;
+pub const CARRY: Word = 4;
 /// https://gbdev.io/pandocs/CPU_Registers_and_Flags.html#registers
 /// --------
 /// | A | F |
