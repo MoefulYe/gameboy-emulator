@@ -24,7 +24,7 @@ impl InterruptMasterEnableRegsiter {
         self.enabled = false;
     }
 
-    pub fn clock(&mut self) {
+    pub fn countdown(&mut self) {
         if self.enabling_countdown > 0 {
             self.enabling_countdown -= 1;
             if self.enabling_countdown == 0 {

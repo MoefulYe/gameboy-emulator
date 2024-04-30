@@ -50,14 +50,35 @@ impl CPU {
 
     /// 返回花费的时钟周期
     pub fn clock(&mut self, bus: &mut Bus) -> Result<ClockCycle> {
-        let opcode = self.fetch_opcode(bus)?;
-        self.pc_inc();
-        let inst = Self::decode_inst(opcode);
-        self.exec_inst(bus, inst)
+        if !self.halted {
+            if let Some(int_entry) = bus.int_entry() {
+                self.handle_int(bus, int_entry)
+            } else {
+                let opcode = self.fetch_opcode(bus)?;
+                self.pc_inc();
+                let inst = Self::decode_inst(opcode);
+                let res = self.exec_inst(bus, inst)?;
+                self.ime.countdown();
+                Ok(res)
+            }
+        } else {
+            if bus.has_int() {
+                self.halted = false;
+            }
+            self.ime.countdown();
+            Ok(4)
+        }
     }
 
     pub fn reset(&mut self) {
         todo!()
+    }
+
+    fn handle_int(&mut self, bus: &mut Bus, entry: Addr) -> Result<ClockCycle> {
+        self.ime.disable();
+        self.push_dword(bus, self.pc())?;
+        self.jp(entry);
+        Ok(20)
     }
 
     fn fetch_opcode(&self, bus: &Bus) -> Result<OpCode> {

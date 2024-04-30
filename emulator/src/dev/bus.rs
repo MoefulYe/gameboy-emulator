@@ -6,7 +6,12 @@ use crate::{
 use log::warn;
 
 use super::{
-    int_regs::{InterruptEnableRegsiter, InterruptMaskRegister},
+    int_regs::{
+        InterruptFlagRegister, InterruptMaskRegsiter, INT_JOYPAD, INT_JOYPAD_ENTRY,
+        INT_JOYPAD_MASK, INT_LCD_STAT, INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK, INT_SERIAL,
+        INT_SERIAL_ENTRY, INT_SERIAL_MASK, INT_TIMER, INT_TIMER_ENTRY, INT_TIMER_MASK, INT_VBLANK,
+        INT_VBLANK_ENTRY, INT_VBLANK_MASK,
+    },
     rams::{HighRam, ObjectAttributeMem, VedioRam, WorkRam},
 };
 
@@ -29,8 +34,8 @@ pub struct Bus {
     wram: WorkRam,
     oam: ObjectAttributeMem,
     hram: HighRam,
-    intr_enable_reg: InterruptEnableRegsiter,
-    intr_mask_reg: InterruptMaskRegister,
+    int_mask_reg: InterruptMaskRegsiter,
+    int_flag_reg: InterruptFlagRegister,
 }
 
 impl Bus {
@@ -41,8 +46,8 @@ impl Bus {
             wram: WorkRam::new(),
             oam: ObjectAttributeMem::new(),
             hram: HighRam::new(),
-            intr_mask_reg: InterruptMaskRegister::new(),
-            intr_enable_reg: InterruptEnableRegsiter::new(),
+            int_flag_reg: InterruptFlagRegister::new(),
+            int_mask_reg: InterruptMaskRegsiter::new(),
         }
     }
 
@@ -61,8 +66,8 @@ impl Bus {
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.read(addr),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.read(addr),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
-            INTERRUPT_ENABLE_REGISTER_ADDR => self.intr_enable_reg.read(),
-            INTERRUPT_MASKS_REGISTER_ADDR => self.intr_mask_reg.read(),
+            INTERRUPT_ENABLE_REGISTER_ADDR => self.int_mask_reg.read(),
+            INTERRUPT_MASKS_REGISTER_ADDR => self.int_flag_reg.read(),
             _ => {
                 warn!("illegal read at address: 0x{addr:04X}");
                 Ok(0xFF)
@@ -85,8 +90,8 @@ impl Bus {
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.write(addr, data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),
-            INTERRUPT_ENABLE_REGISTER_ADDR => self.intr_enable_reg.write(data),
-            INTERRUPT_MASKS_REGISTER_ADDR => self.intr_mask_reg.write(data),
+            INTERRUPT_ENABLE_REGISTER_ADDR => self.int_mask_reg.write(data),
+            INTERRUPT_MASKS_REGISTER_ADDR => self.int_flag_reg.write(data),
             _ => {
                 warn!("illegal write at address: 0x{addr:04X}");
                 Ok(())
@@ -98,20 +103,47 @@ impl Bus {
         todo!()
     }
 
-    pub fn intr_enable_reg(&self) -> InterruptEnableRegsiter {
-        self.intr_enable_reg
+    pub fn int_mask(&self) -> Word {
+        self.int_mask_reg.val()
     }
 
-    pub fn intr_enable_reg_mut(&mut self) -> &mut InterruptEnableRegsiter {
-        &mut self.intr_enable_reg
+    pub fn int_mask_reg_mut(&mut self) -> &mut InterruptMaskRegsiter {
+        &mut self.int_mask_reg
     }
 
-    pub fn intr_mask_reg(&self) -> InterruptMaskRegister {
-        self.intr_mask_reg
+    pub fn int_flag(&self) -> Word {
+        self.int_flag_reg.val()
     }
 
-    pub fn intr_mask_reg_mut(&mut self) -> &mut InterruptMaskRegister {
-        &mut self.intr_mask_reg
+    pub fn int_flag_reg_mut(&mut self) -> &mut InterruptFlagRegister {
+        &mut self.int_flag_reg
+    }
+
+    /// 是否有中断事件等待处理
+    pub fn has_int(&self) -> bool {
+        self.int_flag() & self.int_mask() != 0
+    }
+
+    pub fn int_entry(&mut self) -> Option<Addr> {
+        let flags = self.int_flag() & self.int_mask();
+        if flags == 0 {
+            None
+        } else if flags & INT_VBLANK_MASK != 0 {
+            self.int_flag_reg_mut().clear_at(INT_VBLANK);
+            Some(INT_VBLANK_ENTRY)
+        } else if flags & INT_LCD_STAT_MASK != 0 {
+            self.int_flag_reg_mut().clear_at(INT_LCD_STAT);
+            Some(INT_LCD_STAT_ENTRY)
+        } else if flags & INT_TIMER_MASK != 0 {
+            self.int_flag_reg_mut().clear_at(INT_TIMER);
+            Some(INT_TIMER_ENTRY)
+        } else if flags & INT_SERIAL_MASK != 0 {
+            self.int_flag_reg_mut().clear_at(INT_SERIAL);
+            Some(INT_SERIAL_ENTRY)
+        } else {
+            self.int_flag_reg_mut().clear_at(INT_JOYPAD);
+            Some(INT_JOYPAD_ENTRY)
+        }
     }
 }
 
