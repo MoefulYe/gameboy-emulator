@@ -16,11 +16,11 @@ use crate::{
 #[derive(PartialEq, Eq)]
 enum State {
     /// 正常运行
-    Running,
+    Running = 0,
     /// 用户暂停
-    Paused,
+    Paused = 1,
     /// 调用了stop指令，或者触发了异常，智能通过reset恢复
-    Stopped,
+    Stopped = 2,
 }
 
 impl Display for State {
@@ -79,35 +79,11 @@ impl Emulator {
             state: State::Running,
         }
     }
-
-    fn clock_devices(&mut self, cycles: ClockCycle, cycles_n: ClockCycle) -> Result {
-        todo!()
-    }
-
-    fn clock(&mut self) -> Result<ClockCycle> {
-        let cycles = self.cpu.clock(&mut self.bus)?;
-        //TODO GameBoySpeed
-        let cycles_n = cycles;
-        self.clock_devices(cycles, cycles_n)?;
-        Ok(cycles)
-    }
-
-    pub fn update(&mut self, delta_time: f64) -> Result {
-        if self.state != State::Running {
-            return Ok(());
+    pub fn update(&mut self, delta_time: f64) {
+        let res = self._update(delta_time);
+        if let Err(err) = res {
+            self.handle_err(err);
         }
-        let ticks = self.clock.ticks(delta_time);
-        let mut clocks = 0;
-        while clocks < ticks {
-            clocks += self.clock()?;
-        }
-        self.clock.add_cycles(clocks);
-        Ok(())
-    }
-
-    pub fn handle_err(&mut self, err: EmulatorError) {
-        self.state = State::Stopped;
-        // match err {}
     }
 
     pub fn reset(&mut self) {
@@ -117,23 +93,45 @@ impl Emulator {
         self.state = State::Running;
     }
 
-    pub fn bus(&self) -> &Bus {
-        &self.bus
-    }
-
-    pub fn bus_mut(&mut self) -> &mut Bus {
-        &mut self.bus
-    }
-
-    pub fn pause(&mut self) {
-        self.state = State::Paused;
-    }
-
     pub fn resume(&mut self) {
         match self.state {
             State::Running => info!("emulator is already running"),
             State::Paused => self.state = State::Running,
             State::Stopped => warn!("emulator has stopped, please reset it first"),
         }
+    }
+
+    pub fn pause(&mut self) {
+        self.state = State::Paused;
+    }
+
+    fn tick_devices(&mut self, cycles: ClockCycle) {
+        for _ in 0..cycles {
+            self.bus.tick();
+        }
+    }
+
+    fn tick(&mut self) -> Result<ClockCycle> {
+        let cycles = self.cpu.tick(&mut self.bus)?;
+        self.tick_devices(cycles);
+        Ok(cycles)
+    }
+
+    fn _update(&mut self, delta_time: f64) -> Result {
+        if self.state != State::Running {
+            return Ok(());
+        }
+        let ticks = self.clock.ticks(delta_time);
+        let mut clocks = 0;
+        while clocks < ticks {
+            clocks += self.tick()?;
+        }
+        self.clock.add_cycles(clocks);
+        Ok(())
+    }
+
+    fn handle_err(&mut self, err: EmulatorError) {
+        self.state = State::Stopped;
+        // match err {}
     }
 }

@@ -7,12 +7,13 @@ use log::warn;
 
 use super::{
     int_regs::{
-        InterruptFlagRegister, InterruptMaskRegsiter, INT_JOYPAD, INT_JOYPAD_ENTRY,
-        INT_JOYPAD_MASK, INT_LCD_STAT, INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK, INT_SERIAL,
-        INT_SERIAL_ENTRY, INT_SERIAL_MASK, INT_TIMER, INT_TIMER_ENTRY, INT_TIMER_MASK, INT_VBLANK,
-        INT_VBLANK_ENTRY, INT_VBLANK_MASK,
+        InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
+        INTERRUPT_MASK_REGISTER_ADDR, INT_JOYPAD, INT_JOYPAD_ENTRY, INT_LCD_STAT,
+        INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK, INT_SERIAL, INT_SERIAL_ENTRY, INT_SERIAL_MASK,
+        INT_TIMER, INT_TIMER_ENTRY, INT_TIMER_MASK, INT_VBLANK, INT_VBLANK_ENTRY, INT_VBLANK_MASK,
     },
     rams::{HighRam, ObjectAttributeMem, VedioRam, WorkRam},
+    timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
 };
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
@@ -33,9 +34,10 @@ pub struct Bus {
     vram: VedioRam,
     wram: WorkRam,
     oam: ObjectAttributeMem,
+    timer: Timer,
+    int_flag_reg: InterruptFlagRegister,
     hram: HighRam,
     int_mask_reg: InterruptMaskRegsiter,
-    int_flag_reg: InterruptFlagRegister,
 }
 
 impl Bus {
@@ -45,8 +47,9 @@ impl Bus {
             vram: VedioRam::new(),
             wram: WorkRam::new(),
             oam: ObjectAttributeMem::new(),
-            hram: HighRam::new(),
+            timer: Timer::new(),
             int_flag_reg: InterruptFlagRegister::new(),
+            hram: HighRam::new(),
             int_mask_reg: InterruptMaskRegsiter::new(),
         }
     }
@@ -65,9 +68,10 @@ impl Bus {
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.read(addr),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.read(addr),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.read(addr),
+            TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.read(addr),
+            INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.read(),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
-            INTERRUPT_ENABLE_REGISTER_ADDR => self.int_mask_reg.read(),
-            INTERRUPT_MASKS_REGISTER_ADDR => self.int_flag_reg.read(),
+            INTERRUPT_MASK_REGISTER_ADDR => self.int_mask_reg.read(),
             _ => {
                 warn!("illegal read at address: 0x{addr:04X}");
                 Ok(0xFF)
@@ -89,9 +93,10 @@ impl Bus {
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.write(addr, data),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.write(addr, data),
+            TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.write(addr, data),
+            INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.write(data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),
-            INTERRUPT_ENABLE_REGISTER_ADDR => self.int_mask_reg.write(data),
-            INTERRUPT_MASKS_REGISTER_ADDR => self.int_flag_reg.write(data),
+            INTERRUPT_MASK_REGISTER_ADDR => self.int_mask_reg.write(data),
             _ => {
                 warn!("illegal write at address: 0x{addr:04X}");
                 Ok(())
@@ -103,22 +108,12 @@ impl Bus {
         todo!()
     }
 
-    pub fn int_mask(&self) -> Word {
-        self.int_mask_reg.val()
+    pub fn tick(&mut self) {
+        let timer_int = self.timer.tick().int_req();
+        if timer_int {
+            self.int_flag_reg_mut().set_at(INT_TIMER);
+        }
     }
-
-    pub fn int_mask_reg_mut(&mut self) -> &mut InterruptMaskRegsiter {
-        &mut self.int_mask_reg
-    }
-
-    pub fn int_flag(&self) -> Word {
-        self.int_flag_reg.val()
-    }
-
-    pub fn int_flag_reg_mut(&mut self) -> &mut InterruptFlagRegister {
-        &mut self.int_flag_reg
-    }
-
     /// 是否有中断事件等待处理
     pub fn has_int(&self) -> bool {
         self.int_flag() & self.int_mask() != 0
@@ -145,6 +140,18 @@ impl Bus {
             Some(INT_JOYPAD_ENTRY)
         }
     }
+
+    fn int_mask(&self) -> Word {
+        self.int_mask_reg.val()
+    }
+
+    fn int_flag(&self) -> Word {
+        self.int_flag_reg.val()
+    }
+
+    fn int_flag_reg_mut(&mut self) -> &mut InterruptFlagRegister {
+        &mut self.int_flag_reg
+    }
 }
 
 pub const CART_ROM_LOW_BOUND: Addr = 0x0000;
@@ -154,7 +161,6 @@ pub const WRAM_LOW_BOUND: Addr = 0xC000;
 pub const OAM_LOW_BOUND: Addr = 0xFE00;
 pub const IO_LOW_BOUND: Addr = 0xFF00;
 pub const HRAM_LOW_BOUND: Addr = 0xFF80;
-pub const INTERRUPT_ENABLE_REGISTER_ADDR: Addr = 0xFFFF;
 
 pub const CART_ROM_HIGH_BOUND: Addr = VRAM_LOW_BOUND;
 pub const VRAM_HIGH_BOUND: Addr = CART_RAM_LOW_BOUND;
@@ -162,7 +168,7 @@ pub const CART_RAM_HIGH_BOUND: Addr = WRAM_LOW_BOUND;
 pub const WRAM_HIGH_BOUND: Addr = 0xE000;
 pub const OAM_HIGH_BOUND: Addr = 0xFEA0;
 pub const IO_HIGH_BOUND: Addr = HRAM_LOW_BOUND;
-pub const HRAM_HIGH_BOUND: Addr = INTERRUPT_ENABLE_REGISTER_ADDR;
+pub const HRAM_HIGH_BOUND: Addr = INTERRUPT_MASK_REGISTER_ADDR;
 
 pub const CART_ROM_SIZE: usize = (CART_ROM_HIGH_BOUND - CART_ROM_LOW_BOUND) as usize;
 pub const VRAM_SIZE: usize = (VRAM_HIGH_BOUND - VRAM_LOW_BOUND) as usize;
@@ -180,8 +186,6 @@ pub const OAM_HIGH_BOUND_INCLUDED: Addr = OAM_HIGH_BOUND - 1;
 pub const IO_HIGH_BOUND_INCLUDED: Addr = IO_HIGH_BOUND - 1;
 pub const HRAM_HIGH_BOUND_INCLUDED: Addr = HRAM_HIGH_BOUND - 1;
 
-pub const INTERRUPT_MASKS_REGISTER_ADDR: Addr = 0xFF0F;
-
 pub trait BusDevice {
     /// 默认返回0xFF
     fn read(&self, addr: Addr) -> Result<Word> {
@@ -193,5 +197,19 @@ pub trait BusDevice {
     fn write(&mut self, addr: Addr, data: Word) -> Result {
         warn!("illegal write at address: 0x{addr:04X}");
         Ok(())
+    }
+
+    fn reset(&mut self) {}
+}
+
+#[derive(PartialEq, Eq)]
+pub enum TickResult {
+    IntReq,
+    Ok,
+}
+
+impl TickResult {
+    pub fn int_req(self) -> bool {
+        self == TickResult::IntReq
     }
 }

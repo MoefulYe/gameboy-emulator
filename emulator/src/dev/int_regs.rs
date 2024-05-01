@@ -8,6 +8,7 @@ pub const INT_TIMER: Word = 2;
 pub const INT_LCD_STAT: Word = 1;
 pub const INT_VBLANK: Word = 0;
 
+#[allow(unused)]
 pub const INT_JOYPAD_MASK: Word = 1 << INT_JOYPAD;
 pub const INT_SERIAL_MASK: Word = 1 << INT_SERIAL;
 pub const INT_TIMER_MASK: Word = 1 << INT_TIMER;
@@ -19,6 +20,9 @@ pub const INT_SERIAL_ENTRY: Addr = 0x58;
 pub const INT_TIMER_ENTRY: Addr = 0x50;
 pub const INT_LCD_STAT_ENTRY: Addr = 0x48;
 pub const INT_VBLANK_ENTRY: Addr = 0x40;
+
+pub const INTERRUPT_FLAG_REGISTER_ADDR: Addr = 0xFF0F;
+pub const INTERRUPT_MASK_REGISTER_ADDR: Addr = 0xFFFF;
 
 #[derive(Clone, Copy)]
 pub struct InterruptMaskRegsiter(Word);
