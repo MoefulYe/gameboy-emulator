@@ -51,4 +51,9 @@ impl Clock {
     pub fn add_cycles(&mut self, clocks: ClockCycle) {
         self.actutal_cycles += clocks as u64;
     }
+
+    pub fn step(&mut self, clocks: ClockCycle) {
+        self.actutal_cycles += clocks as u64;
+        self.planned_cycles += clocks as u64;
+    }
 }

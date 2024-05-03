@@ -79,10 +79,21 @@ impl Emulator {
             state: State::Running,
         }
     }
+
     pub fn update(&mut self, delta_time: f64) {
         let res = self._update(delta_time);
         if let Err(err) = res {
             self.handle_err(err);
+        }
+    }
+
+    pub fn step(&mut self) {
+        if self.state != State::Paused {
+            warn!("emulator is not paused, cannot step");
+        }
+        match self.tick() {
+            Ok(clock) => self.clock.add_cycles(clock),
+            Err(err) => self.handle_err(err),
         }
     }
 
@@ -105,18 +116,6 @@ impl Emulator {
         self.state = State::Paused;
     }
 
-    fn tick_devices(&mut self, cycles: ClockCycle) {
-        for _ in 0..cycles {
-            self.bus.tick();
-        }
-    }
-
-    fn tick(&mut self) -> Result<ClockCycle> {
-        let cycles = self.cpu.tick(&mut self.bus)?;
-        self.tick_devices(cycles);
-        Ok(cycles)
-    }
-
     fn _update(&mut self, delta_time: f64) -> Result {
         if self.state != State::Running {
             return Ok(());
@@ -128,6 +127,18 @@ impl Emulator {
         }
         self.clock.add_cycles(clocks);
         Ok(())
+    }
+
+    fn tick_devices(&mut self, cycles: ClockCycle) {
+        for _ in 0..cycles {
+            self.bus.tick();
+        }
+    }
+
+    fn tick(&mut self) -> Result<ClockCycle> {
+        let cycles = self.cpu.tick(&mut self.bus)?;
+        self.tick_devices(cycles);
+        Ok(cycles)
     }
 
     fn handle_err(&mut self, err: EmulatorError) {

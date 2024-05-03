@@ -1,20 +1,21 @@
+use super::{
+    int_regs::{
+        InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
+        INTERRUPT_MASK_REGISTER_ADDR, INT_JOYPAD_ENTRY, INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK,
+        INT_SERIAL_ENTRY, INT_SERIAL_MASK, INT_TIMER_ENTRY, INT_TIMER_MASK, INT_VBLANK_ENTRY,
+        INT_VBLANK_MASK,
+    },
+    rams::{HighRam, ObjectAttributeMem, VedioRam, WorkRam},
+    serial::{Serial, SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED, SERIAL_TRANSFER_ADDR_LOW_BOUND},
+    timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
+    BusDevice, Tickable,
+};
 use crate::{
     cartridge::Cartridge,
     error::{EmulatorError, Result},
     types::{Addr, Word},
 };
 use log::warn;
-
-use super::{
-    int_regs::{
-        InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
-        INTERRUPT_MASK_REGISTER_ADDR, INT_JOYPAD, INT_JOYPAD_ENTRY, INT_LCD_STAT,
-        INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK, INT_SERIAL, INT_SERIAL_ENTRY, INT_SERIAL_MASK,
-        INT_TIMER, INT_TIMER_ENTRY, INT_TIMER_MASK, INT_VBLANK, INT_VBLANK_ENTRY, INT_VBLANK_MASK,
-    },
-    rams::{HighRam, ObjectAttributeMem, VedioRam, WorkRam},
-    timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
-};
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -34,6 +35,7 @@ pub struct Bus {
     vram: VedioRam,
     wram: WorkRam,
     oam: ObjectAttributeMem,
+    serial: Serial,
     timer: Timer,
     int_flag_reg: InterruptFlagRegister,
     hram: HighRam,
@@ -47,6 +49,7 @@ impl Bus {
             vram: VedioRam::new(),
             wram: WorkRam::new(),
             oam: ObjectAttributeMem::new(),
+            serial: Serial::new(),
             timer: Timer::new(),
             int_flag_reg: InterruptFlagRegister::new(),
             hram: HighRam::new(),
@@ -68,6 +71,9 @@ impl Bus {
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.read(addr),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.read(addr),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.read(addr),
+            SERIAL_TRANSFER_ADDR_LOW_BOUND..=SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED => {
+                self.serial.read(addr)
+            }
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.read(addr),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.read(),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
@@ -93,6 +99,9 @@ impl Bus {
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.write(addr, data),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.write(addr, data),
+            SERIAL_TRANSFER_ADDR_LOW_BOUND..=SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED => {
+                self.serial.write(addr, data)
+            }
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.write(addr, data),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.write(data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),
@@ -111,46 +120,38 @@ impl Bus {
     pub fn tick(&mut self) {
         let timer_int = self.timer.tick().int_req();
         if timer_int {
-            self.int_flag_reg_mut().set_at(INT_TIMER);
+            self.int_flag_reg.set_timer_int();
+        }
+        let serial_int = self.serial.tick().int_req();
+        if serial_int {
+            self.int_flag_reg.set_serial_int();
         }
     }
     /// 是否有中断事件等待处理
     pub fn has_int(&self) -> bool {
-        self.int_flag() & self.int_mask() != 0
+        self.int_flag_reg.val() & self.int_mask_reg.val() != 0
     }
 
     pub fn int_entry(&mut self) -> Option<Addr> {
-        let flags = self.int_flag() & self.int_mask();
+        let flags = self.int_flag_reg.val() & self.int_mask_reg.val();
         if flags == 0 {
             None
         } else if flags & INT_VBLANK_MASK != 0 {
-            self.int_flag_reg_mut().clear_at(INT_VBLANK);
+            self.int_flag_reg.clear_vblank_int();
             Some(INT_VBLANK_ENTRY)
         } else if flags & INT_LCD_STAT_MASK != 0 {
-            self.int_flag_reg_mut().clear_at(INT_LCD_STAT);
+            self.int_flag_reg.clear_lcd_stat_int();
             Some(INT_LCD_STAT_ENTRY)
         } else if flags & INT_TIMER_MASK != 0 {
-            self.int_flag_reg_mut().clear_at(INT_TIMER);
+            self.int_flag_reg.clear_timer_int();
             Some(INT_TIMER_ENTRY)
         } else if flags & INT_SERIAL_MASK != 0 {
-            self.int_flag_reg_mut().clear_at(INT_SERIAL);
+            self.int_flag_reg.clear_serial_int();
             Some(INT_SERIAL_ENTRY)
         } else {
-            self.int_flag_reg_mut().clear_at(INT_JOYPAD);
+            self.int_flag_reg.clear_joypad_int();
             Some(INT_JOYPAD_ENTRY)
         }
-    }
-
-    fn int_mask(&self) -> Word {
-        self.int_mask_reg.val()
-    }
-
-    fn int_flag(&self) -> Word {
-        self.int_flag_reg.val()
-    }
-
-    fn int_flag_reg_mut(&mut self) -> &mut InterruptFlagRegister {
-        &mut self.int_flag_reg
     }
 }
 
@@ -185,31 +186,3 @@ pub const WRAM_HIGH_BOUND_INCLUDED: Addr = WRAM_HIGH_BOUND - 1;
 pub const OAM_HIGH_BOUND_INCLUDED: Addr = OAM_HIGH_BOUND - 1;
 pub const IO_HIGH_BOUND_INCLUDED: Addr = IO_HIGH_BOUND - 1;
 pub const HRAM_HIGH_BOUND_INCLUDED: Addr = HRAM_HIGH_BOUND - 1;
-
-pub trait BusDevice {
-    /// 默认返回0xFF
-    fn read(&self, addr: Addr) -> Result<Word> {
-        warn!("illegal read at address: 0x{addr:04X}");
-        Ok(0xFF)
-    }
-
-    #[allow(unused)]
-    fn write(&mut self, addr: Addr, data: Word) -> Result {
-        warn!("illegal write at address: 0x{addr:04X}");
-        Ok(())
-    }
-
-    fn reset(&mut self) {}
-}
-
-#[derive(PartialEq, Eq)]
-pub enum TickResult {
-    IntReq,
-    Ok,
-}
-
-impl TickResult {
-    pub fn int_req(self) -> bool {
-        self == TickResult::IntReq
-    }
-}

@@ -1,11 +1,17 @@
 use super::bus::{
-    BusDevice, HRAM_LOW_BOUND, HRAM_SIZE, OAM_LOW_BOUND, OAM_SIZE, VRAM_LOW_BOUND, VRAM_SIZE,
-    WRAM_LOW_BOUND, WRAM_SIZE,
+    HRAM_LOW_BOUND, HRAM_SIZE, OAM_LOW_BOUND, OAM_SIZE, VRAM_LOW_BOUND, VRAM_SIZE, WRAM_LOW_BOUND,
+    WRAM_SIZE,
 };
-use crate::{error::Result, types::Word};
+use crate::{dev::BusDevice, error::Result, types::Word};
 use log::warn;
 
 pub struct WorkRam([Word; WRAM_SIZE]);
+
+impl Default for WorkRam {
+    fn default() -> Self {
+        Self([0; WRAM_SIZE])
+    }
+}
 
 impl BusDevice for WorkRam {
     fn read(&self, addr: crate::types::Addr) -> Result<Word> {
@@ -30,11 +36,17 @@ impl BusDevice for WorkRam {
 
 impl WorkRam {
     pub fn new() -> Self {
-        WorkRam([0; WRAM_SIZE])
+        Default::default()
     }
 }
 
 pub struct VedioRam([Word; VRAM_SIZE]);
+
+impl Default for VedioRam {
+    fn default() -> Self {
+        Self([0; VRAM_SIZE])
+    }
+}
 
 impl BusDevice for VedioRam {
     fn read(&self, addr: crate::types::Addr) -> Result<Word> {
@@ -59,11 +71,17 @@ impl BusDevice for VedioRam {
 
 impl VedioRam {
     pub fn new() -> Self {
-        VedioRam([0; VRAM_SIZE])
+        Default::default()
     }
 }
 
 pub struct ObjectAttributeMem([Word; OAM_SIZE]);
+
+impl Default for ObjectAttributeMem {
+    fn default() -> Self {
+        Self([0; OAM_SIZE])
+    }
+}
 
 impl BusDevice for ObjectAttributeMem {
     fn read(&self, addr: crate::types::Addr) -> Result<Word> {
@@ -88,11 +106,17 @@ impl BusDevice for ObjectAttributeMem {
 
 impl ObjectAttributeMem {
     pub fn new() -> Self {
-        ObjectAttributeMem([0; OAM_SIZE])
+        Default::default()
     }
 }
 
 pub struct HighRam([Word; HRAM_SIZE]);
+
+impl Default for HighRam {
+    fn default() -> Self {
+        Self([0; HRAM_SIZE])
+    }
+}
 
 impl BusDevice for HighRam {
     fn read(&self, addr: crate::types::Addr) -> Result<Word> {
@@ -117,6 +141,6 @@ impl BusDevice for HighRam {
 
 impl HighRam {
     pub fn new() -> Self {
-        HighRam([0; HRAM_SIZE])
+        Default::default()
     }
 }

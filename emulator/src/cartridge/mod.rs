@@ -1,7 +1,7 @@
 use log::warn;
 
 use crate::{
-    dev::bus::BusDevice,
+    dev::BusDevice,
     error::Result,
     types::{Addr, Word},
 };

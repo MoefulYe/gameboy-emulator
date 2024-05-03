@@ -6,7 +6,7 @@ use crate::{
     utils::bits::BitMap,
 };
 
-use super::bus::{BusDevice, TickResult};
+use super::{BusDevice, TickResult, Tickable};
 
 const TIMER_DIV_REG_ADDR: Addr = 0xFF04;
 const TIMER_TIMA_REG_ADDR: Addr = 0xFF05;
@@ -23,43 +23,20 @@ pub struct Timer {
     tac: Word,
 }
 
-impl Timer {
-    pub fn new() -> Self {
-        Timer {
+impl Default for Timer {
+    fn default() -> Self {
+        Self {
             div: 0xAC00,
             tima: 0x00,
             tma: 0x00,
             tac: 0xF8,
         }
     }
+}
 
-    pub fn tick(&mut self) -> TickResult {
-        if self.disabled() {
-            return TickResult::Ok;
-        }
-        let old = self.div;
-        let new = old.wrapping_add(1);
-        // ref https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff07--tac-timer-control
-        let pos: DWord = match self.clock_select() {
-            // 4096 Hz
-            0b00 => 9,
-            0b01 => 3,
-            0b10 => 5,
-            0b11 => 7,
-            _ => unreachable!(),
-        };
-        let update_tima = old.at(pos) && !new.at(pos);
-        if update_tima {
-            if self.tima == Word::MAX {
-                self.tima = self.tma;
-                TickResult::IntReq
-            } else {
-                self.tima += 1;
-                TickResult::Ok
-            }
-        } else {
-            TickResult::Ok
-        }
+impl Timer {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     fn read_div(&self) -> Word {
@@ -110,6 +87,37 @@ impl BusDevice for Timer {
                 warn!("illegal write to timer at address: 0x{addr:04X}");
                 Ok(())
             }
+        }
+    }
+}
+
+impl Tickable for Timer {
+    fn tick(&mut self) -> TickResult {
+        if self.disabled() {
+            return TickResult::Ok;
+        }
+        let old = self.div;
+        let new = old.wrapping_add(1);
+        // ref https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff07--tac-timer-control
+        let pos: DWord = match self.clock_select() {
+            // 4096 Hz
+            0b00 => 9,
+            0b01 => 3,
+            0b10 => 5,
+            0b11 => 7,
+            _ => unreachable!(),
+        };
+        let update_tima = old.at(pos) && !new.at(pos);
+        if update_tima {
+            if self.tima == Word::MAX {
+                self.tima = self.tma;
+                TickResult::IntReq
+            } else {
+                self.tima += 1;
+                TickResult::Ok
+            }
+        } else {
+            TickResult::Ok
         }
     }
 }
