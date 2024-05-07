@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "wasm-build": "wasm-pack build gameboy --target web",
-    "build": "wasm-pack build gameboy --release --target web && run-p type-check \"build-only {@}\" --",
+    "wasm-build": "wasm-pack build emulator --target web",
+    "build": "wasm-pack build emulator --release --target web && run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",
@@ -16,8 +16,7 @@
   },
   "dependencies": {
     "pinia": "^2.1.7",
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue": "^3.4.21"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.8.0",
@@ -40,7 +39,6 @@
     "vite": "^5.2.8",
     "vite-plugin-vue-devtools": "^7.0.25",
     "vite-plugin-wasm": "^3.3.0",
-    "vitest": "^1.4.0",
     "vue-tsc": "^2.0.11"
   }
 }

@@ -1,6 +1,7 @@
 use super::{BusDevice, TickResult, Tickable};
 use crate::{
     error::Result,
+    external::emulator_serial_callback,
     types::{Addr, Word},
     utils::bits::BitMap,
 };
@@ -101,6 +102,7 @@ impl Serial {
     fn end_transfer(&mut self) {
         self.sc.clear_at(SERIAL_CONTROL_ENABLE);
         self.inprogress = false;
+        emulator_serial_callback(self.out);
     }
 }
 

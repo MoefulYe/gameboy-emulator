@@ -13,7 +13,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      gameboy: fileURLToPath(new URL('./gameboy', import.meta.url))
+      emulator: fileURLToPath(new URL('./emulator', import.meta.url))
     }
   }
 })

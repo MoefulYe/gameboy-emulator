@@ -4,18 +4,6 @@ pub mod dev;
 pub mod emulator;
 pub mod error;
 pub mod external;
-mod log;
+pub mod log;
 pub mod types;
 pub mod utils;
-
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, gameboy!");
-}

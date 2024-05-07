@@ -1,99 +1,62 @@
-use std::fmt::Display;
-
-use log::{info, warn};
+use wasm_bindgen::prelude::*;
 
 use crate::{
     cpu::CPU,
     dev::{bus::Bus, clock::Clock},
     error::{EmulatorError, Result},
+    log,
     types::ClockCycle,
 };
-/// 表示模拟器运行状态
-/// Runnning -- 点击暂停 --> Paused
-/// Paused -- 点击继续 --> Running
-/// Running -- 触发异常 --> Stopped
-/// Stopped -- 点击重置 --> Running
-#[derive(PartialEq, Eq)]
-enum State {
-    /// 正常运行
-    Running = 0,
-    /// 用户暂停
-    Paused = 1,
-    /// 调用了stop指令，或者触发了异常，智能通过reset恢复
-    Stopped = 2,
-}
 
-impl Display for State {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            State::Running => f.write_str("running"),
-            State::Paused => f.write_str("paused"),
-            State::Stopped => f.write_str("stopped"),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum GameBoySpeed {
-    Normal = 0,
-    Double = 1,
-}
-
-impl GameBoySpeed {
-    pub fn description(&self) -> &'static str {
-        match self {
-            GameBoySpeed::Normal => "Normal Speed",
-            GameBoySpeed::Double => "Double Speed",
-        }
-    }
-
-    pub fn multiplier(&self) -> u8 {
-        match self {
-            GameBoySpeed::Normal => 1,
-            GameBoySpeed::Double => 2,
-        }
-    }
-
-    pub fn from(val: u8) -> Option<Self> {
-        match val {
-            0 => Some(Self::Normal),
-            1 => Some(Self::Double),
-            _ => None,
-        }
-    }
-}
-
+#[wasm_bindgen(js_name = WasmEmulator)]
 pub struct Emulator {
     cpu: CPU,
     bus: Bus,
     clock: Clock,
-    state: State,
+    stopped: bool,
 }
 
+#[wasm_bindgen(js_class = WasmEmulator)]
 impl Emulator {
-    pub fn new(cpu: CPU, bus: Bus) -> Self {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Emulator {
         Self {
-            cpu,
-            bus,
+            cpu: CPU::new(),
+            bus: Bus::new(),
             clock: Clock::new(),
-            state: State::Running,
+            stopped: false,
         }
     }
 
-    pub fn update(&mut self, delta_time: f64) {
-        let res = self._update(delta_time);
-        if let Err(err) = res {
-            self.handle_err(err);
-        }
+    #[wasm_bindgen(js_name = initLogger)]
+    pub fn init_logger() {
+        log::init_logger();
     }
 
-    pub fn step(&mut self) {
-        if self.state != State::Paused {
-            warn!("emulator is not paused, cannot step");
+    pub fn step(&mut self) -> Result<(), String> {
+        if self.stopped {
+            return Ok(());
         }
         match self.tick() {
-            Ok(clock) => self.clock.add_cycles(clock),
-            Err(err) => self.handle_err(err),
+            Ok(clock) => {
+                self.clock.step(clock);
+                Ok(())
+            }
+            Err(err) => {
+                let err_code = self.handle_err(err);
+                Err(err_code)
+            }
+        }
+    }
+
+    pub fn update(&mut self, cycles: ClockCycle) -> Result<(), String> {
+        let res = self._update(cycles);
+        match res {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                let err_code = self.handle_err(err);
+                Err(err_code)
+            }
         }
     }
 
@@ -101,26 +64,14 @@ impl Emulator {
         self.cpu.reset();
         self.bus.reset();
         self.clock.reset();
-        self.state = State::Running;
+        self.stopped = false
     }
 
-    pub fn resume(&mut self) {
-        match self.state {
-            State::Running => info!("emulator is already running"),
-            State::Paused => self.state = State::Running,
-            State::Stopped => warn!("emulator has stopped, please reset it first"),
-        }
-    }
-
-    pub fn pause(&mut self) {
-        self.state = State::Paused;
-    }
-
-    fn _update(&mut self, delta_time: f64) -> Result {
-        if self.state != State::Running {
+    fn _update(&mut self, cycles: ClockCycle) -> Result {
+        if self.stopped {
             return Ok(());
         }
-        let ticks = self.clock.ticks(delta_time);
+        let ticks = self.clock.ticks(cycles);
         let mut clocks = 0;
         while clocks < ticks {
             clocks += self.tick()?;
@@ -141,8 +92,8 @@ impl Emulator {
         Ok(cycles)
     }
 
-    fn handle_err(&mut self, err: EmulatorError) {
-        self.state = State::Stopped;
-        // match err {}
+    fn handle_err(&mut self, err: EmulatorError) -> String {
+        self.stopped = true;
+        err.to_string()
     }
 }

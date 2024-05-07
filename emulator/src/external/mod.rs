@@ -2,6 +2,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = window, js_name = emulatorLog)]
-    pub fn emulator_log(level: u8, message: &str);
+    #[wasm_bindgen(js_namespace = window, js_name = emulatorLogCallback)]
+    pub fn emulator_log_callback(level: &str, msg: &str);
+    #[wasm_bindgen(js_namespace = window, js_name = emulatorSerialCallback)]
+    pub fn emulator_serial_callback(byte: u8);
 }

@@ -1,13 +1,10 @@
-import './assets/main.css'
 import 'virtual:uno.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import init, { greet } from 'gameboy/pkg'
-
 import App from './App.vue'
-import router from './router'
+import { getEmulator } from './emulator'
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+createApp(App).use(createPinia()).mount('#app')
 
-await init()
-greet()
+const emu = await getEmulator()
+emu.step()

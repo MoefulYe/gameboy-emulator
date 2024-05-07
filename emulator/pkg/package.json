@@ -1,16 +1,16 @@
 {
-  "name": "gameboy",
+  "name": "emulator",
   "collaborators": [
     "ashenye <luren145@gmail.com>"
   ],
   "version": "0.1.0",
   "files": [
-    "gameboy_bg.wasm",
-    "gameboy.js",
-    "gameboy.d.ts"
+    "emulator_bg.wasm",
+    "emulator.js",
+    "emulator.d.ts"
   ],
-  "module": "gameboy.js",
-  "types": "gameboy.d.ts",
+  "module": "emulator.js",
+  "types": "emulator.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]

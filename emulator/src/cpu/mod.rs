@@ -8,7 +8,6 @@ use self::{
 use crate::{
     cpu::cb::extended_inst_decode,
     dev::bus::{Bus, IO_LOW_BOUND},
-    emulator::Emulator,
     error::{EmulatorError, Result},
     types::{Addr, ClockCycle, DWord, OpCode, Word},
     utils::bits::BitMap,

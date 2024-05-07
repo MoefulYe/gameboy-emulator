@@ -153,6 +153,14 @@ impl Bus {
             Some(INT_JOYPAD_ENTRY)
         }
     }
+
+    pub fn serial(&self) -> &Serial {
+        &self.serial
+    }
+
+    pub fn serial_mut(&mut self) -> &mut Serial {
+        &mut self.serial
+    }
 }
 
 pub const CART_ROM_LOW_BOUND: Addr = 0x0000;
