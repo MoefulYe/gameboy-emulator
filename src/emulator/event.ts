@@ -1,4 +1,4 @@
-import { createEventEmitter, type EventEmitter } from '@/event'
+import { createEventEmitter, type EventEmitter } from '@/utils/event'
 
 export type EmulatorEvent = {
   log: [level: LogLevel, msg: string]

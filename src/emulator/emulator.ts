@@ -1,22 +1,21 @@
 import wasmInit, { WasmEmulator } from 'emulator/pkg/emulator'
-import { type ShallowRef, shallowRef } from 'vue'
-import { type EventDispatcher, type EventEmitter, type EventListener } from '@/event'
-import { StateType, type EmulatorState } from './state'
+import { type Ref, ref } from 'vue'
+import {
+  useListener,
+  type EventDispatcher,
+  type EventEmitter,
+  type EventListener
+} from '@/utils/event'
+import { EmulatorState } from './state'
 import { createEmulatorEventEmitter, type EmulatorEvent, type EmulatorEventType } from './event'
 
 export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEvent> {
-  private state: ShallowRef<EmulatorState>
+  private state: Ref<EmulatorState>
   private emitter: EventEmitter<EmulatorEvent>
   private constructor(emitter: EventEmitter<EmulatorEvent>) {
     super()
-    this.state = shallowRef({
-      state: StateType.Stopped
-    })
+    this.state = ref(EmulatorState.Stopped)
     this.emitter = emitter
-  }
-
-  public getState(): ShallowRef<EmulatorState> {
-    return this.state
   }
 
   public static async create(): Promise<Emulator> {
@@ -39,6 +38,17 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   ) {
     this.emitter.off(event, listener)
   }
+
+  public useListener<Event extends EmulatorEventType>(
+    event: Event,
+    listener: EventListener<EmulatorEvent[Event]>
+  ) {
+    useListener(this.emitter, event, listener)
+  }
+
+  public useState(): Ref<EmulatorState> {
+    return this.state
+  }
 }
 
-export default await Emulator.create()
+export const emulator = await Emulator.create()

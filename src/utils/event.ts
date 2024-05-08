@@ -1,7 +1,8 @@
+import { onMounted, onUnmounted } from 'vue'
 export type EventType = string | symbol | number
 export type EventListener<Args extends unknown[]> = (...args: Args) => unknown
 export type EventListeners<Args extends unknown[]> = Array<EventListener<Args>>
-export type EventListenerMap<Events extends Record<EventType, unknown[]>> = {
+type EventListenerMap<Events extends Record<EventType, unknown[]>> = {
   [Event in keyof Events]: EventListeners<Events[Event]>
 }
 
@@ -49,3 +50,15 @@ class EventEmitterImpl<Events extends Record<EventType, unknown[]>>
 export const createEventEmitter = <
   Events extends Record<EventType, unknown[]>
 >(): EventEmitter<Events> => new EventEmitterImpl<Events>()
+
+export const useListener = <
+  Events extends Record<EventType, unknown[]>,
+  Event extends keyof Events
+>(
+  dispatcher: EventDispatcher<Events>,
+  event: Event,
+  listener: EventListener<Events[Event]>
+) => {
+  onMounted(() => dispatcher.on(event, listener))
+  onUnmounted(() => dispatcher.off(event, listener))
+}
