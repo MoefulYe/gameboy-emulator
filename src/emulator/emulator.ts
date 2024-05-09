@@ -14,7 +14,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   private emitter: EventEmitter<EmulatorEvent>
   private constructor(emitter: EventEmitter<EmulatorEvent>) {
     super()
-    this.state = ref(EmulatorState.Stopped)
+    this.state = ref(EmulatorState.Shutdown)
     this.emitter = emitter
   }
 
