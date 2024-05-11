@@ -17,7 +17,7 @@ $t: 3s;
 $n: 7;
 #loading {
   position: fixed;
-  z-index: 10;
+  z-index: 9999;
   inset-block: 0;
   inset-inline: 0;
   background-color: #8fbcbb;
