@@ -17,6 +17,9 @@ dependencies:
   vue:
     specifier: ^3.4.21
     version: 3.4.23(typescript@5.4.5)
+  vue-draggable-resizable:
+    specifier: ^3.0.0
+    version: 3.0.0(vue@3.4.23)
   vue-i18n:
     specifier: ^9.13.1
     version: 9.13.1(vue@3.4.23)
@@ -3867,6 +3870,14 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+    dependencies:
+      vue: 3.4.23(typescript@5.4.5)
+    dev: false
+
+  /vue-draggable-resizable@3.0.0(vue@3.4.23):
+    resolution: {integrity: sha512-kABSggcXPoDB8dOTVE09ZkccxiMdNDUaLl7STTeghsFE3o+mk653iumrkmjKLfIBA/w5ZXWJmarBqoqsmWLzEg==}
+    peerDependencies:
+      vue: ^3.2.25
     dependencies:
       vue: 3.4.23(typescript@5.4.5)
     dev: false

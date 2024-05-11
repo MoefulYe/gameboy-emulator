@@ -53,6 +53,12 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     useListener(this.emitter, event, listener)
   }
 
+  public screenshot(): void {
+    if (this.canvansCtx !== undefined) {
+      const imageData = this.canvansCtx.getImageData(0, 0, 160, 144)
+    }
+  }
+
   public useState(): Ref<EmulatorState> {
     return this.state
   }

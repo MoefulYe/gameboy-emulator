@@ -5,12 +5,14 @@
     :min="min"
     :max="max"
     :step="step"
-    v-model="value"
     :disabled="disabled"
+    v-model="valueStr"
   />
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+
 withDefaults(
   defineProps<{
     min?: number
@@ -23,7 +25,14 @@ withDefaults(
     disabled: false
   }
 )
-const value = defineModel<number>()
+
+const value = defineModel<number>({
+  default: 0
+})
+const valueStr = computed({
+  get: () => value.value.toString(),
+  set: (v: string) => (value.value = parseFloat(v))
+})
 </script>
 
 <style lang="scss">

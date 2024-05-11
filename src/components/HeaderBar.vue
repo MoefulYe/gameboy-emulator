@@ -7,7 +7,7 @@
       <button class="i-pixelarticons:play" v-tooltip="tooltipPlay" :disabled="disablePlay" />
       <button class="i-pixelarticons:pause" v-tooltip="t('pause')" :disabled="disablePause" />
       <button class="i-pixelarticons:next" v-tooltip="t('next')" :disabled="disableNext" />
-      <button class="i-pixelarticons:reload" v-tooltip="t('reload')" />
+      <button class="i-pixelarticons:reload" v-tooltip="t('restart')" />
       <button class="i-pixelarticons:close" v-tooltip="t('shutdown')" :disabled="disableShutdown" />
       <span class="divider" />
       <Menu class="size-7.5 sm:size-12 relative">
@@ -21,8 +21,16 @@
           </div>
         </template>
       </Menu>
-      <button class="i-pixelarticons:volume-2" v-tooltip="t('volume')" />
-      <button class="i-pixelarticons:camera" v-tooltip="t('shot')" />
+      <Menu class="size-7.5 sm:size-12 relative">
+        <button :class="[volumeIcon, 'size-full absolute inset-block-0']" @dblclick="resetVolume" />
+        <template #popper>
+          <div class="p-2 md:p-4 flex content-center">
+            <label class="me-2 md:me-4 text-xs"> {{ volume.toString() }}% </label>
+            <MySlider v-model="volume" :min="0" :max="150" />
+          </div>
+        </template>
+      </Menu>
+      <button class="i-pixelarticons:camera" v-tooltip="t('shot')" @click="emu.screenshot()" />
       <button class="i-pixelarticons:more-horizontal" v-tooltip="t('more')" />
     </span>
   </header>
@@ -53,7 +61,6 @@ const tooltipPlay = computed(() =>
 const disablePlay = computed(
   () => state.value === EmulatorState.Running || state.value === EmulatorState.Aborted
 )
-
 const disablePause = computed(() => state.value !== EmulatorState.Running)
 const disableNext = computed(() => state.value !== EmulatorState.Paused)
 const disableShutdown = computed(() => state.value === EmulatorState.Shutdown)
@@ -69,10 +76,28 @@ const speedIcon = computed(() => {
   else return 'i-pixelarticons:speed-medium'
 })
 const resetSpeed = () => (speedScale.value = 1)
+
+const volumeIcon = computed(() => {
+  const _val = Math.floor((volume.value + 49) / 50)
+  const val = _val > 3 ? 3 : _val
+  return volumeIcons[val]
+})
+const resetVolume = () => {
+  if (volume.value !== 0) {
+    volume.value = 0
+  } else {
+    volume.value = 50
+  }
+}
 </script>
 
 <script lang="ts">
-const volumeIcons = [] as const
+const volumeIcons = [
+  'i-pixelarticons:volume-x',
+  'i-pixelarticons:volume-1',
+  'i-pixelarticons:volume-2',
+  'i-pixelarticons:volume-3'
+] as const
 </script>
 
 <style scoped lang="scss">
@@ -108,11 +133,11 @@ button {
     "resume": "继续",
     "start": "开始",
     "pause": "暂停",
+    "next": "步进",
     "restart": "重启",
     "shutdown": "关闭",
     "speed": "速度",
     "volume": "音量",
-    "shot": "截图",
     "more": "更多"
   },
   "en": {
@@ -121,6 +146,7 @@ button {
     "resume": "Resume",
     "start": "Start",
     "pause": "Pause",
+    "next": "Next",
     "restart": "Restart",
     "shutdown": "Shutdown",
     "speed": "Speed",
