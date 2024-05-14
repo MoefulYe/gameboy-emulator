@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { useEmulator } from '@/emulator'
+import { Emulator, useEmulator } from '@/emulator'
 import { EmulatorState } from '@/emulator/state'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -54,13 +54,15 @@ const state = emu.useState()
 const speedScale = emu.useSpeedScale()
 const volume = emu.useVolume()
 
-const tooltipPlay = computed(() =>
-  state.value === EmulatorState.Paused ? t('resume') : t('start')
-)
+const tooltipPlay = computed(() => {
+  const s = state.value === EmulatorState.Paused ? 'resume' : 'start'
+  return t(s)
+})
 
-const disablePlay = computed(
-  () => state.value === EmulatorState.Running || state.value === EmulatorState.Aborted
-)
+const disablePlay = computed(() => {
+  const s = state.value
+  return s === EmulatorState.Running || s === EmulatorState.Aborted
+})
 const disablePause = computed(() => state.value !== EmulatorState.Running)
 const disableNext = computed(() => state.value !== EmulatorState.Paused)
 const disableShutdown = computed(() => state.value === EmulatorState.Shutdown)

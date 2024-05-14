@@ -8,7 +8,12 @@
   src: url('/fonts/Uranus.ttf');
 }
 
+@font-face {
+  font-family: Pretendo;
+  src: url('/fonts/Pretendo.ttf');
+}
+
 body {
-  font-family: 'Urbanus', 'Press Start 2P', sans-serif;
+  font-family: 'Press Start 2P', 'Uranus', 'Arial', sans-serif;
   font-size: 14px;
 }

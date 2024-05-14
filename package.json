@@ -19,8 +19,8 @@
     "floating-vue": "^5.2.2",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
-    "vue-draggable-resizable": "^3.0.0",
-    "vue-i18n": "^9.13.1"
+    "vue-i18n": "^9.13.1",
+    "vue-resizables": "^0.7.1"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^4.0.0",

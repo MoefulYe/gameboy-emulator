@@ -17,12 +17,12 @@ dependencies:
   vue:
     specifier: ^3.4.21
     version: 3.4.23(typescript@5.4.5)
-  vue-draggable-resizable:
-    specifier: ^3.0.0
-    version: 3.0.0(vue@3.4.23)
   vue-i18n:
     specifier: ^9.13.1
     version: 9.13.1(vue@3.4.23)
+  vue-resizables:
+    specifier: ^0.7.1
+    version: 0.7.1(vue@3.4.23)
 
 devDependencies:
   '@intlify/unplugin-vue-i18n':
@@ -3874,14 +3874,6 @@ packages:
       vue: 3.4.23(typescript@5.4.5)
     dev: false
 
-  /vue-draggable-resizable@3.0.0(vue@3.4.23):
-    resolution: {integrity: sha512-kABSggcXPoDB8dOTVE09ZkccxiMdNDUaLl7STTeghsFE3o+mk653iumrkmjKLfIBA/w5ZXWJmarBqoqsmWLzEg==}
-    peerDependencies:
-      vue: ^3.2.25
-    dependencies:
-      vue: 3.4.23(typescript@5.4.5)
-    dev: false
-
   /vue-eslint-parser@9.4.2(eslint@8.57.0):
     resolution: {integrity: sha512-Ry9oiGmCAK91HrKMtCrKFWmSFWvYkpGglCeFAIqDdr9zdXmMMpJOmUJS7WWsW7fX81h6mwHmUZCQQ1E0PkSwYQ==}
     engines: {node: ^14.17.0 || >=16.0.0}
@@ -3910,6 +3902,14 @@ packages:
       '@intlify/shared': 9.13.1
       '@vue/devtools-api': 6.6.1
       vue: 3.4.23(typescript@5.4.5)
+
+  /vue-resizables@0.7.1(vue@3.4.23):
+    resolution: {integrity: sha512-sKG0QvbQE+sTKQtuXAnkjA2GTNZIt25LeaGDavA76tMJVUASpJ9+4cFWxZEJLfxBNJ4SX3e1qup/IUI4AUJWjg==}
+    peerDependencies:
+      vue: ^3.0.0
+    dependencies:
+      vue: 3.4.23(typescript@5.4.5)
+    dev: false
 
   /vue-resize@2.0.0-alpha.1(vue@3.4.23):
     resolution: {integrity: sha512-7+iqOueLU7uc9NrMfrzbG8hwMqchfVfSzpVlCMeJQe4pyibqyoifDNbKTZvwxZKDvGkB+PdFeKvnGZMoEb8esg==}

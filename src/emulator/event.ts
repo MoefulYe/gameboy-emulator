@@ -1,5 +1,14 @@
 import { createEventEmitter, type EventEmitter } from '@/utils/event'
 
+export const enum LogLevel {
+  Off = 0,
+  Error = 1,
+  Warn = 2,
+  Info = 3,
+  Debug = 4,
+  Trace = 5
+}
+
 export type EmulatorEvent = {
   log: [level: LogLevel, msg: string]
   serial: [byte: number]

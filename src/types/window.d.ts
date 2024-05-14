@@ -1,8 +1,6 @@
 export declare global {
-  type LogLevel = 'off' | 'trace' | 'debug' | 'info' | 'warn' | 'error'
-
   interface Window {
-    emulatorLogCallback(level: LogLevel, msg: string)
-    emulatorSerialCallback(byte: number)
+    emulatorLogCallback(level: 0 | 1 | 2 | 3 | 4 | 5, msg: string): void
+    emulatorSerialCallback(byte: number): void
   }
 }

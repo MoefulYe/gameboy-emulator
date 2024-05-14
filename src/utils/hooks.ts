@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+import { onMounted, onUnmounted, ref, type Ref, type ComputedRef, computed } from 'vue'
 
 export const useWindowWidth = (): Ref<number> => {
   const width = ref(window.innerWidth)
@@ -9,4 +9,10 @@ export const useWindowWidth = (): Ref<number> => {
   onUnmounted(() => window.removeEventListener('resize', update))
 
   return width
+}
+
+export const useNotMobile = (): ComputedRef<boolean> => {
+  const MD = 768
+  const width = useWindowWidth()
+  return computed(() => width.value >= MD)
 }
