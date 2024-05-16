@@ -25,7 +25,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   private volume: Ref<number> = ref(50)
   private state: Ref<EmulatorState>
   private emitter: EventEmitter<EmulatorEvent>
-  private canvansCtx?: CanvasRenderingContext2D
+  private canvansCtx: CanvasRenderingContext2D | null = null
 
   private constructor(emitter: EventEmitter<EmulatorEvent>) {
     super()
@@ -62,7 +62,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   }
 
   public screenshot(): void {
-    if (this.canvansCtx !== undefined) {
+    if (this.canvansCtx !== null) {
       const imageData = this.canvansCtx.getImageData(0, 0, 160, 144)
     }
   }
@@ -84,8 +84,8 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   }
 
   public useCanvas(canvas: ShallowRef<HTMLCanvasElement | undefined>) {
-    onMounted(() => (this.canvansCtx = canvas.value?.getContext('2d') ?? undefined))
-    onUnmounted(() => (this.canvansCtx = undefined))
+    onMounted(() => (this.canvansCtx = canvas.value!.getContext('2d')))
+    onUnmounted(() => (this.canvansCtx = null))
   }
 }
 

@@ -1,18 +1,25 @@
 <template>
-  <div id="emulator-main">
-    <div class="gameboy">
+  <div ref="container" class="p-4">
+    <div id="gameboy" ref="gameboy">
       <div class="reflex">
-        <div class="display-2"></div>
-        <div class="display"></div>
+        <canvas id="screen" ref="screen"></canvas>
         <span class="diod"></span>
       </div>
       <ul class="buttons">
-        <li></li>
-        <li></li>
+        <li>
+          <span>A</span>
+        </li>
+        <li>
+          <span>B</span>
+        </li>
       </ul>
-      <ul class="buttons-2">
-        <li class="start"></li>
-        <li class="pause"></li>
+      <ul id="gamecontrol">
+        <li>
+          <span>SELECT</span>
+        </li>
+        <li>
+          <span>START</span>
+        </li>
       </ul>
       <ul class="speaker">
         <li></li>
@@ -62,13 +69,22 @@
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
 import { EmulatorState } from '@/emulator/state'
+import { useElementWidth } from '@/utils/hooks'
 import { computed, shallowRef } from 'vue'
-import { ref } from 'vue'
+
 const emu = useEmulator()
 const state = emu.useState()
-const gamescreen = shallowRef<HTMLCanvasElement>()
+const gameboy = shallowRef<HTMLDivElement>()
+const container = shallowRef<HTMLDivElement>()
+const screen = shallowRef<HTMLCanvasElement>()
 
-emu.useCanvas(gamescreen)
+emu.useCanvas(screen)
+useElementWidth(container, (w) => {
+  const s = (w * 0.9) / 265
+  const scale = s > 3 ? 3 : s
+  gameboy.value!.style.transform = `scale(${scale})`
+})
+
 const power = computed({
   get: () => state.value !== EmulatorState.Shutdown,
   set: (val) => (state.value = val ? EmulatorState.Running : EmulatorState.Shutdown)
@@ -76,15 +92,15 @@ const power = computed({
 </script>
 
 <style scoped lang="scss">
-.gameboy {
-  position: absolute;
-  top: 100px;
-  left: 200px;
+#gameboy {
+  margin-inline: auto;
+  transform-origin: top center;
+  user-select: none;
+  position: relative;
   width: 265px;
   height: 433px;
   border: 2px solid rgb(153, 153, 153);
   border-radius: 10px 10px 77px 10px;
-  background-image: -webkit-linear-gradient(#adb6b3, #bec2c1 50%);
   background-image: linear-gradient(#adb6b3, #bec2c1 50%);
   box-shadow:
     -5px 6px 20px rgba(0, 0, 0, 0.37),
@@ -95,17 +111,7 @@ const power = computed({
     inset 3px 0 10px #616465,
     inset 0 3px 7px #919496,
     inset 0 4px 10px white;
-}
-
-.wrapper p {
-  position: relative;
-  top: 511px;
-  left: 534px;
-  display: inline-block;
-  color: white;
-  font-weight: bold;
-  font-size: 26px;
-  font-family: 'Arial';
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .reflex {
@@ -130,17 +136,7 @@ const power = computed({
     inset -1px 0 2px rgba(255, 255, 255, 0.44);
 }
 
-.display {
-  position: absolute;
-  z-index: 3;
-  width: 232px;
-  height: 177px;
-  border-radius: 10px 10px 53px 10px;
-  background-image: -webkit-linear-gradient(46deg, #485055, rgba(143, 151, 156, 0.91) 80%);
-  background-image: linear-gradient(46deg, rgba(72, 80, 85, 0), rgba(143, 151, 156, 0.58) 80%);
-}
-
-.display-2 {
+#screen {
   position: absolute;
   top: 21px;
   left: 43px;
@@ -152,11 +148,6 @@ const power = computed({
   background: #5f953d;
   box-shadow: inset -2px 5px 10px #2a421a;
   opacity: 0.5;
-}
-
-.start:hover,
-.pause:hover {
-  cursor: pointer;
 }
 
 .diod {
@@ -173,7 +164,6 @@ const power = computed({
     0 0 5px #ac774d,
     -1px 1px 1px rgba(83, 53, 41, 0.99),
     inset 0 1px 2px #fcb251;
-  animation: light linear 3s infinite;
 }
 
 .buttons {
@@ -200,27 +190,33 @@ const power = computed({
       inset 1px 2px 4px #a87493,
       -1px -1px 2px #000000,
       3px 6px 7px rgba(125, 136, 134, 0.79);
-  }
-  li:first-child {
-    margin-bottom: 17px;
-  }
-  li:hover {
-    transition: ease-in-out 0.3s;
-    box-shadow:
-      inset 0px 0px 0px #a87493,
-      -1px -1px 2px #000000,
-      0px 0px 0px rgba(125, 136, 134, 0.79);
-    cursor: pointer;
-  }
-  li span {
-    transform: rotate(-90deg) translate(-8px, 40px) scaleY(0.5);
-    font-family: 'Squada One';
-    position: absolute;
-    color: #666;
+    &:active {
+      transition: ease-in-out 0.3s;
+      box-shadow:
+        inset 0px 0px 0px #a87493,
+        -1px -1px 2px #000000,
+        0px 0px 0px rgba(125, 136, 134, 0.79);
+    }
+
+    &:hover {
+      cursor: pointer;
+    }
+
+    &:first-child {
+      margin-bottom: 17px;
+    }
+
+    span {
+      transform: rotate(-90deg) translate(-4px, 40px);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      position: absolute;
+      color: #302058;
+    }
   }
 }
 
-.buttons-2 {
+#gamecontrol {
   position: absolute;
   top: 348px;
   left: 103px;
@@ -231,23 +227,37 @@ const power = computed({
     width: 9px;
     height: 34px;
     border-radius: 50px;
-    background-image: -webkit-linear-gradient(269deg, #6f7875, #9b9b9b 71%);
-    background-image: linear-gradient(269deg, #6f7875, #9b9b9b 71%);
+    background-image: linear-gradient(269deg, #6f7875, #c3c2c8 50%);
+    // box-shadow:
+    //   1px 1px 1px rgba(226, 226, 226, 0.97),
+    //   -1px -1px 2px #767a79,
+    //   inset 1px 1px 1px #a3aca9;
     box-shadow:
-      1px 1px 1px rgba(226, 226, 226, 0.97),
-      -1px -1px 2px #767a79,
-      inset 1px 1px 1px #a3aca9;
-  }
-  li:last-child {
-    position: absolute;
-    bottom: 7px;
-    left: 20px;
-  }
-  li span {
-    font-family: 'Squada One';
-    position: absolute;
-    color: #666;
-    transform: rotate(-90deg) translate(-8px, 0) scaleY(0.5);
+      -2px -2px 5px rgba(0, 0, 0, 0.05) inset,
+      2px 2px 5px rgba(255, 255, 255, 0.1) inset,
+      2px 2px 6px rgba(0, 0, 0, 0.1);
+
+    &:last-child {
+      position: absolute;
+      bottom: 7px;
+      left: 20px;
+    }
+
+    &:hover {
+      cursor: pointer;
+    }
+
+    &:active {
+      box-shadow:
+        -2px -2px 2px rgba(0, 0, 0, 0.1) inset,
+        2px 2px 2px rgba(0, 0, 0, 0.1) inset;
+    }
+    span {
+      position: absolute;
+      transform: rotate(-90deg) translate(-12px, 8px);
+      font-size: 8px;
+      color: #302058;
+    }
   }
 }
 
@@ -289,7 +299,6 @@ const power = computed({
   height: 21px;
   border-radius: 2px 2px 0 0;
   background: #282c2b;
-  background-image: -webkit-linear-gradient(90deg, #282c2b, #808382 119%);
   background-image: linear-gradient(90deg, #282c2b, #9b9b9b 119%);
   box-shadow:
     1px -1px 1px rgb(53, 53, 53),
@@ -313,7 +322,6 @@ const power = computed({
   height: 22px;
   border-radius: 2px 2px 0px 0;
   background: #282c2b;
-  background-image: -webkit-linear-gradient(303deg, #282c2b, #9b9b9b 111%);
   background-image: linear-gradient(303deg, #282c2b, #9b9b9b 111%);
   box-shadow: -1px -1px 1px rgb(53, 53, 53);
   transform: rotate(90deg);
@@ -336,7 +344,6 @@ const power = computed({
   height: 21px;
   border-radius: 0 0 2px 2px;
   background: #282c2b;
-  background-image: -webkit-linear-gradient(55deg, #131716, #6a706f 147%);
   background-image: linear-gradient(55deg, #131716, #6a706f 147%);
   box-shadow: -5px 0px 6px #606362;
 
@@ -359,7 +366,6 @@ const power = computed({
   height: 22px;
   border-radius: 0px 0px 2px 2px;
   background: #282c2b;
-  background-image: -webkit-linear-gradient(290deg, #131716, #6a706f 173%);
   background-image: linear-gradient(290deg, #131716, #6a706f 173%);
   box-shadow: 2px 3px 7px rgb(53, 53, 53);
   transform: rotate(90deg);
@@ -381,7 +387,6 @@ const power = computed({
   z-index: 5;
   width: 22px;
   height: 22px;
-  background-image: -webkit-linear-gradient(-134deg, #656666, #2e3231 60%);
   background-image: linear-gradient(-134deg, #656666, #2e3231 60%);
 
   li {
@@ -396,18 +401,6 @@ const power = computed({
     box-shadow:
       inset 2px -1px 8px #868787,
       inset 3px -1px 10px black;
-  }
-}
-
-@keyframes light {
-  0% {
-    box-shadow: 0 0 0px #ffa300;
-  }
-  50% {
-    box-shadow: 0 0 24px #ffa300;
-  }
-  100% {
-    box-shadow: 0 0 0px #ffa300;
   }
 }
 
