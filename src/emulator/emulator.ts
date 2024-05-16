@@ -1,5 +1,13 @@
 import wasmInit, { WasmEmulator } from 'emulator/pkg/emulator'
-import { type Ref, ref, type ComputedRef, computed } from 'vue'
+import {
+  type Ref,
+  ref,
+  type ComputedRef,
+  computed,
+  type ShallowRef,
+  onMounted,
+  onUnmounted
+} from 'vue'
 import {
   useListener,
   type EventDispatcher,
@@ -73,6 +81,11 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
 
   public useVolume(): Ref<number> {
     return this.volume
+  }
+
+  public useCanvas(canvas: ShallowRef<HTMLCanvasElement | undefined>) {
+    onMounted(() => (this.canvansCtx = canvas.value?.getContext('2d') ?? undefined))
+    onUnmounted(() => (this.canvansCtx = undefined))
   }
 }
 

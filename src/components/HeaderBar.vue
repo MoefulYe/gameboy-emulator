@@ -1,5 +1,5 @@
 <template>
-  <header class="bg-blue-3 text-white shadow-sm border-b-1 p-2 overflow-y-auto">
+  <header id="header-bar" class="bg-blue-3 text-white shadow-sm border-b-1 p-2 overflow-y-auto">
     <span class="flex gap-2 justify-center w-fit mx-auto text-3xl sm:text-5xl">
       <button class="i-pixelarticons:folder" v-tooltip="t('open')" />
       <button class="i-pixelarticons:save" v-tooltip="t('save')" />
@@ -105,8 +105,7 @@ const volumeIcons = [
 <style scoped lang="scss">
 button {
   transition: color 0.2s ease-in-out;
-  &:hover,
-  &:focus {
+  &:hover {
     background-color: rgb(219, 234, 254);
   }
   &:disabled {
@@ -124,6 +123,10 @@ button {
       margin-inline: 1rem;
     }
   }
+}
+
+#header-bar {
+  scrollbar-width: none;
 }
 </style>
 
