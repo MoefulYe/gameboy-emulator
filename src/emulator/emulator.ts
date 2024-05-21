@@ -1,13 +1,5 @@
 import wasmInit, { WasmEmulator } from 'emulator/pkg/emulator'
-import {
-  type Ref,
-  ref,
-  type ComputedRef,
-  computed,
-  type ShallowRef,
-  onMounted,
-  onUnmounted
-} from 'vue'
+import { ref, computed, onMounted, onUnmounted, type ShallowRef } from 'vue'
 import {
   useListener,
   type EventDispatcher,
@@ -15,23 +7,35 @@ import {
   type EventListener
 } from '@/utils/event'
 import { EmulatorState } from './state'
-import { createEmulatorEventEmitter, type EmulatorEvent, type EmulatorEventType } from './event'
+import {
+  LogLevel,
+  createEmulatorEventEmitter,
+  type EmulatorEvent,
+  type EmulatorEventType
+} from './event'
+
+export type ResumeSignal = () => void
+export type PauseWaiter = Promise<void>
 
 export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEvent> {
   private static readonly BASE_FREQ_HZ: number = 4_194_304
 
-  private freqScale: Ref<number> = ref(1.0)
-  private freqHz: ComputedRef<number> = computed(() => Emulator.BASE_FREQ_HZ * this.freqScale.value)
-  private volume: Ref<number> = ref(50)
-  private state: Ref<EmulatorState>
+  private freqScale = ref(1.0)
+  private volume = ref(50)
+  private state = ref(EmulatorState.Shutdown)
+  private freqHz = computed(() => Emulator.BASE_FREQ_HZ * this.freqScale.value)
   private emitter: EventEmitter<EmulatorEvent>
-  private canvansCtx: CanvasRenderingContext2D | null = null
+  private canvansCtx?: CanvasRenderingContext2D
+  private resumeSignal?: ResumeSignal
+  private PauseWaiter?: PauseWaiter
+  private cycles = ref(0)
 
   private constructor(emitter: EventEmitter<EmulatorEvent>) {
     super()
-    this.state = ref(EmulatorState.Shutdown)
     this.emitter = emitter
   }
+
+  private tick()
 
   public static async create(): Promise<Emulator> {
     const emitter = createEmulatorEventEmitter()
@@ -61,31 +65,65 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     useListener(this.emitter, event, listener)
   }
 
-  public screenshot(): void {
-    if (this.canvansCtx !== null) {
+  public screenshot() {
+    if (this.canvansCtx !== undefined) {
       const imageData = this.canvansCtx.getImageData(0, 0, 160, 144)
     }
   }
 
-  public useState(): Ref<EmulatorState> {
+  public useState() {
     return this.state
   }
 
-  public useSpeedScale(): Ref<number> {
+  public useSpeedScale() {
     return this.freqScale
   }
 
-  public useSpeedHz(): ComputedRef<number> {
+  public useSpeedHz() {
     return this.freqHz
   }
 
-  public useVolume(): Ref<number> {
+  public useVolume() {
     return this.volume
   }
 
   public useCanvas(canvas: ShallowRef<HTMLCanvasElement | undefined>) {
-    onMounted(() => (this.canvansCtx = canvas.value!.getContext('2d')))
-    onUnmounted(() => (this.canvansCtx = null))
+    onMounted(() => (this.canvansCtx = canvas.value!.getContext('2d') ?? undefined))
+    onUnmounted(() => (this.canvansCtx = undefined))
+  }
+
+  public pause() {
+    if (this.state.value === EmulatorState.Running) {
+      this.PauseWaiter = new Promise((signal) => (this.resumeSignal = signal))
+    }
+  }
+
+  public reset() {
+    if (this.state.value === EmulatorState.Paused) {
+      this.resumeSignal!()
+    }
+    super.reset()
+    this.state.value = EmulatorState.Shutdown
+    this.cycles.value = 0
+    this.emitter.emit('log', LogLevel.Info, 'Emulator is reset')
+  }
+
+  public async start() {
+    if (this.state.value === EmulatorState.Aborted) {
+      this.emitter.emit('log', LogLevel.Warn, 'Emulator is aborted. reset emulator first')
+      return
+    }
+    const pending = 0
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const s = this.state.value
+      if (s === EmulatorState.Paused) {
+        await this.PauseWaiter!
+        continue
+      } else if (s !== EmulatorState.Running) {
+        break
+      }
+    }
   }
 }
 

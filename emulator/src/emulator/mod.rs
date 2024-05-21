@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     cpu::CPU,
-    dev::{bus::Bus, clock::Clock},
+    dev::{bus::Bus, buttons::Button, clock::Clock},
     error::{EmulatorError, Result},
     log,
     types::ClockCycle,
@@ -65,6 +65,14 @@ impl Emulator {
         self.bus.reset();
         self.clock.reset();
         self.stopped = false
+    }
+
+    pub fn up(&mut self, btn: Button) {
+        todo!()
+    }
+
+    pub fn down(&mut self, btn: Button) {
+        todo!()
     }
 
     fn _update(&mut self, cycles: ClockCycle) -> Result {

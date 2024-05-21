@@ -1,3 +1,3 @@
 <template>
-  <aside>emulator dev tools</aside>
+  <div class="text-lg lg:text-xl">dev tools</div>
 </template>

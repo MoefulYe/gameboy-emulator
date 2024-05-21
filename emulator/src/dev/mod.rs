@@ -6,6 +6,7 @@ use log::warn;
 use std::default::Default;
 
 pub mod bus;
+pub mod buttons;
 pub mod clock;
 mod int_regs;
 mod rams;

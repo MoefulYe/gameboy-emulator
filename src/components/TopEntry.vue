@@ -13,7 +13,7 @@
         <div class="grow bg-white rounded-md border p-2">
           <EmulatorDevTools />
         </div>
-        <div v-resizable="LOGOUTPUT_RESIZABLE_CONFIG" class="h-2/5 bg-white rounded-md border p-2">
+        <div v-resizable="LOGOUTPUT_RESIZABLE_CONFIG" class="h-2/5 bg-white rounded-md border">
           <EmulatorLogOutput />
         </div>
       </aside>

@@ -1,27 +1,30 @@
 <template>
-  <div ref="container" class="p-4">
+  <div ref="container" class="pt-4">
     <div id="gameboy" ref="gameboy">
       <div class="reflex">
         <canvas id="screen" ref="screen"></canvas>
         <span class="diod"></span>
       </div>
       <ul class="buttons">
-        <li>
+        <li @pointerdown="emu.down(EmulatorButton.A)" @pointerup="emu.up(EmulatorButton.A)">
           <span>A</span>
         </li>
-        <li>
+        <li @pointerdown="emu.down(EmulatorButton.B)" @pointerup="emu.up(EmulatorButton.B)">
           <span>B</span>
         </li>
       </ul>
       <ul id="gamecontrol">
-        <li>
+        <li
+          @pointerdown="emu.down(EmulatorButton.Select)"
+          @pointerup="emu.up(EmulatorButton.Select)"
+        >
           <span>SELECT</span>
         </li>
-        <li>
+        <li @pointerdown="emu.down(EmulatorButton.Start)" @pointerup="emu.up(EmulatorButton.Start)">
           <span>START</span>
         </li>
       </ul>
-      <ul class="speaker">
+      <ul id="speaker">
         <li></li>
         <li></li>
         <li></li>
@@ -30,14 +33,22 @@
         <li></li>
       </ul>
       <div class="stick">
-        <ul class="left">
+        <ul
+          class="left"
+          @pointerdown="emu.down(EmulatorButton.Left)"
+          @pointerup="emu.up(EmulatorButton.Left)"
+        >
           <li></li>
           <li></li>
           <li></li>
           <li></li>
           <li></li>
         </ul>
-        <ul class="right">
+        <ul
+          class="right"
+          @pointerdown="emu.down(EmulatorButton.Right)"
+          @pointerup="emu.up(EmulatorButton.Right)"
+        >
           <li></li>
           <li></li>
           <li></li>
@@ -47,14 +58,22 @@
         <ul class="circle">
           <li></li>
         </ul>
-        <ul class="top">
+        <ul
+          class="top"
+          @pointerdown="emu.down(EmulatorButton.Up)"
+          @pointerup="emu.up(EmulatorButton.Up)"
+        >
           <li></li>
           <li></li>
           <li></li>
           <li></li>
           <li></li>
         </ul>
-        <ul class="bottom">
+        <ul
+          class="bottom"
+          @pointerdown="emu.down(EmulatorButton.Down)"
+          @pointerup="emu.up(EmulatorButton.Down)"
+        >
           <li></li>
           <li></li>
           <li></li>
@@ -67,27 +86,22 @@
 </template>
 
 <script setup lang="ts">
-import { useEmulator } from '@/emulator'
+import { EmulatorButton, useEmulator } from '@/emulator'
 import { EmulatorState } from '@/emulator/state'
 import { useElementWidth } from '@/utils/hooks'
+import { ref } from 'vue'
 import { computed, shallowRef } from 'vue'
-
-const emu = useEmulator()
-const state = emu.useState()
 const gameboy = shallowRef<HTMLDivElement>()
 const container = shallowRef<HTMLDivElement>()
-const screen = shallowRef<HTMLCanvasElement>()
 
+const emu = useEmulator()
+const emuState = emu.useState()
+const screen = shallowRef<HTMLCanvasElement>()
 emu.useCanvas(screen)
 useElementWidth(container, (w) => {
   const s = (w * 0.9) / 265
   const scale = s > 3 ? 3 : s
   gameboy.value!.style.transform = `scale(${scale})`
-})
-
-const power = computed({
-  get: () => state.value !== EmulatorState.Shutdown,
-  set: (val) => (state.value = val ? EmulatorState.Running : EmulatorState.Shutdown)
 })
 </script>
 
@@ -179,7 +193,7 @@ const power = computed({
   transform: rotate(64deg);
 
   li {
-    transition: ease-in-out 0.3s;
+    transition: ease-in-out 0.05s;
     width: 30px;
     height: 30px;
     border: 1px solid rgba(68, 32, 54, 1);
@@ -228,15 +242,10 @@ const power = computed({
     height: 34px;
     border-radius: 50px;
     background-image: linear-gradient(269deg, #6f7875, #c3c2c8 50%);
-    // box-shadow:
-    //   1px 1px 1px rgba(226, 226, 226, 0.97),
-    //   -1px -1px 2px #767a79,
-    //   inset 1px 1px 1px #a3aca9;
     box-shadow:
-      -2px -2px 5px rgba(0, 0, 0, 0.05) inset,
-      2px 2px 5px rgba(255, 255, 255, 0.1) inset,
-      2px 2px 6px rgba(0, 0, 0, 0.1);
-
+      1px 1px 1px rgba(226, 226, 226, 0.97),
+      -1px -1px 2px #767a79,
+      inset 1px 1px 1px #a3aca9;
     &:last-child {
       position: absolute;
       bottom: 7px;
@@ -247,11 +256,6 @@ const power = computed({
       cursor: pointer;
     }
 
-    &:active {
-      box-shadow:
-        -2px -2px 2px rgba(0, 0, 0, 0.1) inset,
-        2px 2px 2px rgba(0, 0, 0, 0.1) inset;
-    }
     span {
       position: absolute;
       transform: rotate(-90deg) translate(-12px, 8px);
@@ -261,7 +265,7 @@ const power = computed({
   }
 }
 
-.speaker {
+#speaker {
   position: absolute;
   top: 344px;
   left: 174px;
@@ -303,6 +307,7 @@ const power = computed({
   box-shadow:
     1px -1px 1px rgb(53, 53, 53),
     -4px 2px 7px rgba(96, 99, 98, 0.64);
+  cursor: pointer;
 
   li {
     margin: 2px;
@@ -325,6 +330,7 @@ const power = computed({
   background-image: linear-gradient(303deg, #282c2b, #9b9b9b 111%);
   box-shadow: -1px -1px 1px rgb(53, 53, 53);
   transform: rotate(90deg);
+  cursor: pointer;
 
   li {
     margin: 2px;
@@ -346,6 +352,7 @@ const power = computed({
   background: #282c2b;
   background-image: linear-gradient(55deg, #131716, #6a706f 147%);
   box-shadow: -5px 0px 6px #606362;
+  cursor: pointer;
 
   li {
     margin: 2px;
@@ -369,6 +376,7 @@ const power = computed({
   background-image: linear-gradient(290deg, #131716, #6a706f 173%);
   box-shadow: 2px 3px 7px rgb(53, 53, 53);
   transform: rotate(90deg);
+  cursor: pointer;
 
   li {
     margin: 2px;

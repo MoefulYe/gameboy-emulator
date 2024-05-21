@@ -44,10 +44,7 @@ import { useI18n } from 'vue-i18n'
 import { Menu } from 'floating-vue'
 import MySlider from './MySlider.vue'
 
-const { t } = useI18n({
-  inheritLocale: true,
-  useScope: 'local'
-})
+const { t } = useI18n()
 
 const emu = useEmulator()
 const state = emu.useState()

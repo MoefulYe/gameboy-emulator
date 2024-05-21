@@ -1,12 +1,12 @@
 <template>
-  <div class="flex-(~ col) max-h-full">
-    <div class="border-b p-1 flex items-center justify-between text-gray-8">
+  <div class="flex-(~ col) max-h-full text-gray-8">
+    <div class="border-b flex items-center justify-between text-lg lg:text-xl p-4">
       <span>
         {{ t('title') }}
       </span>
       <VTooltip>
         <span
-          class="i-carbon:trash-can transition-colors duration-200 ease-in-out hover:text-blue-4"
+          class="i-mdi:trash transition-colors duration-200 ease-in-out hover:text-blue-3"
           @click="logs.splice(0)"
         />
         <template #popper>
@@ -16,7 +16,7 @@
         </template>
       </VTooltip>
     </div>
-    <div class="overflow-y-auto whitespace-pre-wrap break-words p-2 text-gray-8" ref="logContainer">
+    <div class="overflow-y-auto whitespace-pre-wrap break-words p-2" ref="logContainer">
       <p v-for="{ id, level, msg } of logs" :key="id" class="my-2">
         <span :class="['rounded-lg me-0.5 p-1 text-white', LOG_STYLE[level]]">{{
           LOG_STR[level]
