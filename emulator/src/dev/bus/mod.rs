@@ -1,3 +1,4 @@
+use self::breakpoint::BreakPoints;
 use super::{
     cartridge::Cartridge,
     int_regs::{
@@ -16,6 +17,8 @@ use crate::{
     types::{Addr, Word},
 };
 use log::warn;
+
+mod breakpoint;
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -40,6 +43,7 @@ pub struct Bus {
     int_flag_reg: InterruptFlagRegister,
     hram: HighRam,
     int_mask_reg: InterruptMaskRegsiter,
+    breakpoints: BreakPoints,
 }
 
 impl Bus {
@@ -54,6 +58,7 @@ impl Bus {
             int_flag_reg: InterruptFlagRegister::new(),
             hram: HighRam::new(),
             int_mask_reg: InterruptMaskRegsiter::new(),
+            breakpoints: BreakPoints::new(),
         }
     }
 
