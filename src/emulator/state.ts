@@ -1,13 +1,13 @@
 /*
-shutdown -- 点击开机按钮 --> running
-running -- 点击暂停按钮 --> paused
-running -- 运行出错 --> aborted
-running -- 点击关机按钮 --> shutdown
-paused -- 点击继续按钮 --> running
-paused -- 单步执行出错 --> aborted
-paused -- 点击关机按钮 --> shutdown
-aborted -- 点击重启按钮 --> running
-aborted -- 点击关机按钮 --> shutdown
+shutdown -- 开机 --> running
+running -- 暂停 --> paused
+running -- 出错 --> aborted
+running -- 关机 --> shutdown
+paused -- 继续 --> running
+paused -- 出错 --> aborted
+paused -- 关机 --> shutdown
+aborted -- 重置 --> shutdown
+aborted -- 关机 --> shutdown
 */
 export const enum EmulatorState {
   // 关机状态，模拟器未启动

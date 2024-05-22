@@ -12,6 +12,7 @@ export const enum LogLevel {
 export type EmulatorEvent = {
   log: [level: LogLevel, msg: string]
   serial: [byte: number]
+  abort: [msg: string]
 }
 
 export type EmulatorEventType = keyof EmulatorEvent

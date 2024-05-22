@@ -1,4 +1,5 @@
 use super::{
+    cartridge::Cartridge,
     int_regs::{
         InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
         INTERRUPT_MASK_REGISTER_ADDR, INT_JOYPAD_ENTRY, INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK,
@@ -11,7 +12,6 @@ use super::{
     BusDevice, Tickable,
 };
 use crate::{
-    cartridge::Cartridge,
     error::{EmulatorError, Result},
     types::{Addr, Word},
 };

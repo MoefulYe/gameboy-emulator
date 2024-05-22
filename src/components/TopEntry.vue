@@ -23,21 +23,20 @@
 
 <script setup lang="ts">
 import { provide } from 'vue'
-import { getEmulator, emuKey } from '@/emulator'
+import { Emulator, emuKey } from '@/emulator'
 import { vResizable, type ResizableConfig } from 'vue-resizables'
-import sleep from '@/utils/sleep'
+import wait from '@/utils/wait'
 import HeaderBar from './HeaderBar.vue'
 import EmulatorMain from './EmulatorMain.vue'
 import EmulatorDevTools from './EmulatorDevTools.vue'
 import { useNotMobile } from '@/utils/hooks'
 import 'vue-resizables/style'
 import EmulatorLogOutput from './EmulatorLogOutput.vue'
+
 const props = defineProps<{
   delay: number
 }>()
-const delay = sleep(props.delay)
-const emulator = await getEmulator()
-await delay
+const [emulator] = await Promise.all([Emulator.create(), wait(props.delay)])
 provide(emuKey, emulator)
 
 const notMobile = useNotMobile()

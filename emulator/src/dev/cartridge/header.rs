@@ -410,7 +410,7 @@ mod test {
 
     #[test]
     fn test() {
-        use crate::cartridge::header::Header;
+        use super::Header;
 
         println!("reading roms from {ROMS_PATH}");
         let roms = read_roms();

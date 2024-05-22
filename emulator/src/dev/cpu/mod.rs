@@ -1,12 +1,12 @@
 use self::{
     cb::{
-        OPERAND_A, OPERAND_B, OPERAND_C, OPERAND_D, OPERAND_E, OPERAND_H, OPERAND_L, OPERAND_MHL,
+        extended_inst_decode, OPERAND_A, OPERAND_B, OPERAND_C, OPERAND_D, OPERAND_E, OPERAND_H,
+        OPERAND_L, OPERAND_MHL,
     },
     ime::InterruptMasterEnableRegsiter,
     regs::Regs,
 };
 use crate::{
-    cpu::cb::extended_inst_decode,
     dev::bus::{Bus, IO_LOW_BOUND},
     error::{EmulatorError, Result},
     types::{Addr, ClockCycle, DWord, OpCode, Word},

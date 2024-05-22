@@ -5,9 +5,10 @@ use crate::{
 use log::warn;
 use std::default::Default;
 
-pub mod bus;
-pub mod buttons;
-pub mod clock;
+mod bus;
+mod buttons;
+mod cartridge;
+mod cpu;
 mod int_regs;
 mod rams;
 mod serial;
@@ -55,3 +56,7 @@ impl TickResult {
 pub trait Tickable: BusDevice {
     fn tick(&mut self) -> TickResult;
 }
+
+pub use bus::Bus;
+pub use buttons::Button;
+pub use cpu::CPU;

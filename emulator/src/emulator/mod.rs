@@ -1,8 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    cpu::CPU,
-    dev::{bus::Bus, buttons::Button, clock::Clock},
+    dev::{Bus, Button, CPU},
     error::{EmulatorError, Result},
     log,
     types::ClockCycle,
@@ -12,7 +11,6 @@ use crate::{
 pub struct Emulator {
     cpu: CPU,
     bus: Bus,
-    clock: Clock,
     stopped: bool,
 }
 
@@ -23,7 +21,6 @@ impl Emulator {
         Self {
             cpu: CPU::new(),
             bus: Bus::new(),
-            clock: Clock::new(),
             stopped: false,
         }
     }
@@ -33,15 +30,12 @@ impl Emulator {
         log::init_logger();
     }
 
-    pub fn step(&mut self) -> Result<(), String> {
+    pub fn step(&mut self) -> Result<ClockCycle, String> {
         if self.stopped {
-            return Ok(());
+            return Ok(0);
         }
         match self.tick() {
-            Ok(clock) => {
-                self.clock.step(clock);
-                Ok(())
-            }
+            Ok(clock) => Ok(clock),
             Err(err) => {
                 let err_code = self.handle_err(err);
                 Err(err_code)
@@ -49,10 +43,10 @@ impl Emulator {
         }
     }
 
-    pub fn update(&mut self, cycles: ClockCycle) -> Result<(), String> {
+    pub fn update(&mut self, cycles: ClockCycle) -> Result<ClockCycle, String> {
         let res = self._update(cycles);
         match res {
-            Ok(_) => Ok(()),
+            Ok(cycle) => Ok(cycle),
             Err(err) => {
                 let err_code = self.handle_err(err);
                 Err(err_code)
@@ -63,7 +57,6 @@ impl Emulator {
     pub fn reset(&mut self) {
         self.cpu.reset();
         self.bus.reset();
-        self.clock.reset();
         self.stopped = false
     }
 
@@ -75,17 +68,15 @@ impl Emulator {
         todo!()
     }
 
-    fn _update(&mut self, cycles: ClockCycle) -> Result {
+    fn _update(&mut self, cycles: ClockCycle) -> Result<ClockCycle> {
         if self.stopped {
-            return Ok(());
+            return Ok(0);
         }
-        let ticks = self.clock.ticks(cycles);
         let mut clocks = 0;
-        while clocks < ticks {
+        while clocks < cycles {
             clocks += self.tick()?;
         }
-        self.clock.add_cycles(clocks);
-        Ok(())
+        Ok(clocks)
     }
 
     fn tick_devices(&mut self, cycles: ClockCycle) {

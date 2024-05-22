@@ -1,6 +1,6 @@
 <template>
   <div class="flex-(~ col) max-h-full text-gray-8">
-    <div class="border-b flex items-center justify-between text-lg lg:text-xl p-4">
+    <div class="border-b flex items-center justify-between text-lg lg:text-xl p-2">
       <span>
         {{ t('title') }}
       </span>

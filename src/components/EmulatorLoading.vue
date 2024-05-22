@@ -13,7 +13,7 @@
 </template>
 
 <style lang="scss" scoped>
-$t: 3s;
+$t: 2s;
 $n: 7;
 #loading {
   position: fixed;

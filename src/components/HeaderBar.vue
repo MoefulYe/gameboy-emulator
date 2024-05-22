@@ -7,7 +7,7 @@
       <button class="i-pixelarticons:play" v-tooltip="tooltipPlay" :disabled="disablePlay" />
       <button class="i-pixelarticons:pause" v-tooltip="t('pause')" :disabled="disablePause" />
       <button class="i-pixelarticons:next" v-tooltip="t('next')" :disabled="disableNext" />
-      <button class="i-pixelarticons:reload" v-tooltip="t('restart')" />
+      <button class="i-pixelarticons:reload" v-tooltip="t('reset')" />
       <button class="i-pixelarticons:close" v-tooltip="t('shutdown')" :disabled="disableShutdown" />
       <span class="divider" />
       <Menu class="size-7.5 sm:size-12 relative">
@@ -15,7 +15,7 @@
         <template #popper>
           <div class="p-2 md:p-4 flex content-center">
             <label class="me-2 md:me-4 text-xs">
-              X{{ speedScale.toFixed(2).padStart(5, ' ') }}
+              {{ speedStr }}
             </label>
             <MySlider v-model="loggedSpeedScale" :min="-4" :max="4" :step="0.1" />
           </div>
@@ -25,7 +25,7 @@
         <button :class="[volumeIcon, 'size-full absolute inset-block-0']" @dblclick="resetVolume" />
         <template #popper>
           <div class="p-2 md:p-4 flex content-center">
-            <label class="me-2 md:me-4 text-xs"> {{ volume.toString() }}% </label>
+            <label class="me-2 md:me-4 text-xs whitespace-pre"> {{ volumeStr }} </label>
             <MySlider v-model="volume" :min="0" :max="150" />
           </div>
         </template>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { Emulator, useEmulator } from '@/emulator'
+import { useEmulator } from '@/emulator'
 import { EmulatorState } from '@/emulator/state'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -47,9 +47,9 @@ import MySlider from './MySlider.vue'
 const { t } = useI18n()
 
 const emu = useEmulator()
-const state = emu.useState()
-const speedScale = emu.useSpeedScale()
-const volume = emu.useVolume()
+const state = emu.state
+const speedScale = emu.freqScale
+const volume = emu.volume
 
 const tooltipPlay = computed(() => {
   const s = state.value === EmulatorState.Paused ? 'resume' : 'start'
@@ -75,6 +75,7 @@ const speedIcon = computed(() => {
   else return 'i-pixelarticons:speed-medium'
 })
 const resetSpeed = () => (speedScale.value = 1)
+const speedStr = computed(() => `X${speedScale.value.toFixed(2).padStart(5, ' ')}`)
 
 const volumeIcon = computed(() => {
   const _val = Math.floor((volume.value + 49) / 50)
@@ -88,6 +89,7 @@ const resetVolume = () => {
     volume.value = 50
   }
 }
+const volumeStr = computed(() => `${volume.value.toString().padStart(3)}%`)
 </script>
 
 <script lang="ts">
@@ -136,7 +138,7 @@ button {
     "start": "开始",
     "pause": "暂停",
     "next": "步进",
-    "restart": "重启",
+    "reset": "重置",
     "shutdown": "关闭",
     "speed": "速度",
     "volume": "音量",
@@ -149,7 +151,7 @@ button {
     "start": "Start",
     "pause": "Pause",
     "next": "Next",
-    "restart": "Restart",
+    "reset": "Reset",
     "shutdown": "Shutdown",
     "speed": "Speed",
     "volume": "Volume",

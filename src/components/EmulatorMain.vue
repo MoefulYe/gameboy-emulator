@@ -87,16 +87,14 @@
 
 <script setup lang="ts">
 import { EmulatorButton, useEmulator } from '@/emulator'
-import { EmulatorState } from '@/emulator/state'
 import { useElementWidth } from '@/utils/hooks'
-import { ref } from 'vue'
-import { computed, shallowRef } from 'vue'
+import { shallowRef } from 'vue'
 const gameboy = shallowRef<HTMLDivElement>()
 const container = shallowRef<HTMLDivElement>()
+const screen = shallowRef<HTMLCanvasElement>()
 
 const emu = useEmulator()
-const emuState = emu.useState()
-const screen = shallowRef<HTMLCanvasElement>()
+const emuState = emu.state
 emu.useCanvas(screen)
 useElementWidth(container, (w) => {
   const s = (w * 0.9) / 265
