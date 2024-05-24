@@ -1,12 +1,10 @@
-use log::warn;
-
+use self::header::Header;
 use crate::{
     dev::BusDevice,
     error::Result,
     types::{Addr, Word},
 };
-
-use self::header::Header;
+use log::warn;
 
 mod header;
 
@@ -35,26 +33,23 @@ impl Cartridge {
 }
 
 impl BusDevice for Cartridge {
-    fn read(&self, addr: Addr) -> Result<Word> {
+    fn read(&self, addr: Addr) -> Word {
         // https://gbdev.io/pandocs/Memory_Map.html
         match addr {
-            0x0000..=0x3FFF => Ok(unsafe { *self.rom.get_unchecked(addr as usize) }),
+            0x0000..=0x3FFF => unsafe { *self.rom.get_unchecked(addr as usize) },
             0x4000..=0x7FFF => todo!(),
             0xA000..=0xBFFF => todo!(),
             _ => {
                 warn!("illegal read from cartridge at address: {addr:04X}");
-                Ok(0xFF)
+                0xFF
             }
         }
     }
 
-    fn write(&mut self, addr: Addr, data: Word) -> Result {
+    fn write(&mut self, addr: Addr, data: Word) {
         match addr {
             0xA000..=0xBFFF => todo!(),
-            _ => {
-                warn!("illegal write to cartridge at address: {addr:04X}");
-                Ok(())
-            }
+            _ => warn!("illegal write to cartridge at address: {addr:04X}"),
         }
     }
 }

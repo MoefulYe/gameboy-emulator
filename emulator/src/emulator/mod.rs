@@ -1,11 +1,13 @@
-use wasm_bindgen::prelude::*;
-
 use crate::{
-    dev::{Bus, Button, CPU},
-    error::{EmulatorError, Result},
+    dev::{Bus, Button, CPU, NO_BREAK},
+    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, Result},
     log,
+    trace::CPUState,
     types::ClockCycle,
 };
+use serde::Serialize;
+use tsify::Tsify;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(js_name = WasmEmulator)]
 pub struct Emulator {
@@ -30,26 +32,21 @@ impl Emulator {
         log::init_logger();
     }
 
-    pub fn step(&mut self) -> Result<ClockCycle, String> {
+    pub fn step(&mut self) -> EmulatorStepResult {
+        use EmulatorStepResult::*;
         if self.stopped {
-            return Ok(0);
+            let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
+            return Abort { info };
         }
+        let pc = self.cpu.pc();
         match self.tick() {
-            Ok(clock) => Ok(clock),
-            Err(err) => {
-                let err_code = self.handle_err(err);
-                Err(err_code)
+            Result::Ok((clock, _)) => {
+                let cpu = self.cpu.trace(&mut self.bus, pc);
+                Ok { cycles: clock, cpu }
             }
-        }
-    }
-
-    pub fn update(&mut self, cycles: ClockCycle) -> Result<ClockCycle, String> {
-        let res = self._update(cycles);
-        match res {
-            Ok(cycle) => Ok(cycle),
-            Err(err) => {
-                let err_code = self.handle_err(err);
-                Err(err_code)
+            Result::Err(err) => {
+                let info = self.handle_err(err);
+                Abort { info }
             }
         }
     }
@@ -68,31 +65,86 @@ impl Emulator {
         todo!()
     }
 
-    fn _update(&mut self, cycles: ClockCycle) -> Result<ClockCycle> {
+    pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
+        use EmulatorUpdateResult::*;
         if self.stopped {
-            return Ok(0);
+            let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
+            return Abort { info };
         }
         let mut clocks = 0;
         while clocks < cycles {
-            clocks += self.tick()?;
+            let pc = self.cpu.pc();
+            let res = self.tick();
+            match res {
+                Result::Ok((cycles, brk)) => {
+                    clocks += cycles;
+                    if brk {
+                        return Break {
+                            cycles: clocks,
+                            cpu: self.cpu.trace(&mut self.bus, pc),
+                        };
+                    }
+                }
+                Result::Err(err) => {
+                    let info = self.handle_err(err);
+                    return Abort { info };
+                }
+            }
         }
-        Ok(clocks)
+        Ok { cycles: clocks }
     }
 
-    fn tick_devices(&mut self, cycles: ClockCycle) {
-        for _ in 0..cycles {
-            self.bus.tick();
-        }
-    }
-
-    fn tick(&mut self) -> Result<ClockCycle> {
-        let cycles = self.cpu.tick(&mut self.bus)?;
-        self.tick_devices(cycles);
-        Ok(cycles)
-    }
-
-    fn handle_err(&mut self, err: EmulatorError) -> String {
+    fn handle_err(&mut self, err: BoxedEmulatorError) -> BoxedEmulatorErrorInfo {
         self.stopped = true;
-        err.to_string()
+        err.info()
+    }
+
+    fn tick_devices(&mut self, cycles: ClockCycle) -> bool {
+        let mut brk = NO_BREAK;
+        for _ in 0..cycles {
+            brk |= self.bus.tick();
+        }
+        brk
+    }
+
+    fn tick(&mut self) -> Result<(ClockCycle, bool)> {
+        let (cycles, brk0) = self.cpu.tick(&mut self.bus)?;
+        let brk1 = self.tick_devices(cycles);
+        Ok((cycles, brk0 || brk1))
     }
 }
+
+// Function `__wbg_instanceof_JsType_24d65669860e1289` should have snake_case name, e.g. `__wbg_instanceof_js_type_24d65669860e1289`
+#[allow(non_snake_case)]
+mod tsify_derive {
+    use super::*;
+    #[derive(Serialize, Tsify)]
+    #[tsify(into_wasm_abi)]
+    #[serde(tag = "status")]
+    pub enum EmulatorUpdateResult {
+        #[serde(rename = "ok")]
+        Ok { cycles: ClockCycle },
+        #[serde(rename = "break")]
+        Break {
+            cycles: ClockCycle,
+            cpu: Box<CPUState>,
+        },
+        #[serde(rename = "abort")]
+        Abort { info: BoxedEmulatorErrorInfo },
+    }
+
+    #[derive(Serialize, Tsify)]
+    #[tsify(into_wasm_abi)]
+    #[serde(tag = "status")]
+    pub enum EmulatorStepResult {
+        #[serde(rename = "ok")]
+        Ok {
+            cycles: ClockCycle,
+            cpu: Box<CPUState>,
+        },
+        #[serde(rename = "abort")]
+        Abort { info: BoxedEmulatorErrorInfo },
+    }
+}
+
+pub use tsify_derive::{EmulatorStepResult, EmulatorUpdateResult};

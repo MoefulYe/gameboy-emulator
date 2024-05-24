@@ -1,14 +1,17 @@
-use std::collections::BTreeSet;
-
 use crate::types::Addr;
+use std::collections::HashMap;
 
-pub struct BreakPoint {
+pub type Break = bool;
+pub const BREAK: Break = true;
+pub const NO_BREAK: Break = false;
+
+pub struct BreakPointState {
     enable: bool,
     onread: bool,
     onwrite: bool,
 }
 
-impl BreakPoint {
+impl BreakPointState {
     pub fn new(onread: bool, onwrite: bool) -> Self {
         Self {
             enable: true,
@@ -54,32 +57,54 @@ impl BreakPoint {
     }
 }
 
-pub struct BreakPoints(BTreeSet<Addr>);
-
-impl std::ops::DerefMut for BreakPoints {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl std::ops::Deref for BreakPoints {
-    type Target = BTreeSet<Addr>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+pub struct BreakPoints {
+    /// 内存断点
+    mem: HashMap<Addr, BreakPointState>,
+    /// 中断断点
+    break_joypad: Break,
+    break_serial: Break,
+    break_timer: Break,
+    break_lcd_stat: Break,
+    break_vblank: Break,
 }
 
 impl BreakPoints {
     pub fn new() -> Self {
-        Self(BTreeSet::new())
+        Self {
+            mem: HashMap::new(),
+            break_joypad: false,
+            break_serial: false,
+            break_timer: false,
+            break_lcd_stat: false,
+            break_vblank: false,
+        }
     }
 
-    pub fn read_break(&self, addr: Addr) -> bool {
-        self.contains(&addr)
+    pub fn break_memread(&self, addr: Addr) -> Break {
+        self.mem.get(&addr).map_or(false, |bp| bp.onread())
     }
 
-    pub fn write_break(&self, addr: Addr) -> bool {
-        self.contains(&addr)
+    pub fn break_memwrite(&self, addr: Addr) -> Break {
+        self.mem.get(&addr).map_or(false, |bp| bp.onwrite())
+    }
+
+    pub fn break_joypad(&self) -> Break {
+        self.break_joypad
+    }
+
+    pub fn break_serial(&self) -> Break {
+        self.break_serial
+    }
+
+    pub fn break_timer(&self) -> Break {
+        self.break_timer
+    }
+
+    pub fn break_lcd_stat(&self) -> Break {
+        self.break_lcd_stat
+    }
+
+    pub fn break_vblank(&self) -> Break {
+        self.break_vblank
     }
 }

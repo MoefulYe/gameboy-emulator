@@ -14,7 +14,8 @@ use crate::{
     utils::bits::BitMap,
 };
 use log::{error, info};
-pub type Inst = fn(&mut CPU, &mut Bus) -> Result<ClockCycle>;
+/// (运行指令花费的时钟周期, 是否触发断点)
+pub type Inst = fn(&mut CPU, &mut Bus) -> Result<(ClockCycle, bool)>;
 ///
 /// ref https://gbdev.io/pandocs/CPU_Instruction_Set.html
 /// ref https://gbdev.io/gb-opcodes/optables/
@@ -1357,14 +1358,14 @@ impl CPU {
 
 /// PUSH & POP & RET & CALL
 impl CPU {
-    pub fn push_dword(&mut self, bus: &mut Bus, data: DWord) -> Result {
+    pub fn push_dword(&mut self, bus: &mut Bus, data: DWord) -> Result<bool> {
         let sp = self.regs.sp_mut();
         *sp -= 2;
         let low = (data & 0xFF) as Word;
         let high = (data >> 8) as Word;
-        bus.write(*sp, low)?;
-        bus.write(*sp + 1, high)?;
-        Ok(())
+        let brk0 = bus.write(*sp, low)?;
+        let brk1 = bus.write(*sp + 1, high)?;
+        Ok(brk0 || brk1)
     }
 
     /// PUSH BC
@@ -1395,13 +1396,13 @@ impl CPU {
         Ok(16)
     }
 
-    fn pop_dword(&mut self, bus: &mut Bus) -> Result<DWord> {
+    fn pop_dword(&mut self, bus: &mut Bus) -> Result<(DWord, bool)> {
         let sp = self.regs.sp_mut();
-        let low = bus.read(*sp)?;
-        let high = bus.read(*sp + 1)?;
+        let (low, brk0) = bus.read(*sp)?;
+        let (high, brk1) = bus.read(*sp + 1)?;
         *sp += 2;
         let ret = (high as DWord) << 8 | low as DWord;
-        Ok(ret)
+        Ok((ret, brk0 || brk1))
     }
 
     /// POP BC

@@ -1,4 +1,4 @@
-import { type InjectionKey, inject } from 'vue'
+import { type InjectionKey, inject, reactive } from 'vue'
 import wasmInit, { WasmEmulator, Button as EmulatorButton } from 'emulator/pkg'
 import { ref, computed, onMounted, onUnmounted, type ShallowRef } from 'vue'
 import {
@@ -15,9 +15,6 @@ import {
   type EmulatorEventType
 } from './event'
 
-export type ResumeSignal = () => void
-export type PauseWaiter = Promise<void>
-
 export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEvent> {
   private static readonly BASE_FREQ_HZ: number = 4_194_304
   private static readonly VISUAL_FREQ_HZ: number = 59.7
@@ -27,15 +24,19 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   public readonly state = ref(EmulatorState.Shutdown)
   public readonly cycles = ref(0)
   public readonly freqHz = computed(() => Emulator.BASE_FREQ_HZ * this.freqScale.value)
+  public readonly serialOutput = reactive<number[]>([])
+  // TODO 添加切换gameboy执行模式的功能, SGB, CGB, DMG ...
   public mode = 1
   private emitter: EventEmitter<EmulatorEvent>
   private canvansCtx?: CanvasRenderingContext2D
-  private resumeSignal?: ResumeSignal
-  private pauseWaiter?: PauseWaiter
+  private running = false
+  // TODO 添加状态统计, 实际帧率 已经运行的CPU周期, 以及其他的状态信息
+  private stats = 0
 
   private constructor(emitter: EventEmitter<EmulatorEvent>) {
     super()
     this.emitter = emitter
+    this.on('serial', (data) => this.serialOutput.push(data))
   }
 
   private tick(pendingTime: number): number {
@@ -82,45 +83,22 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     onUnmounted(() => (this.canvansCtx = undefined))
   }
 
-  public pause() {
-    if (this.state.value === EmulatorState.Running) {
-      this.pauseWaiter = new Promise((signal) => (this.resumeSignal = signal))
-    }
-  }
+  public pause() {}
 
   public reset() {
     // TODO
-    if (this.state.value === EmulatorState.Paused) {
-      this.resumeSignal!()
-    }
-    super.reset()
-    this.state.value = EmulatorState.Shutdown
-    this.cycles.value = 0
-    this.emitter.emit('log', LogLevel.Info, 'Emulator is reset')
   }
 
-  public step() {
-    if (this.state.value !== EmulatorState.Paused) {
-      this.emitter.emit('log', LogLevel.Warn, 'Emulator only step when paused')
-    }
-  }
+  // public step() {}
 
   public async start() {
-    if (this.state.value === EmulatorState.Aborted) {
-      this.emitter.emit('log', LogLevel.Warn, 'Emulator is aborted. reset emulator first')
+    // 防止多个同时执行的start函数
+    if (this.running) {
       return
     }
-    const pending = 0
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const s = this.state.value
-      if (s === EmulatorState.Paused) {
-        await this.pauseWaiter!
-        continue
-      } else if (s !== EmulatorState.Running) {
-        break
-      }
-    }
+    this.running = true
+
+    this.running = false
   }
 }
 

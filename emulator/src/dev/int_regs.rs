@@ -1,12 +1,11 @@
-use crate::error::Result;
 use crate::types::{Addr, Word};
 use crate::utils::bits::BitMap;
 
-const INT_JOYPAD: Word = 4;
-const INT_SERIAL: Word = 3;
-const INT_TIMER: Word = 2;
-const INT_LCD_STAT: Word = 1;
-const INT_VBLANK: Word = 0;
+pub const INT_JOYPAD: Word = 4;
+pub const INT_SERIAL: Word = 3;
+pub const INT_TIMER: Word = 2;
+pub const INT_LCD_STAT: Word = 1;
+pub const INT_VBLANK: Word = 0;
 
 #[allow(unused)]
 pub const INT_JOYPAD_MASK: Word = 1 << INT_JOYPAD;
@@ -32,13 +31,12 @@ impl InterruptMaskRegsiter {
         InterruptMaskRegsiter(0x00)
     }
 
-    pub fn read(self) -> Result<Word> {
-        Ok(self.0)
+    pub fn read(self) -> Word {
+        self.0
     }
 
-    pub fn write(&mut self, new_val: Word) -> Result<()> {
+    pub fn write(&mut self, new_val: Word) {
         self.0 = new_val;
-        Ok(())
     }
 
     #[inline]
@@ -55,13 +53,12 @@ impl InterruptFlagRegister {
         Self(0x00)
     }
 
-    pub fn read(self) -> Result<Word> {
-        Ok(self.0)
+    pub fn read(self) -> Word {
+        self.0
     }
 
-    pub fn write(&mut self, new_val: Word) -> Result<()> {
+    pub fn write(&mut self, new_val: Word) {
         self.0 = new_val;
-        Ok(())
     }
 
     #[inline]

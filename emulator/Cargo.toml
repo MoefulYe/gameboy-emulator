@@ -20,6 +20,10 @@ wasm-bindgen = "0.2.84"
 console_error_panic_hook = { version = "0.1.7", optional = true }
 log = "0.4.21"
 js-sys = "0.3.69"
+serde = { version = "1.0.202", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+thiserror = "1.0.61"
+tsify = "0.4.5"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"

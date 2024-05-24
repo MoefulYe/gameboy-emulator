@@ -1,7 +1,6 @@
 use log::warn;
 
 use crate::{
-    error::Result,
     types::{Addr, DWord, Word},
     utils::bits::BitMap,
 };
@@ -52,41 +51,26 @@ impl Timer {
 }
 
 impl BusDevice for Timer {
-    fn read(&self, addr: Addr) -> Result<Word> {
+    fn read(&self, addr: Addr) -> Word {
         match addr {
-            TIMER_DIV_REG_ADDR => Ok(self.read_div()),
-            TIMER_TIMA_REG_ADDR => Ok(self.tima),
-            TIMER_TMA_REG_ADDR => Ok(self.tma),
-            TIMER_TAC_REG_ADDR => Ok(self.tac | 0xF8),
+            TIMER_DIV_REG_ADDR => self.read_div(),
+            TIMER_TIMA_REG_ADDR => self.tima,
+            TIMER_TMA_REG_ADDR => self.tma,
+            TIMER_TAC_REG_ADDR => self.tac | 0xF8,
             _ => {
                 warn!("illegal read from timer at address: 0x{addr:04X}");
-                Ok(0xFF)
+                0xFF
             }
         }
     }
 
-    fn write(&mut self, addr: Addr, data: Word) -> Result {
+    fn write(&mut self, addr: Addr, data: Word) {
         match addr {
-            TIMER_DIV_REG_ADDR => {
-                self.div = 0;
-                Ok(())
-            }
-            TIMER_TIMA_REG_ADDR => {
-                self.tima = data;
-                Ok(())
-            }
-            TIMER_TMA_REG_ADDR => {
-                self.tma = data;
-                Ok(())
-            }
-            TIMER_TAC_REG_ADDR => {
-                self.tac = data;
-                Ok(())
-            }
-            _ => {
-                warn!("illegal write to timer at address: 0x{addr:04X}");
-                Ok(())
-            }
+            TIMER_DIV_REG_ADDR => self.div = 0,
+            TIMER_TIMA_REG_ADDR => self.tima = data,
+            TIMER_TMA_REG_ADDR => self.tma = data,
+            TIMER_TAC_REG_ADDR => self.tac = data,
+            _ => warn!("illegal write to timer at address: 0x{addr:04X}"),
         }
     }
 }

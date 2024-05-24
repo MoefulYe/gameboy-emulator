@@ -1,7 +1,4 @@
-use crate::{
-    error::Result,
-    types::{Addr, Word},
-};
+use crate::types::{Addr, Word};
 use log::warn;
 use std::default::Default;
 
@@ -18,6 +15,7 @@ pub trait Resetable {
     fn reset(&mut self);
 }
 
+pub use bus::{BREAK, NO_BREAK};
 impl<T> Resetable for T
 where
     T: Default,
@@ -29,15 +27,14 @@ where
 
 pub trait BusDevice {
     /// 默认返回0xFF
-    fn read(&self, addr: Addr) -> Result<Word> {
+    fn read(&self, addr: Addr) -> Word {
         warn!("illegal read at address: 0x{addr:04X}");
-        Ok(0xFF)
+        0xFF
     }
 
     #[allow(unused)]
-    fn write(&mut self, addr: Addr, data: Word) -> Result {
+    fn write(&mut self, addr: Addr, data: Word) {
         warn!("illegal write at address: 0x{addr:04X}");
-        Ok(())
     }
 }
 

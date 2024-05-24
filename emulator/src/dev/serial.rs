@@ -1,6 +1,5 @@
 use super::{BusDevice, TickResult, Tickable};
 use crate::{
-    error::Result,
     external::emulator_serial_callback,
     types::{Addr, Word},
     utils::bits::BitMap,
@@ -40,31 +39,22 @@ impl Default for Serial {
 }
 
 impl BusDevice for Serial {
-    fn read(&self, addr: Addr) -> Result<Word> {
+    fn read(&self, addr: Addr) -> Word {
         match addr {
-            SERIAL_TRANSFER_DATA_REG_ADDR => Ok(self.sb),
-            SERIAL_TRANSFER_CONTROL_REG_ADDR => Ok(self.sc),
+            SERIAL_TRANSFER_DATA_REG_ADDR => self.sb,
+            SERIAL_TRANSFER_CONTROL_REG_ADDR => self.sc,
             _ => {
                 warn!("illegal read from serial at address: 0x{addr:04X}");
-                Ok(0xFF)
+                0xFF
             }
         }
     }
 
-    fn write(&mut self, addr: Addr, data: Word) -> Result {
+    fn write(&mut self, addr: Addr, data: Word) {
         match addr {
-            SERIAL_TRANSFER_DATA_REG_ADDR => {
-                self.sb = data;
-                Ok(())
-            }
-            SERIAL_TRANSFER_CONTROL_REG_ADDR => {
-                self.sc = data;
-                Ok(())
-            }
-            _ => {
-                warn!("illegal write to serial at address: 0x{addr:04X}");
-                Ok(())
-            }
+            SERIAL_TRANSFER_DATA_REG_ADDR => self.sb = data,
+            SERIAL_TRANSFER_CONTROL_REG_ADDR => self.sc = data,
+            _ => warn!("illegal write to serial at address: 0x{addr:04X}"),
         }
     }
 }
