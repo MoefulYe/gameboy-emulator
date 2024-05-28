@@ -1,4 +1,9 @@
-import { type InjectionKey, inject, reactive } from 'vue'
+import {
+  type CPUState,
+  type ClockCycle,
+  type EmulatorErrorInfo
+} from './../../emulator/pkg/emulator.d'
+import { type InjectionKey, inject, reactive, shallowRef } from 'vue'
 import wasmInit, { WasmEmulator, Button as EmulatorButton } from 'emulator/pkg'
 import { ref, computed, onMounted, onUnmounted, type ShallowRef } from 'vue'
 import {
@@ -14,24 +19,26 @@ import {
   type EmulatorEvent,
   type EmulatorEventType
 } from './event'
+import wait from '@/utils/wait'
+
+const BASE_FREQ_HZ = 4_194_304
+const VISUAL_FREQ_HZ = 59.7
+const MS_PER_FRAME = 1000 / VISUAL_FREQ_HZ
 
 export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEvent> {
-  private static readonly BASE_FREQ_HZ: number = 4_194_304
-  private static readonly VISUAL_FREQ_HZ: number = 59.7
-
   public readonly freqScale = ref(1.0)
   public readonly volume = ref(50)
   public readonly state = ref(EmulatorState.Shutdown)
-  public readonly cycles = ref(0)
-  public readonly freqHz = computed(() => Emulator.BASE_FREQ_HZ * this.freqScale.value)
+  public readonly cycles = ref<ClockCycle>(0)
+  public readonly freqHz = computed(() => BASE_FREQ_HZ * this.freqScale.value)
   public readonly serialOutput = reactive<number[]>([])
+  public readonly cpuTracedState = shallowRef<CPUState>()
   // TODO 添加切换gameboy执行模式的功能, SGB, CGB, DMG ...
   public mode = 1
   private emitter: EventEmitter<EmulatorEvent>
   private canvansCtx?: CanvasRenderingContext2D
   private running = false
   // TODO 添加状态统计, 实际帧率 已经运行的CPU周期, 以及其他的状态信息
-  private stats = 0
 
   private constructor(emitter: EventEmitter<EmulatorEvent>) {
     super()
@@ -39,9 +46,9 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     this.on('serial', (data) => this.serialOutput.push(data))
   }
 
-  private tick(pendingTime: number): number {
-    const current = performance.now()
-    return 0
+  private abort({ brief, msg }: EmulatorErrorInfo) {
+    this.canvansCtx?.fillText(brief, 0, 0)
+    this.emitter.emit('log', LogLevel.Error, msg)
   }
 
   public static async create(): Promise<Emulator> {
@@ -89,15 +96,44 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     // TODO
   }
 
-  // public step() {}
+  public step() {
+    if (this.state.value !== EmulatorState.Paused) return
+    const res = this._step()
+    if (res.status === 'ok') {
+      this.cycles.value += res.cycles
+      this.cpuTracedState.value = res.cpu
+    } else {
+      this.state.value = EmulatorState.Aborted
+      this.abort(res.info)
+    }
+  }
 
-  public async start() {
+  public async run() {
     // 防止多个同时执行的start函数
     if (this.running) {
       return
     }
     this.running = true
-
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (this.state.value !== EmulatorState.Running) break
+      const ts = performance.now()
+      const cycles = Math.floor(this.freqHz.value / VISUAL_FREQ_HZ)
+      const res = this.update(cycles)
+      this.cycles.value += res.cycles
+      if (res.status === 'ok') {
+        const diff = performance.now() - ts
+        await wait(Math.max(0, MS_PER_FRAME - diff))
+      } else if (res.status === 'break') {
+        this.cpuTracedState.value = res.cpu
+        this.state.value = EmulatorState.Paused
+        break
+      } else {
+        this.state.value = EmulatorState.Aborted
+        this.abort(res.info)
+        break
+      }
+    }
     this.running = false
   }
 }

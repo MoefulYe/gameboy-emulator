@@ -1,11 +1,12 @@
+use log::info;
+
 use super::Rom;
+use crate::error::{BoxedEmulatorError, EmulatorError};
 use core::mem::offset_of;
-use log::error;
 
 const KB: usize = 1024;
 const ENTRY_SIZE: usize = 0x04;
 const LOGO_SIZE: usize = 0x30;
-
 const TITLE_SIZE: usize = 0x10;
 const ROM_OFFSET: usize = 0x0100;
 
@@ -46,7 +47,7 @@ impl Header {
     }
 
     //TODO The CGB and later models only check the top half of the logo (the first $18 bytes).
-    pub fn check_logo(&self) -> bool {
+    pub fn check_logo(&self) -> Option<BoxedEmulatorError> {
         const CORRECT_LOGO: &[u8; LOGO_SIZE] = &[
             0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C,
             0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6,
@@ -54,13 +55,12 @@ impl Header {
             0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
         ];
         if &self.nintendo_logo == CORRECT_LOGO {
-            true
+            None
         } else {
-            error!(
-                "invalid logo {:#?}, expect {:#?}",
-                self.nintendo_logo, CORRECT_LOGO
-            );
-            false
+            Some(Box::new(EmulatorError::InvalidLogo {
+                expected: CORRECT_LOGO,
+                actual: self.nintendo_logo,
+            }))
         }
     }
 
@@ -98,7 +98,7 @@ impl Header {
         }
     }
 
-    pub fn checksum(&self) -> bool {
+    pub fn checksum(&self) -> Option<BoxedEmulatorError> {
         const OFFSET_OF_TITLE: usize = offset_of!(Header, title);
         const OFFSET_OF_CHECKSUM: usize = offset_of!(Header, checksum);
         let to_check = unsafe {
@@ -111,13 +111,12 @@ impl Header {
             .iter()
             .fold(0u8, |acc, &i| acc.wrapping_sub(i).wrapping_sub(1));
         if sum == self.checksum {
-            true
+            None
         } else {
-            error!(
-                "invalid checksum, expect {:#x}, got {:#x}",
-                sum, self.checksum
-            );
-            false
+            Some(Box::new(EmulatorError::InvalidChecksum {
+                expected: sum,
+                actual: self.checksum,
+            }))
         }
     }
 
@@ -165,12 +164,24 @@ impl Header {
         } else if let Some(publisher) = self.new_publisher() {
             publisher
         } else {
-            "Unknown"
+            "UNKNOWN"
         }
     }
 
     pub fn version(&self) -> u8 {
         self.version
+    }
+
+    /// 在日志中打印这张卡带的信息
+    pub fn log_info(&self) {
+        let title = self.title();
+        let ty = self.cart_typename();
+        let rom_size = self.rom_size();
+        let ram_size = self.ram_size().unwrap_or(0);
+        let dest = self.dest();
+        let publisher = self.publisher();
+        let version = self.version();
+        info!("\ntitle={title}\ntype={ty}\nrom_size={rom_size}\nram_size={ram_size}\ndest={dest}\npublisher={publisher}\nversion={version}\n\n");
     }
 
     fn new_publisher(&self) -> Option<&'static str> {
@@ -391,7 +402,7 @@ impl Header {
             0xF0 => Some("A Wave"),
             0xF3 => Some("Extreme Entertainment"),
             0xFF => Some("LJN"),
-            _ => Some("Unknown"),
+            _ => Some("UNKNOWN"),
         }
     }
 }

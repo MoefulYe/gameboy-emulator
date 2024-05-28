@@ -13,7 +13,7 @@ use super::{
     BusDevice, Tickable,
 };
 use crate::{
-    error::{EmulatorError, Result},
+    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, Result},
     types::{Addr, Word},
 };
 use log::warn;
@@ -171,6 +171,18 @@ impl Bus {
     pub fn serial_mut(&mut self) -> &mut Serial {
         &mut self.serial
     }
+
+    pub fn plugin_cart(&mut self, cartridge: Box<[u8]>) -> Option<BoxedEmulatorErrorInfo> {
+        let cartridge = Cartridge::new(cartridge);
+        let header = cartridge.header();
+        header.check_logo().map(|e| e.info())?;
+        header.checksum().map(|e| e.info())?;
+        header.log_info();
+        None
+    }
+    pub fn plugout_cart(&mut self) {
+        self.cartridge = None
+    }
 }
 
 pub const CART_ROM_LOW_BOUND: Addr = 0x0000;
@@ -205,4 +217,4 @@ pub const OAM_HIGH_BOUND_INCLUDED: Addr = OAM_HIGH_BOUND - 1;
 pub const IO_HIGH_BOUND_INCLUDED: Addr = IO_HIGH_BOUND - 1;
 pub const HRAM_HIGH_BOUND_INCLUDED: Addr = HRAM_HIGH_BOUND - 1;
 
-pub use breakpoint::{BREAK, NO_BREAK};
+pub use breakpoint::{Break, BREAK, NO_BREAK};

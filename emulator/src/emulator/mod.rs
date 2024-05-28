@@ -1,6 +1,6 @@
 use crate::{
     dev::{Bus, Button, CPU, NO_BREAK},
-    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, Result},
+    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, EmulatorErrorInfo, Result},
     log,
     trace::CPUState,
     types::ClockCycle,
@@ -32,14 +32,15 @@ impl Emulator {
         log::init_logger();
     }
 
-    pub fn step(&mut self) -> EmulatorStepResult {
+    pub fn _step(&mut self) -> EmulatorStepResult {
         use EmulatorStepResult::*;
         if self.stopped {
             let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
             return Abort { info };
         }
         let pc = self.cpu.pc();
-        match self.tick() {
+        let res = self.tick();
+        match res {
             Result::Ok((clock, _)) => {
                 let cpu = self.cpu.trace(&mut self.bus, pc);
                 Ok { cycles: clock, cpu }
@@ -69,7 +70,7 @@ impl Emulator {
         use EmulatorUpdateResult::*;
         if self.stopped {
             let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
-            return Abort { info };
+            return Abort { info, cycles: 0 };
         }
         let mut clocks = 0;
         while clocks < cycles {
@@ -87,11 +88,22 @@ impl Emulator {
                 }
                 Result::Err(err) => {
                     let info = self.handle_err(err);
-                    return Abort { info };
+                    return Abort {
+                        info,
+                        cycles: clocks,
+                    };
                 }
             }
         }
         Ok { cycles: clocks }
+    }
+
+    pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> Option<Box<EmulatorErrorInfo>> {
+        self.bus.plugin_cart(cart)
+    }
+
+    pub fn plugout_cart(&mut self) {
+        self.bus.plugout_cart()
     }
 
     fn handle_err(&mut self, err: BoxedEmulatorError) -> BoxedEmulatorErrorInfo {
@@ -117,6 +129,8 @@ impl Emulator {
 // Function `__wbg_instanceof_JsType_24d65669860e1289` should have snake_case name, e.g. `__wbg_instanceof_js_type_24d65669860e1289`
 #[allow(non_snake_case)]
 mod tsify_derive {
+    use crate::error::EmulatorErrorInfo;
+
     use super::*;
     #[derive(Serialize, Tsify)]
     #[tsify(into_wasm_abi)]
@@ -130,7 +144,10 @@ mod tsify_derive {
             cpu: Box<CPUState>,
         },
         #[serde(rename = "abort")]
-        Abort { info: BoxedEmulatorErrorInfo },
+        Abort {
+            cycles: ClockCycle,
+            info: Box<EmulatorErrorInfo>,
+        },
     }
 
     #[derive(Serialize, Tsify)]
@@ -143,7 +160,7 @@ mod tsify_derive {
             cpu: Box<CPUState>,
         },
         #[serde(rename = "abort")]
-        Abort { info: BoxedEmulatorErrorInfo },
+        Abort { info: Box<EmulatorErrorInfo> },
     }
 }
 
