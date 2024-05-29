@@ -1,7 +1,6 @@
 use self::header::Header;
 use crate::{
     dev::BusDevice,
-    error::Result,
     types::{Addr, Word},
 };
 use log::warn;
@@ -30,6 +29,20 @@ impl Cartridge {
     pub fn header<'a>(&'a self) -> &'a Header {
         Header::from_rom(&self.rom)
     }
+
+    pub fn check_and_get_info(&self) -> PluginCartResult {
+        let header = self.header();
+        if let Some(info) = header
+            .check_logo()
+            .or_else(|| header.checksum())
+            .map(|e| e.info())
+        {
+            PluginCartResult::Err { info }
+        } else {
+            let info = header.info();
+            PluginCartResult::Ok { info }
+        }
+    }
 }
 
 impl BusDevice for Cartridge {
@@ -53,3 +66,36 @@ impl BusDevice for Cartridge {
         }
     }
 }
+
+#[allow(non_snake_case)]
+mod tsify_derive {
+    use serde::Serialize;
+    use tsify::Tsify;
+
+    use crate::error::EmulatorErrorInfo;
+
+    #[derive(Serialize, Tsify, Debug)]
+    #[tsify(into_wasm_abi)]
+    #[serde(rename_all = "camelCase")]
+    pub struct CartridgeInfo {
+        pub title: Box<str>,
+        pub cart_type: &'static str,
+        pub rom_size: usize,
+        pub ram_size: Option<usize>,
+        pub dest: &'static str,
+        pub publisher: &'static str,
+        pub version: u8,
+    }
+
+    #[derive(Serialize, Tsify)]
+    #[tsify(into_wasm_abi)]
+    #[serde(tag = "status")]
+    pub enum PluginCartResult {
+        #[serde(rename = "ok")]
+        Ok { info: CartridgeInfo },
+        #[serde(rename = "error")]
+        Err { info: Box<EmulatorErrorInfo> },
+    }
+}
+
+pub use tsify_derive::{CartridgeInfo, PluginCartResult};

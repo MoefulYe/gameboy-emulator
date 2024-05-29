@@ -1,6 +1,6 @@
 use log::info;
 
-use super::Rom;
+use super::{CartridgeInfo, Rom};
 use crate::error::{BoxedEmulatorError, EmulatorError};
 use core::mem::offset_of;
 
@@ -173,15 +173,23 @@ impl Header {
     }
 
     /// 在日志中打印这张卡带的信息
-    pub fn log_info(&self) {
-        let title = self.title();
-        let ty = self.cart_typename();
+    pub fn info(&self) -> CartridgeInfo {
+        let title = self.title().to_string().into_boxed_str();
+        let cart_type = self.cart_typename();
         let rom_size = self.rom_size();
-        let ram_size = self.ram_size().unwrap_or(0);
+        let ram_size = self.ram_size();
         let dest = self.dest();
         let publisher = self.publisher();
         let version = self.version();
-        info!("\ntitle={title}\ntype={ty}\nrom_size={rom_size}\nram_size={ram_size}\ndest={dest}\npublisher={publisher}\nversion={version}\n\n");
+        CartridgeInfo {
+            title,
+            cart_type,
+            rom_size,
+            ram_size,
+            dest,
+            publisher,
+            version,
+        }
     }
 
     fn new_publisher(&self) -> Option<&'static str> {

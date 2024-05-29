@@ -56,4 +56,6 @@ pub trait Tickable: BusDevice {
 
 pub use bus::Bus;
 pub use buttons::Button;
+pub use cartridge::PluginCartResult;
 pub use cpu::CPU;
+

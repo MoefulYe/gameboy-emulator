@@ -1,6 +1,6 @@
 use self::breakpoint::BreakPoints;
 use super::{
-    cartridge::Cartridge,
+    cartridge::{Cartridge, PluginCartResult},
     int_regs::{
         InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
         INTERRUPT_MASK_REGISTER_ADDR, INT_JOYPAD_ENTRY, INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK,
@@ -172,13 +172,11 @@ impl Bus {
         &mut self.serial
     }
 
-    pub fn plugin_cart(&mut self, cartridge: Box<[u8]>) -> Option<BoxedEmulatorErrorInfo> {
+    pub fn plugin_cart(&mut self, cartridge: Box<[u8]>) -> PluginCartResult {
         let cartridge = Cartridge::new(cartridge);
-        let header = cartridge.header();
-        header.check_logo().map(|e| e.info())?;
-        header.checksum().map(|e| e.info())?;
-        header.log_info();
-        None
+        let res = cartridge.check_and_get_info();
+        self.cartridge = Some(cartridge);
+        res
     }
     pub fn plugout_cart(&mut self) {
         self.cartridge = None

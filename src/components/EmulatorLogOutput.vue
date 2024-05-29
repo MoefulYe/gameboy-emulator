@@ -6,7 +6,7 @@
       </span>
       <VTooltip>
         <span
-          class="i-mdi:trash transition-colors duration-200 ease-in-out hover:text-blue-3"
+          class="i-solar:trash-bin-minimalistic-2-outline transition-colors duration-200 ease-in-out hover:text-blue-3 text-xl lg:text-2xl"
           @click="logs.splice(0)"
         />
         <template #popper>

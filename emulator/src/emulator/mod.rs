@@ -1,6 +1,6 @@
 use crate::{
-    dev::{Bus, Button, CPU, NO_BREAK},
-    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, EmulatorErrorInfo, Result},
+    dev::{Bus, Button, PluginCartResult, CPU, NO_BREAK},
+    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, Result},
     log,
     trace::CPUState,
     types::ClockCycle,
@@ -98,7 +98,7 @@ impl Emulator {
         Ok { cycles: clocks }
     }
 
-    pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> Option<Box<EmulatorErrorInfo>> {
+    pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
         self.bus.plugin_cart(cart)
     }
 

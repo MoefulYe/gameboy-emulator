@@ -10,7 +10,7 @@
         v-resizable="ASIDE_RESIZABLE_CONFIG"
         class="bg-gray-50 w-1/2 border-2 border-gray-1 rounded-lg shadow-sm p-2 flex-(~ col) gap-2 font-mono"
       >
-        <div class="grow bg-white rounded-md border p-2">
+        <div class="grow bg-white rounded-md border">
           <EmulatorDevTools />
         </div>
         <div v-resizable="LOGOUTPUT_RESIZABLE_CONFIG" class="h-2/5 bg-white rounded-md border">
