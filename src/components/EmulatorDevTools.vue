@@ -4,11 +4,10 @@
       <button
         v-for="{ title, icon, idx } of tabs"
         :key="idx"
-        :class="{
-          'p-2 flex items-center gap-2': true,
-          'border-b-2 border-blue-5 text-blue-5': idx === tab,
-          'hover:(border-blue-3 text-blue-3)': idx !== tab
-        }"
+        :class="[
+          'p-2 flex items-center gap-2',
+          idx !== tab ? 'hover:(border-blue-3 text-blue-3)' : 'border-b-2 border-blue-5 text-blue-5'
+        ]"
         @click="tab = idx"
       >
         <span :class="['text-xl lg:text-2xl', icon]" />
