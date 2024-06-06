@@ -10,8 +10,7 @@ export default defineConfig({
       extraProperties: {
         display: 'inline-block',
         'vertical-align': 'middle'
-      },
-      cdn: 'https://esm.sh/'
+      }
     }),
     presetAttributify()
   ]

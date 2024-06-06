@@ -20,6 +20,7 @@ import {
   type EmulatorEventType
 } from './event'
 import wait from '@/utils/wait'
+import { exclusive } from '@/utils/decorator'
 
 const BASE_FREQ_HZ = 4_194_304
 const VISUAL_FREQ_HZ = 59.7
@@ -108,12 +109,8 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     }
   }
 
+  @exclusive
   public async run() {
-    // 防止多个同时执行的start函数
-    if (this.running) {
-      return
-    }
-    this.running = true
     // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this.state.value !== EmulatorState.Running) break
@@ -134,7 +131,6 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
         break
       }
     }
-    this.running = false
   }
 }
 

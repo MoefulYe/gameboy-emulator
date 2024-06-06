@@ -98,10 +98,12 @@ impl Emulator {
         Ok { cycles: clocks }
     }
 
+    #[wasm_bindgen(js_name = pluginCart)]
     pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
         self.bus.plugin_cart(cart)
     }
 
+    #[wasm_bindgen(js_name = plugoutCart)]
     pub fn plugout_cart(&mut self) {
         self.bus.plugout_cart()
     }

@@ -1,39 +1,47 @@
 <template>
-  <div class="text-gray-7">
+  <div class="text-gray-8 flex flex-col">
     <nav class="relative px-2 overflow-x-auto flex gap-4 text-lg lg:text-xl border-b">
       <button
-        v-for="{ title, icon, idx } of tabs"
+        v-for="{ title, icon, idx } of infos"
         :key="idx"
         :class="[
           'p-2 flex items-center gap-2',
-          idx !== tab ? 'hover:(border-blue-3 text-blue-3)' : 'border-b-2 border-blue-5 text-blue-5'
+          idx !== tabIdx
+            ? 'hover:(border-blue-3 text-blue-3)'
+            : 'border-b-2 border-blue-5 text-blue-5'
         ]"
-        @click="tab = idx"
+        @click="tabIdx = idx"
       >
         <span :class="['text-xl lg:text-2xl', icon]" />
         <span>{{ t(title) }}</span>
       </button>
     </nav>
+    <main class="grow overflow-y-auto">
+      <KeepAlive>
+        <component :is="tab" />
+      </KeepAlive>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { defineComponent } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import General from './dev-tools/general.vue'
 const { t } = useI18n()
-const tab = ref(0)
+const components = [General, General, General]
+const tabIdx = ref(0)
+const tab = computed(() => components[tabIdx.value])
 </script>
 
 <script lang="ts">
-defineComponent
-interface Tab {
+interface TabInfo {
   title: string
   icon: string
   idx: number
 }
-
-const tabs: Tab[] = [
+const infos: TabInfo[] = [
   {
     title: 'general',
     icon: 'i-solar:settings-minimalistic-outline',

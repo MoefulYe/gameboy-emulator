@@ -9,6 +9,13 @@ import UnoCSS from 'unocss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  esbuild: {
+    tsconfigRaw: {
+      compilerOptions: {
+        experimentalDecorators: true
+      }
+    }
+  },
   plugins: [vue(), VueDevTools(), UnoCSS(), wasm(), VueI18nPlugin({})],
   resolve: {
     alias: {
