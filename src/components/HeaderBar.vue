@@ -1,10 +1,19 @@
 <template>
   <header id="header-bar" class="bg-blue-3 text-white shadow-sm border-b-1 p-2 overflow-y-auto">
     <span class="flex gap-2 justify-center w-fit mx-auto text-3xl sm:text-5xl">
-      <button class="i-pixelarticons:folder" v-tooltip="t('open')" />
+      <button
+        class="i-pixelarticons:folder"
+        v-tooltip="t('open')"
+        @click="openRom().then((rom) => emu.pluginCart(rom))"
+      />
       <button class="i-pixelarticons:save" v-tooltip="t('save')" />
       <span class="divider" />
-      <button class="i-pixelarticons:play" v-tooltip="tooltipPlay" :disabled="disablePlay" />
+      <button
+        class="i-pixelarticons:play"
+        v-tooltip="tooltipPlay"
+        :disabled="disablePlay"
+        @click="emu.run()"
+      />
       <button class="i-pixelarticons:pause" v-tooltip="t('pause')" :disabled="disablePause" />
       <button class="i-pixelarticons:next" v-tooltip="t('next')" :disabled="disableNext" />
       <button class="i-pixelarticons:reload" v-tooltip="t('reset')" />
@@ -39,6 +48,7 @@
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
 import { EmulatorState } from '@/emulator/state'
+import { openRom } from '@/emulator/cart'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Menu } from 'floating-vue'

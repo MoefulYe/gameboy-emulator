@@ -7,9 +7,6 @@ impl EmulatorLogger {
     const fn new() -> Self {
         Self
     }
-
-    const LOG_LEVELS: &'static [&'static str; 6] =
-        &["off", "error", "warn", "info", "debug", "trace"];
 }
 
 impl Log for EmulatorLogger {
@@ -18,7 +15,7 @@ impl Log for EmulatorLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        let level = Self::LOG_LEVELS[record.level() as usize];
+        let level = record.level() as u8;
         let msg = record.args().to_string();
         emulator_log_callback(level, &msg)
     }

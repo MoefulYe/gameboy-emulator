@@ -13,7 +13,7 @@
         <div class="grow bg-white rounded-md border">
           <EmulatorDevTools />
         </div>
-        <div v-resizable="LOGOUTPUT_RESIZABLE_CONFIG" class="h-2/5 bg-white rounded-md border">
+        <div v-resizable="LOGOUTPUT_RESIZABLE_CONFIG" class="h-128 bg-white rounded-md border">
           <EmulatorLogOutput />
         </div>
       </aside>
@@ -30,8 +30,8 @@ import HeaderBar from './HeaderBar.vue'
 import EmulatorMain from './EmulatorMain.vue'
 import EmulatorDevTools from './EmulatorDevTools.vue'
 import { useNotMobile } from '@/utils/hooks'
-import 'vue-resizables/style'
 import EmulatorLogOutput from './EmulatorLogOutput.vue'
+import 'vue-resizables/style'
 
 const props = defineProps<{
   delay: number

@@ -27,12 +27,13 @@ impl Emulator {
         }
     }
 
-    #[wasm_bindgen(js_name = initLogger)]
+    #[wasm_bindgen(js_name = _initLogger)]
     pub fn init_logger() {
         log::init_logger();
     }
 
-    pub fn _step(&mut self) -> EmulatorStepResult {
+    #[wasm_bindgen(js_name = _step)]
+    pub fn step(&mut self) -> EmulatorStepResult {
         use EmulatorStepResult::*;
         if self.stopped {
             let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
@@ -52,20 +53,24 @@ impl Emulator {
         }
     }
 
+    #[wasm_bindgen(js_name = _reset)]
     pub fn reset(&mut self) {
         self.cpu.reset();
         self.bus.reset();
         self.stopped = false
     }
 
+    #[wasm_bindgen(js_name = up)]
     pub fn up(&mut self, btn: Button) {
         todo!()
     }
 
+    #[wasm_bindgen(js_name = down)]
     pub fn down(&mut self, btn: Button) {
         todo!()
     }
 
+    #[wasm_bindgen(js_name = _update)]
     pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
         use EmulatorUpdateResult::*;
         if self.stopped {
@@ -98,18 +103,18 @@ impl Emulator {
         Ok { cycles: clocks }
     }
 
-    #[wasm_bindgen(js_name = pluginCart)]
+    #[wasm_bindgen(js_name = _pluginCart)]
     pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
         self.bus.plugin_cart(cart)
     }
 
-    #[wasm_bindgen(js_name = plugoutCart)]
+    #[wasm_bindgen(js_name = _plugoutCart)]
     pub fn plugout_cart(&mut self) {
         self.bus.plugout_cart()
     }
 
     fn handle_err(&mut self, err: BoxedEmulatorError) -> BoxedEmulatorErrorInfo {
-        self.stopped = true;
+        self.stopped = true;  
         err.info()
     }
 

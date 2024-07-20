@@ -16,7 +16,10 @@
         </template>
       </VTooltip>
     </div>
-    <div class="overflow-y-auto whitespace-pre-wrap break-words p-2" ref="logContainer">
+    <div
+      class="overflow-y-auto whitespace-pre-wrap break-words p-2 text-lg lg:text-xl"
+      ref="logContainer"
+    >
       <p v-for="{ id, level, msg } of logs" :key="id" class="my-2">
         <span :class="['rounded-lg me-0.5 p-1 text-white', LOG_STYLE[level]]">{{
           LOG_STR[level]

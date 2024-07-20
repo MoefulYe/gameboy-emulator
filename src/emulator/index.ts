@@ -1,4 +1,5 @@
 import {
+  type CartridgeInfo,
   type CPUState,
   type ClockCycle,
   type EmulatorErrorInfo
@@ -34,6 +35,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   public readonly freqHz = computed(() => BASE_FREQ_HZ * this.freqScale.value)
   public readonly serialOutput = reactive<number[]>([])
   public readonly cpuTracedState = shallowRef<CPUState>()
+  public readonly cartridgeInfo = shallowRef<CartridgeInfo>()
   // TODO 添加切换gameboy执行模式的功能, SGB, CGB, DMG ...
   public mode = 1
   private emitter: EventEmitter<EmulatorEvent>
@@ -48,6 +50,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   }
 
   private abort({ brief, msg }: EmulatorErrorInfo) {
+    this.state.value = EmulatorState.Aborted
     this.canvansCtx?.fillText(brief, 0, 0)
     this.emitter.emit('log', LogLevel.Error, msg)
   }
@@ -55,7 +58,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
   public static async create(): Promise<Emulator> {
     const emitter = createEmulatorEventEmitter()
     await wasmInit()
-    WasmEmulator.initLogger()
+    WasmEmulator._initLogger()
     return new Emulator(emitter)
   }
 
@@ -104,19 +107,21 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
       this.cycles.value += res.cycles
       this.cpuTracedState.value = res.cpu
     } else {
-      this.state.value = EmulatorState.Aborted
       this.abort(res.info)
     }
   }
 
   @exclusive
   public async run() {
+    const s = this.state.value
+    if (s !== EmulatorState.Paused && s !== EmulatorState.Shutdown) return
+    this.state.value = EmulatorState.Running
     // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this.state.value !== EmulatorState.Running) break
       const ts = performance.now()
       const cycles = Math.floor(this.freqHz.value / VISUAL_FREQ_HZ)
-      const res = this.update(cycles)
+      const res = this._update(cycles)
       this.cycles.value += res.cycles
       if (res.status === 'ok') {
         const diff = performance.now() - ts
@@ -126,11 +131,35 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
         this.state.value = EmulatorState.Paused
         break
       } else {
-        this.state.value = EmulatorState.Aborted
         this.abort(res.info)
         break
       }
     }
+  }
+
+  public pluginCart(rom: Uint8Array) {
+    const res = this._pluginCart(rom)
+    if (res.status === 'ok') {
+      const info = res.info
+      this.cartridgeInfo.value = info
+      const { title, cartType, romSize, ramSize, dest, publisher, version } = info
+      const msg = `cartridge plugin success: 
+      title: ${title}
+      cartType: ${cartType}
+      romSize: ${romSize}
+      ramSize: ${ramSize ?? 'None'}
+      dest: ${dest}
+      publisher: ${publisher}
+      version: ${version}`
+      this.emitter.emit('log', LogLevel.Info, msg)
+    } else {
+      this.abort(res.info)
+    }
+  }
+
+  public plugoutCart() {
+    this._plugoutCart()
+    this.cartridgeInfo.value = undefined
   }
 }
 

@@ -53,7 +53,7 @@ impl BusDevice for Cartridge {
             0x4000..=0x7FFF => todo!(),
             0xA000..=0xBFFF => todo!(),
             _ => {
-                warn!("illegal read from cartridge at address: {addr:04X}");
+                warn!("illegal read from cartridge at address: 0x{addr:04X}");
                 0xFF
             }
         }
@@ -62,7 +62,7 @@ impl BusDevice for Cartridge {
     fn write(&mut self, addr: Addr, data: Word) {
         match addr {
             0xA000..=0xBFFF => todo!(),
-            _ => warn!("illegal write to cartridge at address: {addr:04X}"),
+            _ => warn!("illegal write to cartridge at address: 0x{addr:04X}"),
         }
     }
 }

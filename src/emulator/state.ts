@@ -19,3 +19,10 @@ export const enum EmulatorState {
   // 模拟器出现错误，进入锁定状态，此时只能重启模拟器
   Aborted
 }
+
+export const STATE_STR = {
+  [EmulatorState.Aborted]: 'Aborted',
+  [EmulatorState.Paused]: 'Paused',
+  [EmulatorState.Running]: 'Running',
+  [EmulatorState.Shutdown]: 'Shutdown'
+}

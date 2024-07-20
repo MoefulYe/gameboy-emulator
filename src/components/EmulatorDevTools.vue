@@ -1,6 +1,6 @@
 <template>
   <div class="text-gray-8 flex flex-col">
-    <nav class="relative px-2 overflow-x-auto flex gap-4 text-lg lg:text-xl border-b">
+    <nav class="relative px-2 overflow-x-auto flex gap-4 text-lg lg:text-xl border-b no-scroll-bar">
       <button
         v-for="{ title, icon, idx } of infos"
         :key="idx"
@@ -16,7 +16,7 @@
         <span>{{ t(title) }}</span>
       </button>
     </nav>
-    <main class="grow overflow-y-auto">
+    <main class="grow overflow-y-auto p-4 text-base lg:text-xl">
       <KeepAlive>
         <component :is="tab" />
       </KeepAlive>
@@ -28,9 +28,11 @@
 import { ref } from 'vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import General from './dev-tools/general.vue'
+import General from './dev-tools/General.vue'
+import SerialOutput from './dev-tools/SerialOutput.vue'
+import CartridgeInfo from './dev-tools/CartridgeInfo.vue'
 const { t } = useI18n()
-const components = [General, General, General]
+const components = [General, CartridgeInfo, General, SerialOutput]
 const tabIdx = ref(0)
 const tab = computed(() => components[tabIdx.value])
 </script>
@@ -56,6 +58,11 @@ const infos: TabInfo[] = [
     title: 'cpu',
     icon: 'i-solar:cpu-outline',
     idx: 2
+  },
+  {
+    title: 'serial',
+    icon: 'i-solar:printer-minimalistic-outline',
+    idx: 3
   }
 ]
 </script>
@@ -65,12 +72,20 @@ const infos: TabInfo[] = [
   "en": {
     "general": "General",
     "cart": "Cartridge",
-    "cpu": "CPU"
+    "cpu": "CPU",
+    "serial": "Serial"
   },
   "zh": {
     "general": "概要",
     "cart": "卡带",
-    "cpu": "CPU"
+    "cpu": "CPU",
+    "serial": "串口"
   }
 }
 </i18n>
+
+<style scoped lang="scss">
+.no-scroll-bar {
+  scrollbar-width: none;
+}
+</style>
