@@ -1,8 +1,9 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
-import { EmulatorState } from './state'
+import { EmulatorState } from '../state'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
-import type { LogLevel } from './log'
+import type { LogLevel } from '../log'
+import type { ClientEventResponser } from '../event'
 
 const BASE_FREQ_HZ = 4_194_304
 const VISUAL_FREQ_HZ = 59.7
@@ -10,17 +11,17 @@ const MS_PER_FRAME = 1000 / VISUAL_FREQ_HZ
 
 type CreateOption = {
   canvasCtx: OffscreenCanvasRenderingContext2D
-  audioChan: MessageChannel
-  clientSideEventChan: MessageChannel
-  serverSideEventChan: MessageChannel
+  audioChan: MessagePort
+  clientSideEventChan: MessagePort
+  serverSideEventChan: MessagePort
 }
 type ConstructorOption = Omit<CreateOption & { core: WasmEmulator }, 'canvasCtx'>
 
 export class EmulatorServer {
   core: WasmEmulator
-  audioChan: MessageChannel
-  clientSideEventChan: MessageChannel
-  serverSideEventChan: MessageChannel
+  audioChan: MessagePort
+  clientSideEventResponser: ClientE
+  serverSideEventChan: MessagePort
 
   freqScale = 1.0
   volume = 50

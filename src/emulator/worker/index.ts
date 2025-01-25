@@ -1,8 +1,8 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
 import { EmulatorState } from '../state'
 import wasmInit from 'emulator/pkg'
-import type { LogLevel } from '../event'
 import { every } from '@/utils/timer'
+import { LogLevel } from '../log'
 
 const BASE_FREQ_HZ = 4_194_304
 const VISUAL_FREQ_HZ = 59.7
