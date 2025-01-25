@@ -26,7 +26,7 @@ export const useNotMobile = (): ComputedRef<boolean> => {
 }
 
 export const useElementWidth = (
-  el: ShallowRef<HTMLElement | undefined>,
+  el: Readonly<ShallowRef<HTMLElement | null>>,
   callback: (width: number) => void
 ) => {
   const update = () => callback(el.value!.offsetWidth)

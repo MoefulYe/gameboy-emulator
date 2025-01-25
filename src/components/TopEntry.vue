@@ -25,7 +25,7 @@
 import { provide } from 'vue'
 import { Emulator, emuKey } from '@/emulator'
 import { vResizable, type ResizableConfig } from 'vue-resizables'
-import wait from '@/utils/wait'
+import { wait } from '@/utils/timer'
 import HeaderBar from './HeaderBar.vue'
 import EmulatorMain from './EmulatorMain.vue'
 import EmulatorDevTools from './EmulatorDevTools.vue'

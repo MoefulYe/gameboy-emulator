@@ -3,10 +3,10 @@
     <span class="flex gap-2 justify-center w-fit mx-auto text-3xl sm:text-5xl">
       <button
         class="i-pixelarticons:folder"
-        v-tooltip="t('open')"
+        v-tooltip="'Open'"
         @click="openRom().then((rom) => emu.pluginCart(rom))"
       />
-      <button class="i-pixelarticons:save" v-tooltip="t('save')" />
+      <button class="i-pixelarticons:save" v-tooltip="'save'" />
       <span class="divider" />
       <button
         class="i-pixelarticons:play"
@@ -14,10 +14,10 @@
         :disabled="disablePlay"
         @click="emu.run()"
       />
-      <button class="i-pixelarticons:pause" v-tooltip="t('pause')" :disabled="disablePause" />
-      <button class="i-pixelarticons:next" v-tooltip="t('next')" :disabled="disableNext" />
-      <button class="i-pixelarticons:reload" v-tooltip="t('reset')" />
-      <button class="i-pixelarticons:close" v-tooltip="t('shutdown')" :disabled="disableShutdown" />
+      <button class="i-pixelarticons:pause" v-tooltip="'pause'" :disabled="disablePause" />
+      <button class="i-pixelarticons:next" v-tooltip="'next'" :disabled="disableNext" />
+      <button class="i-pixelarticons:reload" v-tooltip="'reset'" />
+      <button class="i-pixelarticons:close" v-tooltip="'shutdown'" :disabled="disableShutdown" />
       <span class="divider" />
       <Menu class="size-7.5 sm:size-12 relative">
         <button :class="[speedIcon, 'size-full absolute inset-block-0']" @dblclick="resetSpeed" />
@@ -39,8 +39,8 @@
           </div>
         </template>
       </Menu>
-      <button class="i-pixelarticons:camera" v-tooltip="t('shot')" @click="emu.screenshot()" />
-      <button class="i-pixelarticons:more-horizontal" v-tooltip="t('more')" />
+      <button class="i-pixelarticons:debug" v-tooltip="'Debug'" />
+      <button class="i-pixelarticons:more-horizontal" v-tooltip="'More'" />
     </span>
   </header>
 </template>
@@ -50,21 +50,14 @@ import { useEmulator } from '@/emulator'
 import { EmulatorState } from '@/emulator/state'
 import { openRom } from '@/emulator/cart'
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { Menu } from 'floating-vue'
 import MySlider from './MySlider.vue'
-
-const { t } = useI18n()
-
 const emu = useEmulator()
 const state = emu.state
 const speedScale = emu.freqScale
 const volume = emu.volume
 
-const tooltipPlay = computed(() => {
-  const s = state.value === EmulatorState.Paused ? 'resume' : 'start'
-  return t(s)
-})
+const tooltipPlay = computed(() => (state.value === EmulatorState.Paused ? 'resume' : 'start'))
 
 const disablePlay = computed(() => {
   const s = state.value
@@ -124,7 +117,7 @@ button {
 }
 
 .divider {
-  border-left: 2px solid rgba(#fff, 0.5);
+  border-left: 2px solid rgba(#fff, 0.9);
   margin-block: 0.25rem;
   margin-inline: 0.5rem;
   @media (min-width: 768px) {
@@ -138,35 +131,3 @@ button {
   scrollbar-width: none;
 }
 </style>
-
-<i18n>
-{
-  "cn": {
-    "open": "打开",
-    "save": "保存",
-    "resume": "继续",
-    "start": "开始",
-    "pause": "暂停",
-    "next": "步进",
-    "reset": "重置",
-    "shutdown": "关闭",
-    "speed": "速度",
-    "volume": "音量",
-    "more": "更多"
-  },
-  "en": {
-    "open": "Open",
-    "save": "Save",
-    "resume": "Resume",
-    "start": "Start",
-    "pause": "Pause",
-    "next": "Next",
-    "reset": "Reset",
-    "shutdown": "Shutdown",
-    "speed": "Speed",
-    "volume": "Volume",
-    "shot": "Shot",
-    "more": "More"
-  }
-}
-</i18n>

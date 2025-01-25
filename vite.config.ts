@@ -22,5 +22,12 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       emulator: fileURLToPath(new URL('./emulator', import.meta.url))
     }
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern'
+      }
+    }
   }
 })

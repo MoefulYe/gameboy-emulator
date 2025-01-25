@@ -2,7 +2,7 @@
   <div ref="container" class="pt-4">
     <div id="gameboy" ref="gameboy">
       <div class="reflex">
-        <canvas id="screen" ref="screen"></canvas>
+        <canvas id="screen" ref="screen" width="160" height="144"></canvas>
         <span class="diod"></span>
       </div>
       <ul class="buttons">
@@ -70,7 +70,7 @@
           <li></li>
         </ul>
         <ul
-          class="bottom"
+          class="bottom sm:size-12 md:me-4 lg:text-2xl"
           @pointerdown="emu.down(EmulatorButton.Down)"
           @pointerup="emu.up(EmulatorButton.Down)"
         >
@@ -88,13 +88,12 @@
 <script setup lang="ts">
 import { EmulatorButton, useEmulator } from '@/emulator'
 import { useElementWidth } from '@/utils/hooks'
-import { shallowRef } from 'vue'
-const gameboy = shallowRef<HTMLDivElement>()
-const container = shallowRef<HTMLDivElement>()
-const screen = shallowRef<HTMLCanvasElement>()
+import { useTemplateRef } from 'vue'
+const gameboy = useTemplateRef('gameboy')
+const container = useTemplateRef('container')
+const screen = useTemplateRef('screen')
 
 const emu = useEmulator()
-const emuState = emu.state
 emu.useCanvas(screen)
 useElementWidth(container, (w) => {
   const s = (w * 0.9) / 265
@@ -124,6 +123,7 @@ useElementWidth(container, (w) => {
     inset 0 3px 7px #919496,
     inset 0 4px 10px white;
   font-family: Arial, Helvetica, sans-serif;
+  transform-origin: top center;
 }
 
 .reflex {

@@ -8,6 +8,7 @@ use crate::{
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
+use web_sys::OffscreenCanvasRenderingContext2d;
 
 #[wasm_bindgen(js_name = WasmEmulator)]
 pub struct Emulator {
@@ -19,7 +20,7 @@ pub struct Emulator {
 #[wasm_bindgen(js_class = WasmEmulator)]
 impl Emulator {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Emulator {
+    pub fn new(canvas_ctx: OffscreenCanvasRenderingContext2d) -> Emulator {
         Self {
             cpu: CPU::new(),
             bus: Bus::new(),
@@ -27,12 +28,12 @@ impl Emulator {
         }
     }
 
-    #[wasm_bindgen(js_name = _initLogger)]
+    #[wasm_bindgen(js_name = initLogger)]
     pub fn init_logger() {
         log::init_logger();
     }
 
-    #[wasm_bindgen(js_name = _step)]
+    #[wasm_bindgen(js_name = step)]
     pub fn step(&mut self) -> EmulatorStepResult {
         use EmulatorStepResult::*;
         if self.stopped {
@@ -53,24 +54,14 @@ impl Emulator {
         }
     }
 
-    #[wasm_bindgen(js_name = _reset)]
+    #[wasm_bindgen(js_name = reset)]
     pub fn reset(&mut self) {
         self.cpu.reset();
         self.bus.reset();
         self.stopped = false
     }
 
-    #[wasm_bindgen(js_name = up)]
-    pub fn up(&mut self, btn: Button) {
-        todo!()
-    }
-
-    #[wasm_bindgen(js_name = down)]
-    pub fn down(&mut self, btn: Button) {
-        todo!()
-    }
-
-    #[wasm_bindgen(js_name = _update)]
+    #[wasm_bindgen(js_name = update)]
     pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
         use EmulatorUpdateResult::*;
         if self.stopped {
@@ -103,18 +94,18 @@ impl Emulator {
         Ok { cycles: clocks }
     }
 
-    #[wasm_bindgen(js_name = _pluginCart)]
+    #[wasm_bindgen(js_name = pluginCart)]
     pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
         self.bus.plugin_cart(cart)
     }
 
-    #[wasm_bindgen(js_name = _plugoutCart)]
+    #[wasm_bindgen(js_name = plugoutCart)]
     pub fn plugout_cart(&mut self) {
         self.bus.plugout_cart()
     }
 
     fn handle_err(&mut self, err: BoxedEmulatorError) -> BoxedEmulatorErrorInfo {
-        self.stopped = true;  
+        self.stopped = true;
         err.info()
     }
 

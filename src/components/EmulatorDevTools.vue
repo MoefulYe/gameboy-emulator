@@ -13,7 +13,7 @@
         @click="tabIdx = idx"
       >
         <span :class="['text-xl lg:text-2xl', icon]" />
-        <span>{{ t(title) }}</span>
+        <span>{{ title }}</span>
       </button>
     </nav>
     <main class="grow overflow-y-auto p-4 text-base lg:text-xl">
@@ -27,11 +27,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import General from './dev-tools/General.vue'
 import SerialOutput from './dev-tools/SerialOutput.vue'
 import CartridgeInfo from './dev-tools/CartridgeInfo.vue'
-const { t } = useI18n()
 const components = [General, CartridgeInfo, General, SerialOutput]
 const tabIdx = ref(0)
 const tab = computed(() => components[tabIdx.value])
@@ -45,44 +43,27 @@ interface TabInfo {
 }
 const infos: TabInfo[] = [
   {
-    title: 'general',
+    title: 'General',
     icon: 'i-solar:settings-minimalistic-outline',
     idx: 0
   },
   {
-    title: 'cart',
+    title: 'Cart',
     icon: 'i-solar:info-square-outline',
     idx: 1
   },
   {
-    title: 'cpu',
+    title: 'Cpu',
     icon: 'i-solar:cpu-outline',
     idx: 2
   },
   {
-    title: 'serial',
+    title: 'Serial',
     icon: 'i-solar:printer-minimalistic-outline',
     idx: 3
   }
 ]
 </script>
-
-<i18n>
-{
-  "en": {
-    "general": "General",
-    "cart": "Cartridge",
-    "cpu": "CPU",
-    "serial": "Serial"
-  },
-  "zh": {
-    "general": "概要",
-    "cart": "卡带",
-    "cpu": "CPU",
-    "serial": "串口"
-  }
-}
-</i18n>
 
 <style scoped lang="scss">
 .no-scroll-bar {

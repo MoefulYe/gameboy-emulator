@@ -1,18 +1,14 @@
 <template>
   <div class="flex-(~ col) max-h-full text-gray-8">
     <div class="border-b flex items-center justify-between text-lg lg:text-xl p-2">
-      <span>
-        {{ t('title') }}
-      </span>
+      <span> Title </span>
       <VTooltip>
         <span
           class="i-solar:trash-bin-minimalistic-2-outline transition-colors duration-200 ease-in-out hover:text-blue-3 text-xl lg:text-2xl"
           @click="logs.splice(0)"
         />
         <template #popper>
-          <span class="font-mono">
-            {{ t('clear') }}
-          </span>
+          <span class="font-mono"> Clear </span>
         </template>
       </VTooltip>
     </div>
@@ -34,9 +30,6 @@
 import { useEmulator } from '@/emulator'
 import { LogLevel } from '@/emulator/event'
 import { nextTick, onUpdated, shallowRef, reactive } from 'vue'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
 let id = 0
 const emu = useEmulator()
 const logs = reactive<Log[]>([])
@@ -50,20 +43,6 @@ onUpdated(async () => {
   }
 })
 </script>
-
-<i18n>
-{
-  "en": {
-    "title": "Log Output",
-    "clear": "Clear Log Output"
-  },
-  "zh": {
-    "title": "日志输出",
-    "clear": "清空日志输出"
-  }
-}
-</i18n>
-
 <script lang="ts">
 type Log = {
   level: LogLevel
@@ -76,9 +55,8 @@ const LOG_STYLE = [
   'bg-red-4', // ERROR,
   'bg-yellow-4', // WARN,
   'bg-green-4', // INFO
-  'bg-blue-4', // DEBUG
-  'bg-purple-4' // TRACE
+  'bg-blue-4' // DEBUG
 ] as const
 
-export const LOG_STR = ['off', 'error', 'warn', 'info', 'debug', 'trace'] as const
+export const LOG_STR = ['off', 'error', 'warn', 'info', 'debug'] as const
 </script>

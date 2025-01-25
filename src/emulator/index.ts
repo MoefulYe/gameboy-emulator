@@ -20,8 +20,7 @@ import {
   type EmulatorEvent,
   type EmulatorEventType
 } from './event'
-import wait from '@/utils/wait'
-import { exclusive } from '@/utils/decorator'
+import { wait } from '@/utils/timer'
 
 const BASE_FREQ_HZ = 4_194_304
 const VISUAL_FREQ_HZ = 59.7
@@ -89,7 +88,7 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     }
   }
 
-  public useCanvas(canvas: ShallowRef<HTMLCanvasElement | undefined>) {
+  public useCanvas(canvas: Readonly<ShallowRef<HTMLCanvasElement | null>>) {
     onMounted(() => (this.canvansCtx = canvas.value!.getContext('2d') ?? undefined))
     onUnmounted(() => (this.canvansCtx = undefined))
   }
@@ -111,7 +110,6 @@ export class Emulator extends WasmEmulator implements EventDispatcher<EmulatorEv
     }
   }
 
-  @exclusive
   public async run() {
     const s = this.state.value
     if (s !== EmulatorState.Paused && s !== EmulatorState.Shutdown) return

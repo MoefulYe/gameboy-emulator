@@ -1,5 +1,6 @@
 {
   "name": "emulator",
+  "type": "module",
   "collaborators": [
     "ashenye <luren145@gmail.com>"
   ],
@@ -9,7 +10,7 @@
     "emulator.js",
     "emulator.d.ts"
   ],
-  "module": "emulator.js",
+  "main": "emulator.js",
   "types": "emulator.d.ts",
   "sideEffects": [
     "./snippets/*"
