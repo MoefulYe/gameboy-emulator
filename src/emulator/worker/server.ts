@@ -1,69 +1,55 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
-import { EmulatorState } from '../state'
+import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME, Ok, Err } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
-import type { LogLevel } from '../log'
-import type { ClientEventResponser } from '../event'
-
-const BASE_FREQ_HZ = 4_194_304
-const VISUAL_FREQ_HZ = 59.7
-const MS_PER_FRAME = 1000 / VISUAL_FREQ_HZ
+import { Responser, type ClientSideEvent, type Handlers } from './client_side_event'
+import { Emitter } from './server_side_event'
 
 type CreateOption = {
-  canvasCtx: OffscreenCanvasRenderingContext2D
-  audioChan: MessagePort
-  clientSideEventChan: MessagePort
-  serverSideEventChan: MessagePort
+  audioPort: MessagePort
+  responsePort: MessagePort
+  emitPort: MessagePort
 }
-type ConstructorOption = Omit<CreateOption & { core: WasmEmulator }, 'canvasCtx'>
+type ConstructorOption = CreateOption & { core: WasmEmulator }
 
-export class EmulatorServer {
+export class Server {
   core: WasmEmulator
-  audioChan: MessagePort
-  clientSideEventResponser: ClientE
-  serverSideEventChan: MessagePort
+  audioPort: MessagePort
+  responser: Responser
+  emitter: Emitter
 
   freqScale = 1.0
-  volume = 50
-  state = EmulatorState.Shutdown
+  state = State.Shutdown
   cycles = 0
   get freqHz() {
     return BASE_FREQ_HZ * this.freqScale
   }
   mode = 1
 
-  private constructor({
-    core,
-    audioChan,
-    clientSideEventChan,
-    serverSideEventChan
-  }: ConstructorOption) {
+  private constructor({ core, audioPort, responsePort, emitPort }: ConstructorOption) {
     this.core = core
-    this.audioChan = audioChan
-    this.clientSideEventChan = clientSideEventChan
-    this.serverSideEventChan = serverSideEventChan
+    this.audioPort = audioPort
+    this.emitter = new Emitter(emitPort)
+    const handlers = this.clientSideEventHandlers()
+    this.responser = new Responser(responsePort, handlers)
   }
 
   private run() {
     every(() => {
-      if (this.state !== EmulatorState.Running) return
+      if (this.state !== State.Running) return
       const cycles = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
       const res = this.core.update(cycles)
       this.cycles += res.cycles
       if (res.status === 'ok') {
         return
       } else {
-        this.state = EmulatorState.Aborted
+        this.state = State.Aborted
         return
       }
     }, MS_PER_FRAME)
   }
-  public static async create({
-    canvasCtx,
-    audioChan,
-    clientSideEventChan,
-    serverSideEventChan
-  }: CreateOption) {
+
+  public static async create({ audioPort, emitPort, responsePort }: CreateOption) {
     //注册回调
     self.emulatorLogCallback = (level: LogLevel, msg: string) => {
       console.log(level, msg)
@@ -72,14 +58,42 @@ export class EmulatorServer {
       console.log('serial', byte)
     }
     await wasmInit()
-    const core = new WasmEmulator(canvasCtx)
-    const worker = new EmulatorServer({
+    const core = new WasmEmulator()
+    const worker = new Server({
       core,
-      audioChan,
-      clientSideEventChan,
-      serverSideEventChan
+      audioPort,
+      responsePort,
+      emitPort
     })
     worker.run()
     return worker
+  }
+
+  private clientSideEventHandlers(): Handlers<ClientSideEvent> {
+    return {
+      'load-rom': () => [
+        {
+          status: Ok,
+          ret: undefined,
+          err: undefined
+        },
+        []
+      ],
+      ping: ({ msg }) => [
+        {
+          status: Ok,
+          ret: { msg }
+        },
+        []
+      ],
+      'set-canvas': ({ canvas }) => {
+        const ctx = canvas.getContext('2d')!
+        if (ctx === null) {
+          return [{ status: Err, ret: 'set canvas failed! fail to get context' }, []]
+        }
+        this.core.setCanvas(ctx)
+        return [{ status: Ok, ret: undefined }, []]
+      }
+    }
   }
 }

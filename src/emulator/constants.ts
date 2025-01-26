@@ -9,7 +9,7 @@ paused -- 关机 --> shutdown
 aborted -- 重置 --> shutdown
 aborted -- 关机 --> shutdown
 */
-export const enum EmulatorState {
+export const enum State {
   // 关机状态，模拟器未启动
   Shutdown,
   // 正常运行状态
@@ -21,8 +21,27 @@ export const enum EmulatorState {
 }
 
 export const STATE_STR = {
-  [EmulatorState.Aborted]: 'Aborted',
-  [EmulatorState.Paused]: 'Paused',
-  [EmulatorState.Running]: 'Running',
-  [EmulatorState.Shutdown]: 'Shutdown'
+  [State.Aborted]: 'Aborted',
+  [State.Paused]: 'Paused',
+  [State.Running]: 'Running',
+  [State.Shutdown]: 'Shutdown'
 }
+export const enum LogLevel {
+  Off = 0,
+  Error = 1,
+  Warn = 2,
+  Info = 3,
+  Debug = 4
+}
+
+export const BASE_FREQ_HZ = 4_194_304
+export const VISUAL_FREQ_HZ = 59.7
+export const MS_PER_FRAME = 1000 / VISUAL_FREQ_HZ
+export const DEFAULT_VOLUME = 50
+
+export const enum Status {
+  Ok,
+  Err
+}
+export const Ok = Status.Ok
+export const Err = Status.Err

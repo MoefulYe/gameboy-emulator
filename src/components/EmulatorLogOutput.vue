@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
-import { LogLevel } from '@/emulator/event'
+import { LogLevel } from '@/emulator/worker/event'
 import { nextTick, onUpdated, shallowRef, reactive } from 'vue'
 let id = 0
 const emu = useEmulator()

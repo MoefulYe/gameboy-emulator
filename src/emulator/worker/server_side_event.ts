@@ -7,7 +7,18 @@ type Packet<Events extends Record<EventTypes, {}>, Event extends keyof Events> =
   data: EventData<Events, Event>
 }
 
-export class Emitter<Events extends Record<EventTypes, {}>> {
+export type EventCallback<Args extends {}> = (args: Args) => void
+type EventCallbacks<Args extends {}> = Set<EventCallback<Args>>
+type EventCallbackMap<Events extends Record<EventTypes, {}>> = {
+  [Event in keyof Events]: EventCallbacks<Events[Event]>
+}
+
+export type ServerSideEvent = {
+  hello: {}
+  abort: {}
+}
+
+export class Emitter<Events extends Record<EventTypes, {}> = ServerSideEvent> {
   constructor(private port: MessagePort) {}
   public emit<Event extends EventTypes>(
     type: Event,
@@ -22,13 +33,7 @@ export class Emitter<Events extends Record<EventTypes, {}>> {
   }
 }
 
-type EventCallback<Args extends {}> = (args: Args) => void
-type EventCallbacks<Args extends {}> = Set<EventCallback<Args>>
-type EventCallbackMap<Events extends Record<EventTypes, {}>> = {
-  [Event in keyof Events]: EventCallbacks<Events[Event]>
-}
-
-export class Listener<Events extends Record<EventTypes, {}>> {
+export class Listener<Events extends Record<EventTypes, {}> = ServerSideEvent> {
   public constructor(
     private port: MessagePort,
     private callbacks: Partial<EventCallbackMap<Events>> = {}
