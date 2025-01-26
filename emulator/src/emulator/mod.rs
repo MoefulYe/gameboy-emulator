@@ -20,7 +20,7 @@ pub struct Emulator {
 #[wasm_bindgen(js_class = WasmEmulator)]
 impl Emulator {
     #[wasm_bindgen(constructor)]
-    pub fn new(canvas_ctx: OffscreenCanvasRenderingContext2d) -> Emulator {
+    pub fn new() -> Emulator {
         Self {
             cpu: CPU::new(),
             bus: Bus::new(),
@@ -97,6 +97,10 @@ impl Emulator {
     #[wasm_bindgen(js_name = pluginCart)]
     pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
         self.bus.plugin_cart(cart)
+    }
+
+    #[wasm_bindgen(js_name = setCanvas)]
+    pub fn set_canvas(&mut self, canvas_ctx: OffscreenCanvasRenderingContext2d) {
     }
 
     #[wasm_bindgen(js_name = plugoutCart)]
