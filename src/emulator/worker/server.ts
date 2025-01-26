@@ -2,10 +2,10 @@ import { WasmEmulator } from 'emulator/pkg/emulator'
 import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME, Ok, Err } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
-import { Responser, type ClientSideEvent, type Handlers } from './client_side_event'
-import { Emitter } from './server_side_event'
+import { Responser, type ClientSideEvent, type Handlers } from './event/client_side_event'
+import { Emitter } from './event/server_side_event'
 
-type CreateOption = {
+export type CreateOption = {
   audioPort: MessagePort
   responsePort: MessagePort
   emitPort: MessagePort
@@ -79,17 +79,17 @@ export class Server {
         },
         []
       ],
-      ping: ({ msg }) => [
+      ping: () => [
         {
           status: Ok,
-          ret: { msg }
+          ret: { msg: 'pong' }
         },
         []
       ],
       'set-canvas': ({ canvas }) => {
         const ctx = canvas.getContext('2d')!
         if (ctx === null) {
-          return [{ status: Err, ret: 'set canvas failed! fail to get context' }, []]
+          return [{ status: Err, err: 'set canvas failed! fail to get context' }, []]
         }
         this.core.setCanvas(ctx)
         return [{ status: Ok, ret: undefined }, []]

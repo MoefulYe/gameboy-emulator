@@ -1,12 +1,15 @@
 import { computed, readonly, ref, shallowRef } from 'vue'
 import { BASE_FREQ_HZ, DEFAULT_VOLUME, State } from '../constants'
 import type { CartridgeInfo } from 'emulator/pkg/emulator'
-import { Listener, type EventCallback, type ServerSideEvent } from './server_side_event'
-import { Requester, type ClientSideEvent, type ReqArgs } from './client_side_event'
+import { Listener, type EventCallback, type ServerSideEvent } from './event/server_side_event'
+import { Requester, type ClientSideEvent, type ReqArgs } from './event/client_side_event'
+import { AudioReceiver } from './audio'
 
 type CreateOption = {
-  listenePort: MessagePort
-  requestePort: MessagePort
+  listenPort: MessagePort
+  requestPort: MessagePort
+  audioPort: MessagePort
+  server: Worker
 }
 
 export class Client {
@@ -26,10 +29,14 @@ export class Client {
 
   private readonly requester: Requester
   private readonly listener: Listener
+  private readonly audioReceiver: AudioReceiver
+  private readonly server: Worker
 
-  constructor({ listenePort, requestePort }: CreateOption) {
-    this.requester = new Requester(requestePort)
-    this.listener = new Listener(listenePort)
+  constructor({ listenPort, requestPort, audioPort, server }: CreateOption) {
+    this.requester = new Requester(requestPort)
+    this.listener = new Listener(listenPort)
+    this.audioReceiver = new AudioReceiver(audioPort)
+    this.server = server
   }
 
   public on<Event extends keyof ServerSideEvent>(

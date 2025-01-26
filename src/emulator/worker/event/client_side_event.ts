@@ -1,4 +1,4 @@
-import type { Status } from '../constants'
+import type { Status } from '../../constants'
 
 type _EventDef = {
   args: {}
@@ -32,7 +32,7 @@ type RespData<Events extends Record<EventTypes, _EventDef>, Event extends keyof 
     }
   | {
       status: Status.Err
-      ret: ClientEventRespErr<Events, Event>
+      err: ClientEventRespErr<Events, Event>
     }
 type RespPacket<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> = {
   id: number
