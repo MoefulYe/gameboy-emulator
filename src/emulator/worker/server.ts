@@ -2,8 +2,9 @@ import { WasmEmulator } from 'emulator/pkg/emulator'
 import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME, Ok, Err } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
-import { Responser, type ClientSideEvent, type Handlers } from './event/client_side_event'
-import { Emitter } from './event/server_side_event'
+import { Responser } from '@/utils/event/client_side_event'
+import { Emitter } from '@/utils/event/server_side_event'
+import type { ClientSideEvent, ServerSideEvent } from './event'
 
 export type CreateOption = {
   audioPort: MessagePort
@@ -11,12 +12,15 @@ export type CreateOption = {
   emitPort: MessagePort
 }
 type ConstructorOption = CreateOption & { core: WasmEmulator }
+type Handler<Event extends keyof ClientSideEvent> =
+  import('@/utils/event/client_side_event').Handler<ClientSideEvent, Event>
+type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEvent>
 
 export class Server {
   core: WasmEmulator
   audioPort: MessagePort
-  responser: Responser
-  emitter: Emitter
+  responser: Responser<ClientSideEvent>
+  emitter: Emitter<ServerSideEvent>
 
   freqScale = 1.0
   state = State.Shutdown
@@ -69,31 +73,44 @@ export class Server {
     return worker
   }
 
-  private clientSideEventHandlers(): Handlers<ClientSideEvent> {
+  private clientSideEventHandlers(): Handlers {
     return {
-      'load-rom': () => [
-        {
-          status: Ok,
-          ret: undefined,
-          err: undefined
-        },
-        []
-      ],
-      ping: () => [
-        {
-          status: Ok,
-          ret: { msg: 'pong' }
-        },
-        []
-      ],
-      'set-canvas': ({ canvas }) => {
-        const ctx = canvas.getContext('2d')!
-        if (ctx === null) {
-          return [{ status: Err, err: 'set canvas failed! fail to get context' }, []]
-        }
-        this.core.setCanvas(ctx)
-        return [{ status: Ok, ret: undefined }, []]
+      'load-rom': this.handleLoadRom(),
+      ping: this.handlePing(),
+      'set-canvas': this.handleSetCanvas(),
+      'btn-action': this.handleBtnAction()
+    }
+  }
+
+  private handleLoadRom(): Handler<'load-rom'> {
+    return ({ rom }) => {
+      console.log('loadrom', rom)
+      return [{ status: Ok, ret: undefined }, []]
+    }
+  }
+
+  private handlePing(): Handler<'ping'> {
+    return ({ msg }) => {
+      console.log(msg)
+      return [{ status: Ok, ret: 'Emulator Copyright (C) 2024 Moefulye' }, []]
+    }
+  }
+
+  private handleSetCanvas(): Handler<'set-canvas'> {
+    return ({ canvas }) => {
+      const ctx = canvas.getContext('2d')
+      if (ctx === null) {
+        return [{ status: Err, err: 'set canvas failed! fail to get context' }, []]
       }
+      this.core.setCanvas(ctx)
+      return [{ status: Ok, ret: undefined }, []]
+    }
+  }
+
+  private handleBtnAction(): Handler<'btn-action'> {
+    return (btns) => {
+      console.log(btns)
+      return [{ status: Ok, ret: undefined }, []]
     }
   }
 }

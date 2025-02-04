@@ -14,3 +14,4 @@ self.onmessage = async (e: MessageEvent<CreateOption>) => {
 }
 
 const server = await p
+server.emitter.emit('hello', {})

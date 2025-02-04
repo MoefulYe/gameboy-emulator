@@ -13,14 +13,9 @@ type EventCallbackMap<Events extends Record<EventTypes, {}>> = {
   [Event in keyof Events]: EventCallbacks<Events[Event]>
 }
 
-export type ServerSideEvent = {
-  hello: {}
-  abort: {}
-}
-
-export class Emitter<Events extends Record<EventTypes, {}> = ServerSideEvent> {
+export class Emitter<Events extends Record<EventTypes, {}>> {
   constructor(private port: MessagePort) {}
-  public emit<Event extends EventTypes>(
+  public emit<Event extends keyof Events>(
     type: Event,
     data: EventData<Events, Event>,
     transfer: Transferable[] = []
@@ -33,7 +28,7 @@ export class Emitter<Events extends Record<EventTypes, {}> = ServerSideEvent> {
   }
 }
 
-export class Listener<Events extends Record<EventTypes, {}> = ServerSideEvent> {
+export class Listener<Events extends Record<EventTypes, {}>> {
   public constructor(
     private port: MessagePort,
     private callbacks: Partial<EventCallbackMap<Events>> = {}

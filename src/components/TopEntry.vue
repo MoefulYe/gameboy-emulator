@@ -1,7 +1,7 @@
 <template>
   <div class="w-full h-full flex flex-col min-h-screen">
     <HeaderBar />
-    <div class="grow flex p-2 items-stretch">
+    <!-- <div class="grow flex p-2 items-stretch">
       <main class="grow">
         <EmulatorMain />
       </main>
@@ -17,31 +17,27 @@
           <EmulatorLogOutput />
         </div>
       </aside>
-    </div>
+    </div> -->
   </div>
 </template>
 
 <script setup lang="ts">
 import { provide } from 'vue'
-import { Emulator, emuKey } from '@/emulator'
-import { vResizable, type ResizableConfig } from 'vue-resizables'
-import { wait } from '@/utils/timer'
+import { createEmulator, emuKey } from '@/emulator'
+// import { vResizable, type ResizableConfig } from 'vue-resizables'
 import HeaderBar from './HeaderBar.vue'
 import EmulatorMain from './EmulatorMain.vue'
-import EmulatorDevTools from './EmulatorDevTools.vue'
-import { useNotMobile } from '@/utils/hooks'
-import EmulatorLogOutput from './EmulatorLogOutput.vue'
-import 'vue-resizables/style'
+// import EmulatorDevTools from './EmulatorDevTools.vue'
+// import { useNotMobile } from '@/utils/hooks'
+// import EmulatorLogOutput from './EmulatorLogOutput.vue'
+// import 'vue-resizables/style'
 
-const props = defineProps<{
-  delay: number
-}>()
-const [emulator] = await Promise.all([Emulator.create(), wait(props.delay)])
-provide(emuKey, emulator)
+const emu = await createEmulator()
+provide(emuKey, emu)
 
-const notMobile = useNotMobile()
+// const notMobile = useNotMobile()
 </script>
-
+<!-- 
 <script lang="ts">
 const ASIDE_RESIZABLE_CONFIG: ResizableConfig = {
   edge: {
@@ -66,4 +62,4 @@ const LOGOUTPUT_RESIZABLE_CONFIG: ResizableConfig = {
     }
   }
 }
-</script>
+</script> -->

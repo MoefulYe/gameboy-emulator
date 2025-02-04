@@ -1,7 +1,7 @@
 <template>
   <Transition name="fade">
     <Suspense>
-      <TopEntry :delay="1000" />
+      <TopEntry />
       <template #fallback>
         <EmulatorLoading />
       </template>

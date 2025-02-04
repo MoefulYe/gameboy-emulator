@@ -1,18 +1,14 @@
 <template>
   <header id="header-bar" class="bg-blue-3 text-white shadow-sm border-b-1 p-2 overflow-y-auto">
     <span class="flex gap-2 justify-center w-fit mx-auto text-3xl sm:text-5xl">
-      <button
-        class="i-pixelarticons:folder"
-        v-tooltip="'Open'"
-        @click="openRom().then((rom) => emu.pluginCart(rom))"
-      />
+      <button class="i-pixelarticons:folder" v-tooltip="'Open'" @click="openRom" />
       <button class="i-pixelarticons:save" v-tooltip="'save'" />
       <span class="divider" />
       <button
         class="i-pixelarticons:play"
         v-tooltip="tooltipPlay"
         :disabled="disablePlay"
-        @click="emu.run()"
+        @click="1"
       />
       <button class="i-pixelarticons:pause" v-tooltip="'pause'" :disabled="disablePause" />
       <button class="i-pixelarticons:next" v-tooltip="'next'" :disabled="disableNext" />
@@ -47,38 +43,37 @@
 
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
-import { EmulatorState } from '@/emulator/state'
-import { openRom } from '@/emulator/cart'
+import { State } from '@/emulator/constants'
 import { computed } from 'vue'
 import { Menu } from 'floating-vue'
 import MySlider from './MySlider.vue'
+import { openFile } from '@/utils/fs'
 const emu = useEmulator()
-const state = emu.state
-const speedScale = emu.freqScale
-const volume = emu.volume
+const { freqScale, volume } = emu.config
+const { state } = emu.stat
 
-const tooltipPlay = computed(() => (state.value === EmulatorState.Paused ? 'resume' : 'start'))
+const tooltipPlay = computed(() => (state.value === State.Paused ? 'resume' : 'start'))
 
 const disablePlay = computed(() => {
   const s = state.value
-  return s === EmulatorState.Running || s === EmulatorState.Aborted
+  return s === State.Running || s === State.Aborted
 })
-const disablePause = computed(() => state.value !== EmulatorState.Running)
-const disableNext = computed(() => state.value !== EmulatorState.Paused)
-const disableShutdown = computed(() => state.value === EmulatorState.Shutdown)
+const disablePause = computed(() => state.value !== State.Running)
+const disableNext = computed(() => state.value !== State.Paused)
+const disableShutdown = computed(() => state.value === State.Shutdown)
 
 const loggedSpeedScale = computed({
-  get: () => Math.log2(speedScale.value),
-  set: (val) => (speedScale.value = 2 ** val)
+  get: () => Math.log2(freqScale.value),
+  set: (val) => (freqScale.value = 2 ** val)
 })
 const speedIcon = computed(() => {
-  const val = speedScale.value
+  const val = freqScale.value
   if (val < 0.25) return 'i-pixelarticons:speed-slow'
   else if (val > 4) return 'i-pixelarticons:speed-fast'
   else return 'i-pixelarticons:speed-medium'
 })
-const resetSpeed = () => (speedScale.value = 1)
-const speedStr = computed(() => `X${speedScale.value.toFixed(2).padStart(5, ' ')}`)
+const resetSpeed = () => (freqScale.value = 1)
+const speedStr = computed(() => `X${freqScale.value.toFixed(2).padStart(5, ' ')}`)
 
 const volumeIcon = computed(() => {
   const _val = Math.floor((volume.value + 49) / 50)
@@ -93,6 +88,13 @@ const resetVolume = () => {
   }
 }
 const volumeStr = computed(() => `${volume.value.toString().padStart(3)}%`)
+
+const openRom = async () => {
+  const file = await openFile()
+  const buf = await file.arrayBuffer()
+  const rom = new Uint8Array(buf)
+  emu.openRom(rom)
+}
 </script>
 
 <script lang="ts">

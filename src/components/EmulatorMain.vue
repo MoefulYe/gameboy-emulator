@@ -94,7 +94,7 @@ const container = useTemplateRef('container')
 const screen = useTemplateRef('screen')
 
 const emu = useEmulator()
-emu.useCanvas(screen)
+// emu.useCanvas(screen)
 useElementWidth(container, (w) => {
   const s = (w * 0.9) / 265
   const scale = s > 3 ? 3 : s

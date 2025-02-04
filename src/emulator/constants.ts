@@ -1,3 +1,5 @@
+import { Status } from '@/utils/event/client_side_event'
+
 /*
 shutdown -- 开机 --> running
 running -- 暂停 --> paused
@@ -39,9 +41,5 @@ export const VISUAL_FREQ_HZ = 59.7
 export const MS_PER_FRAME = 1000 / VISUAL_FREQ_HZ
 export const DEFAULT_VOLUME = 50
 
-export const enum Status {
-  Ok,
-  Err
-}
 export const Ok = Status.Ok
 export const Err = Status.Err
