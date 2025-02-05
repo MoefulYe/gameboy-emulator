@@ -89,11 +89,10 @@ export class PhysicalGamepad {
     config: Config,
     private callback: Callback
   ) {
-    const [gamepad] = window.navigator.getGamepads()
-    this.gamepad = gamepad ?? undefined
-    window.addEventListener('gamepadconnected', this.connectListener)
-    window.addEventListener('gamepaddisconnected', this.disconnectListener)
+    this.gamepad = undefined
+    window.addEventListener('gamepadconnected', (e) => this.connectListener(e))
+    window.addEventListener('gamepaddisconnected', () => this.disconnectListener())
     this.mapping = config.gamepadMapping
-    every(this.poll, PhysicalGamepad.POLL_INTERVAL)
+    every(() => this.poll(), PhysicalGamepad.POLL_INTERVAL)
   }
 }

@@ -99,6 +99,7 @@ export class Server {
   private handleSetCanvas(): Handler<'set-canvas'> {
     return ({ canvas }) => {
       const ctx = canvas.getContext('2d')
+      console.log('set canvas')
       if (ctx === null) {
         return [{ status: Err, err: 'set canvas failed! fail to get context' }, []]
       }
@@ -109,7 +110,7 @@ export class Server {
 
   private handleBtnAction(): Handler<'btn-action'> {
     return (btns) => {
-      console.log(btns)
+      console.log('btns', btns)
       return [{ status: Ok, ret: undefined }, []]
     }
   }

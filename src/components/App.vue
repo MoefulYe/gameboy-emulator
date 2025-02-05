@@ -3,15 +3,15 @@
     <Suspense>
       <TopEntry />
       <template #fallback>
-        <EmulatorLoading />
+        <SplashScreen />
       </template>
     </Suspense>
   </Transition>
 </template>
 
 <script setup lang="ts">
-import EmulatorLoading from '@/components/EmulatorLoading.vue'
 import TopEntry from '@/components/TopEntry.vue'
+import SplashScreen from '@/components/SplashScreen.vue'
 </script>
 
 <style lang="scss" scoped>

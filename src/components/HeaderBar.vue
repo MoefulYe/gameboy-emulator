@@ -35,7 +35,7 @@
           </div>
         </template>
       </Menu>
-      <button class="i-pixelarticons:debug" v-tooltip="'Debug'" />
+      <button class="i-pixelarticons:debug hidden md:block" v-tooltip="'Debug'" />
       <button class="i-pixelarticons:more-horizontal" v-tooltip="'More'" />
     </span>
   </header>
@@ -46,7 +46,7 @@ import { useEmulator } from '@/emulator'
 import { State } from '@/emulator/constants'
 import { computed } from 'vue'
 import { Menu } from 'floating-vue'
-import MySlider from './MySlider.vue'
+import MySlider from './common/MySlider.vue'
 import { openFile } from '@/utils/fs'
 const emu = useEmulator()
 const { freqScale, volume } = emu.config
@@ -119,14 +119,9 @@ button {
 }
 
 .divider {
-  border-left: 2px solid rgba(#fff, 0.9);
+  border-left: 2px solid rgb(219, 234, 254);
   margin-block: 0.25rem;
   margin-inline: 0.5rem;
-  @media (min-width: 768px) {
-    & {
-      margin-inline: 1rem;
-    }
-  }
 }
 
 #header-bar {

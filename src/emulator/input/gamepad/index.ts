@@ -1,4 +1,4 @@
-import { Button as GameboyLayoutButton } from 'emulator/pkg/emulator'
+import { EmulatorButton as GameboyLayoutButton } from 'emulator/pkg/emulator'
 import type { Config } from '../../config'
 import { PhysicalGamepad } from './PhysicalGamepad'
 import { VirtualGamepad } from './VirutalGamepad'
@@ -12,7 +12,7 @@ export const enum GamepadMode {
   Virtual,
   Physical
 }
-export const DEFAULT_GAMEPAD_MODE = GamepadMode.Virtual
+export const DEFAULT_GAMEPAD_MODE = GamepadMode.Physical
 
 export class EmuGamepad {
   public readonly mode: ShallowRef<GamepadMode>

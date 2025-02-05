@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = EmulatorButton)]
 pub enum Button {
     Right = 0,
     Left = 1,
@@ -11,4 +11,3 @@ pub enum Button {
     Start = 6,
     Select = 7,
 }
-

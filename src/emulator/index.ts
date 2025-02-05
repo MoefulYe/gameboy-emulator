@@ -4,9 +4,11 @@ import Server from './worker/worker?worker'
 import { Err } from './constants'
 import { useConfig } from './config'
 import { useIndexedDB } from './persistance/indexeddb'
+import { GameboyLayoutButton as EmulatorButton } from './input/gamepad'
 
 export const emuKey = Symbol() as InjectionKey<Client>
 export const useEmulator = () => inject(emuKey)!
+export { EmulatorButton }
 
 export const createEmulator = async () => {
   const config = useConfig()

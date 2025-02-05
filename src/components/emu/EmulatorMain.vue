@@ -6,21 +6,24 @@
         <span class="diod"></span>
       </div>
       <ul class="buttons">
-        <li @pointerdown="emu.down(EmulatorButton.A)" @pointerup="emu.up(EmulatorButton.A)">
+        <li @pointerdown="gamepad.down(EmulatorButton.A)" @pointerup="gamepad.up(EmulatorButton.A)">
           <span>A</span>
         </li>
-        <li @pointerdown="emu.down(EmulatorButton.B)" @pointerup="emu.up(EmulatorButton.B)">
+        <li @pointerdown="gamepad.down(EmulatorButton.B)" @pointerup="gamepad.up(EmulatorButton.B)">
           <span>B</span>
         </li>
       </ul>
       <ul id="gamecontrol">
         <li
-          @pointerdown="emu.down(EmulatorButton.Select)"
-          @pointerup="emu.up(EmulatorButton.Select)"
+          @pointerdown="gamepad.down(EmulatorButton.Select)"
+          @pointerup="gamepad.up(EmulatorButton.Select)"
         >
           <span>SELECT</span>
         </li>
-        <li @pointerdown="emu.down(EmulatorButton.Start)" @pointerup="emu.up(EmulatorButton.Start)">
+        <li
+          @pointerdown="gamepad.down(EmulatorButton.Start)"
+          @pointerup="gamepad.up(EmulatorButton.Start)"
+        >
           <span>START</span>
         </li>
       </ul>
@@ -35,8 +38,8 @@
       <div class="stick">
         <ul
           class="left"
-          @pointerdown="emu.down(EmulatorButton.Left)"
-          @pointerup="emu.up(EmulatorButton.Left)"
+          @pointerdown="gamepad.down(EmulatorButton.Left)"
+          @pointerup="gamepad.up(EmulatorButton.Left)"
         >
           <li></li>
           <li></li>
@@ -46,8 +49,8 @@
         </ul>
         <ul
           class="right"
-          @pointerdown="emu.down(EmulatorButton.Right)"
-          @pointerup="emu.up(EmulatorButton.Right)"
+          @pointerdown="gamepad.down(EmulatorButton.Right)"
+          @pointerup="gamepad.up(EmulatorButton.Right)"
         >
           <li></li>
           <li></li>
@@ -60,8 +63,8 @@
         </ul>
         <ul
           class="top"
-          @pointerdown="emu.down(EmulatorButton.Up)"
-          @pointerup="emu.up(EmulatorButton.Up)"
+          @pointerdown="gamepad.down(EmulatorButton.Up)"
+          @pointerup="gamepad.up(EmulatorButton.Up)"
         >
           <li></li>
           <li></li>
@@ -71,8 +74,8 @@
         </ul>
         <ul
           class="bottom sm:size-12 md:me-4 lg:text-2xl"
-          @pointerdown="emu.down(EmulatorButton.Down)"
-          @pointerup="emu.up(EmulatorButton.Down)"
+          @pointerdown="gamepad.down(EmulatorButton.Down)"
+          @pointerup="gamepad.up(EmulatorButton.Down)"
         >
           <li></li>
           <li></li>
@@ -89,17 +92,21 @@
 import { EmulatorButton, useEmulator } from '@/emulator'
 import { useElementWidth } from '@/utils/hooks'
 import { useTemplateRef } from 'vue'
+const emu = useEmulator()
+
 const gameboy = useTemplateRef('gameboy')
+
 const container = useTemplateRef('container')
 const screen = useTemplateRef('screen')
+emu.useCanvas(screen)
 
-const emu = useEmulator()
-// emu.useCanvas(screen)
-useElementWidth(container, (w) => {
-  const s = (w * 0.9) / 265
-  const scale = s > 3 ? 3 : s
-  gameboy.value!.style.transform = `scale(${scale})`
-})
+// useElementWidth(container, (w) => {
+//   const s = (w * 0.9) / 265
+//   const scale = s > 3 ? 3 : s
+//   gameboy.value!.style.transform = `scale(${scale})`
+// })
+
+const gamepad = emu.gamepad.virtual
 </script>
 
 <style scoped lang="scss">

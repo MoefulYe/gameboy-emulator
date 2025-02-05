@@ -7,6 +7,7 @@ import { Err } from './constants'
 import type { DB } from './persistance/indexeddb'
 import type { Config } from './config'
 import { EmuGamepad, useGamepad, type GameboyLayoutButtons } from './input/gamepad'
+import { onMounted, type ShallowRef } from 'vue'
 
 type CreateOption = {
   config: Config
@@ -34,7 +35,7 @@ export class Client {
     this.listener = new Listener(listenPort)
     this.audioReceiver = new AudioReceiver(audioPort)
     this.server = server
-    this.gamepad = useGamepad(config, this.btnAction)
+    this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
   }
 
   private request<Event extends keyof ClientSideEvent>(
@@ -83,13 +84,20 @@ export class Client {
     }
   }
 
-  public async setCanvas(canvas: OffscreenCanvas) {
-    const res = await this.request('set-canvas', { canvas }, [canvas])
-    if (res.status === Err) {
-      const msg = res.err
-      console.log(msg)
-      return
-    }
+  public async useCanvas(elRef: Readonly<ShallowRef<HTMLCanvasElement | null>>) {
+    onMounted(async () => {
+      const el = elRef.value
+      if (el === null) {
+        return
+      }
+      const canvas = el.transferControlToOffscreen()
+      const res = await this.request('set-canvas', { canvas }, [canvas])
+      if (res.status === Err) {
+        const msg = res.err
+        console.log(msg)
+        return
+      }
+    })
   }
 
   public btnAction(buttons: Readonly<GameboyLayoutButtons>) {

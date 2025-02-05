@@ -1,11 +1,11 @@
 <template>
-  <div class="w-full h-full flex flex-col min-h-screen">
+  <div class="flex flex-col h-screen">
     <HeaderBar />
-    <!-- <div class="grow flex p-2 items-stretch">
+    <div class="mx-auto max-w-7xl w-5/6">
       <main class="grow">
         <EmulatorMain />
       </main>
-      <aside
+      <!-- <aside
         v-if="notMobile"
         v-resizable="ASIDE_RESIZABLE_CONFIG"
         class="bg-gray-50 w-1/2 border-2 border-gray-1 rounded-lg shadow-sm p-2 flex-(~ col) gap-2 font-mono"
@@ -16,8 +16,8 @@
         <div v-resizable="LOGOUTPUT_RESIZABLE_CONFIG" class="h-128 bg-white rounded-md border">
           <EmulatorLogOutput />
         </div>
-      </aside>
-    </div> -->
+      </aside> -->
+    </div>
   </div>
 </template>
 
@@ -26,7 +26,7 @@ import { provide } from 'vue'
 import { createEmulator, emuKey } from '@/emulator'
 // import { vResizable, type ResizableConfig } from 'vue-resizables'
 import HeaderBar from './HeaderBar.vue'
-import EmulatorMain from './EmulatorMain.vue'
+import EmulatorMain from './emu/EmulatorMain.vue'
 // import EmulatorDevTools from './EmulatorDevTools.vue'
 // import { useNotMobile } from '@/utils/hooks'
 // import EmulatorLogOutput from './EmulatorLogOutput.vue'
