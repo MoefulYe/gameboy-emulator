@@ -14,7 +14,6 @@ export class Config {
   public readonly freqScale = useLocalStorage(FREQ_SCALE, 1.0)
   public readonly gamepadMapping = useLocalStorage(GAMEPAD_MAPPING, DEFAULT_BUTTON_MAPPINGS)
   public readonly gamepadMode = useLocalStorage(GAMEPAD_MODE, DEFAULT_GAMEPAD_MODE)
-
   public readonly freqHz = computed(() => BASE_FREQ_HZ * this.freqScale.value)
 }
 

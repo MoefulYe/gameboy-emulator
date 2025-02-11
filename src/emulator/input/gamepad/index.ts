@@ -12,6 +12,7 @@ export const enum GamepadMode {
   Virtual,
   Physical
 }
+export const INPUT_MODE_STR = ['virtual', 'physical'] as const satisfies Record<GamepadMode, string>
 export const DEFAULT_GAMEPAD_MODE = GamepadMode.Physical
 
 export class EmuGamepad {

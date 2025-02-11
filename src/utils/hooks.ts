@@ -1,38 +1,33 @@
-import {
-  onMounted,
-  onUnmounted,
-  ref,
-  type Ref,
-  type ComputedRef,
-  computed,
-  type ShallowRef
-} from 'vue'
+import { onMounted, onUnmounted, type ShallowRef, shallowRef, ref } from 'vue'
 
-export const useWindowWidth = (): Ref<number> => {
-  const width = ref(window.innerWidth)
-
-  const update = () => (width.value = window.innerWidth)
-
-  onMounted(() => window.addEventListener('resize', update))
-  onUnmounted(() => window.removeEventListener('resize', update))
-
-  return width
-}
-
-export const useNotMobile = (): ComputedRef<boolean> => {
-  const MD = 768
-  const width = useWindowWidth()
-  return computed(() => width.value >= MD)
-}
-
-export const useElementWidth = (
-  el: Readonly<ShallowRef<HTMLElement | null>>,
-  callback: (width: number) => void
-) => {
-  const update = () => callback(el.value!.offsetWidth)
-  onMounted(() => {
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(el.value!)
+export const useElementSize = (el: Readonly<ShallowRef<HTMLElement | null>>) => {
+  const size = shallowRef({
+    w: 0,
+    h: 0
   })
+  onMounted(() => {
+    const _el = el.value!
+    const update = () => {
+      const { offsetWidth: w, offsetHeight: h } = _el
+      size.value = { w, h }
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(_el)
+    onUnmounted(() => observer.unobserve(_el))
+  })
+  return size
+}
+
+export const useElementClientHeight = (el: Readonly<ShallowRef<HTMLElement | null>>) => {
+  const size = ref(0)
+  onMounted(() => {
+    const _el = el.value!
+    const update = () => {
+      size.value = el.value!.clientHeight
+    }
+    const observer = new ResizeObserver(update)
+    observer.observe(_el)
+    onUnmounted(() => observer.unobserve(_el))
+  })
+  return size
 }

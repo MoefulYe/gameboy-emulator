@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="pt-4">
+  <main ref="container">
     <div id="gameboy" ref="gameboy">
       <div class="reflex">
         <canvas id="screen" ref="screen" width="160" height="144"></canvas>
@@ -85,34 +85,43 @@
         </ul>
       </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
 import { EmulatorButton, useEmulator } from '@/emulator'
-import { useElementWidth } from '@/utils/hooks'
-import { useTemplateRef } from 'vue'
-const emu = useEmulator()
+import { useElementSize } from '@/utils/hooks'
+import { useTemplateRef, watch } from 'vue'
 
+const screen = useTemplateRef('screen')
+const container = useTemplateRef('container')
 const gameboy = useTemplateRef('gameboy')
 
-const container = useTemplateRef('container')
-const screen = useTemplateRef('screen')
+const emu = useEmulator()
 emu.useCanvas(screen)
-
-// useElementWidth(container, (w) => {
-//   const s = (w * 0.9) / 265
-//   const scale = s > 3 ? 3 : s
-//   gameboy.value!.style.transform = `scale(${scale})`
-// })
-
 const gamepad = emu.gamepad.virtual
+
+const containerSize = useElementSize(container)
+watch(containerSize, ({ w, h }) => {
+  const scaleX = (w * 0.8) / 265
+  const scaleY = (h * 0.9) / 433
+  const scale = Math.min(2.5, scaleX, scaleY)
+  const offset = (h - scale * 433) / 3
+  const el = gameboy.value!
+  el.style.scale = `${scale}`
+  el.style.translate = `0px ${offset}px`
+})
 </script>
 
 <style scoped lang="scss">
 #gameboy {
-  margin-inline: auto;
   transform-origin: top center;
+  margin-inline: auto;
+  transition: {
+    property: all;
+    duration: 300ms;
+    timing-function: ease-out;
+  }
   user-select: none;
   position: relative;
   width: 265px;
@@ -130,7 +139,6 @@ const gamepad = emu.gamepad.virtual
     inset 0 3px 7px #919496,
     inset 0 4px 10px white;
   font-family: Arial, Helvetica, sans-serif;
-  transform-origin: top center;
 }
 
 .reflex {

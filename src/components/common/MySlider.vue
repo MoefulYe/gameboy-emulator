@@ -1,7 +1,8 @@
 <template>
   <input
     type="range"
-    :class="['--my-slider', customClass]"
+    class="--my-slider"
+    :class="customClass"
     :min="min"
     :max="max"
     :step="step"

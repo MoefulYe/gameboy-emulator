@@ -3,7 +3,7 @@ import { readonly, ref, shallowRef } from 'vue'
 import { State } from './constants'
 
 export class Stat {
-  public readonly romInfo = shallowRef<CartridgeInfo>()
+  public readonly rom = shallowRef<CartridgeInfo>()
   private readonly _cycles = ref(0)
   public get cycles() {
     return readonly(this._cycles)

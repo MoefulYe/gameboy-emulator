@@ -1,16 +1,18 @@
 import { Client } from './client'
 import { type InjectionKey, inject } from 'vue'
 import Server from './worker/worker?worker'
-import { Err } from './constants'
+import { Err, LogLevel } from './constants'
 import { useConfig } from './config'
 import { useIndexedDB } from './persistance/indexeddb'
 import { GameboyLayoutButton as EmulatorButton } from './input/gamepad'
+import log from './logger'
 
 export const emuKey = Symbol() as InjectionKey<Client>
 export const useEmulator = () => inject(emuKey)!
 export { EmulatorButton }
 
 export const createEmulator = async () => {
+  log(LogLevel.Info, 'initializing...')
   const config = useConfig()
   const worker = new Server()
   const audioChan = new MessageChannel()
@@ -25,7 +27,6 @@ export const createEmulator = async () => {
     requestPort: clientEventChan.port1,
     listenPort: serverEventChan.port1
   })
-  client.on('hello', () => console.log('hello'))
   worker.postMessage(
     {
       audioPort: audioChan.port2,
@@ -36,8 +37,9 @@ export const createEmulator = async () => {
   )
   const res = await client.ping('ping')
   if (res.status === Err) {
+    log(LogLevel.Error, 'initialization failed!')
     throw res.err
   }
-  console.log(res)
+  log(LogLevel.Info, 'initialization success!')
   return client
 }

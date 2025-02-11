@@ -2,6 +2,8 @@ import { type ShallowRef } from 'vue'
 import { GameboyLayoutButton, type GameboyLayoutButtons, type Callback } from '.'
 import { Config } from '@/emulator/config'
 import { every } from '@/utils/timer'
+import logger from '@/emulator/logger'
+import { LogLevel } from '@/emulator/constants'
 // https://w3c.github.io/gamepad/#remapping
 type StandardButton = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16
 
@@ -44,9 +46,15 @@ export class PhysicalGamepad {
   private gamepad?: Gamepad
   private mapping: ShallowRef<GamepadMapping>
   private connectListener(e: GamepadEvent) {
-    this.gamepad = e.gamepad
+    const gamepad = e.gamepad
+    const msg = `connect to gamepad \`${gamepad.id}\``
+    logger(LogLevel.Info, msg)
+    this.gamepad = gamepad
   }
-  private disconnectListener() {
+  private disconnectListener(e: GamepadEvent) {
+    const gamepad = e.gamepad
+    const msg = `disconnect to gamepad \`${gamepad.id}\``
+    logger(LogLevel.Info, msg)
     this.gamepad = undefined
   }
 
@@ -89,9 +97,8 @@ export class PhysicalGamepad {
     config: Config,
     private callback: Callback
   ) {
-    this.gamepad = undefined
     window.addEventListener('gamepadconnected', (e) => this.connectListener(e))
-    window.addEventListener('gamepaddisconnected', () => this.disconnectListener())
+    window.addEventListener('gamepaddisconnected', (e) => this.disconnectListener(e))
     this.mapping = config.gamepadMapping
     every(() => this.poll(), PhysicalGamepad.POLL_INTERVAL)
   }

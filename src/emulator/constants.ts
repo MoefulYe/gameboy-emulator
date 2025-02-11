@@ -22,12 +22,11 @@ export const enum State {
   Aborted
 }
 
-export const STATE_STR = {
-  [State.Aborted]: 'Aborted',
-  [State.Paused]: 'Paused',
-  [State.Running]: 'Running',
-  [State.Shutdown]: 'Shutdown'
-}
+export const STATE_STR = ['shutdown', 'running', 'paused', 'aborted'] as const satisfies Record<
+  State,
+  string
+>
+
 export const enum LogLevel {
   Off = 0,
   Error = 1,
@@ -35,6 +34,11 @@ export const enum LogLevel {
   Info = 3,
   Debug = 4
 }
+
+export const LOG_STR = ['Off', 'Error', 'Warn', 'Info', 'Debug'] as const satisfies Record<
+  LogLevel,
+  string
+>
 
 export const BASE_FREQ_HZ = 4_194_304
 export const VISUAL_FREQ_HZ = 59.7

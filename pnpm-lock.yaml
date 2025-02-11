@@ -29,11 +29,14 @@ importers:
       vue-resizables:
         specifier: ^0.7.1
         version: 0.7.1(vue@3.5.13(typescript@5.4.5))
+      vue3-virtual-scroll-list:
+        specifier: ^0.2.1
+        version: 0.2.1(vue@3.5.13(typescript@5.4.5))
     devDependencies:
-      '@iconify-json/pixelarticons':
+      '@iconify-json/ant-design':
         specifier: ^1.2.2
-        version: 1.2.2
-      '@iconify-json/solar':
+        version: 1.2.5
+      '@iconify-json/pixelarticons':
         specifier: ^1.2.2
         version: 1.2.2
       '@intlify/unplugin-vue-i18n':
@@ -444,11 +447,11 @@ packages:
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
     deprecated: Use @eslint/object-schema instead
 
+  '@iconify-json/ant-design@1.2.5':
+    resolution: {integrity: sha512-SYxhrx1AFq2MBcXk77AERYz2mPhLQes1F0vtvG64+dJZWyge9studXo7MiR8PPeLjRjZdWRrReRbxiwdRMf70Q==}
+
   '@iconify-json/pixelarticons@1.2.2':
     resolution: {integrity: sha512-BAAzqfT0XKUc/a8MgTxOH1aSm44InW9abUIQ1qu5dBntKlYuJP/dN0JfK4WEpUS78T/7HP8w9v1nSQjENLyjFg==}
-
-  '@iconify-json/solar@1.2.2':
-    resolution: {integrity: sha512-lcTb6DWL4HZObiY1W3fHfuxxuQHUc6CFHFeywKEx7Ry0k+dU6POZCMC7oVLr0F8vuf+KgaQ3oOoGO/yFzOwrNg==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -2303,6 +2306,11 @@ packages:
     peerDependencies:
       typescript: '>=5.0.0'
 
+  vue3-virtual-scroll-list@0.2.1:
+    resolution: {integrity: sha512-G4KxITUOy9D4ro15zOp40D6ogmMefzjIyMsBKqN3xGbV1P6dlKYMx+BBXCKm3Nr/6iipcUKM272Sh2AJRyWMyQ==}
+    peerDependencies:
+      vue: '>=3.0.0'
+
   vue@3.5.13:
     resolution: {integrity: sha512-wmeiSMxkZCSc+PM2w2VRsOYAZC8GdipNFRTsLSfodVqI9mbejKeXEGr8SckuLnrQPGe3oJN5c3K0vpoU9q/wCQ==}
     peerDependencies:
@@ -2738,11 +2746,11 @@ snapshots:
 
   '@humanwhocodes/object-schema@2.0.3': {}
 
-  '@iconify-json/pixelarticons@1.2.2':
+  '@iconify-json/ant-design@1.2.5':
     dependencies:
       '@iconify/types': 2.0.0
 
-  '@iconify-json/solar@1.2.2':
+  '@iconify-json/pixelarticons@1.2.2':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -4681,6 +4689,10 @@ snapshots:
       '@volar/typescript': 2.4.11
       '@vue/language-core': 2.2.0(typescript@5.4.5)
       typescript: 5.4.5
+
+  vue3-virtual-scroll-list@0.2.1(vue@3.5.13(typescript@5.4.5)):
+    dependencies:
+      vue: 3.5.13(typescript@5.4.5)
 
   vue@3.5.13(typescript@5.4.5):
     dependencies:

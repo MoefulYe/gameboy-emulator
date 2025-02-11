@@ -1,3 +1,4 @@
+import type { LogLevel } from '../constants'
 import type { GameboyLayoutButtons } from '../input/gamepad'
 
 export type ClientSideEvent = {
@@ -32,4 +33,8 @@ export type ClientSideEvent = {
 export type ServerSideEvent = {
   hello: {}
   abort: {}
+  log: {
+    level: LogLevel
+    msg: string
+  }
 }

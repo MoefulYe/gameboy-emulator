@@ -19,7 +19,7 @@
         <button :class="[speedIcon, 'size-full absolute inset-block-0']" @dblclick="resetSpeed" />
         <template #popper>
           <div class="p-2 md:p-4 flex content-center">
-            <label class="me-2 md:me-4 text-xs">
+            <label class="me-2 md:me-4 text-(xs coolgray-6)">
               {{ speedStr }}
             </label>
             <MySlider v-model="loggedSpeedScale" :min="-4" :max="4" :step="0.1" />
@@ -30,13 +30,23 @@
         <button :class="[volumeIcon, 'size-full absolute inset-block-0']" @dblclick="resetVolume" />
         <template #popper>
           <div class="p-2 md:p-4 flex content-center">
-            <label class="me-2 md:me-4 text-xs whitespace-pre"> {{ volumeStr }} </label>
+            <label class="me-2 md:me-4 text-(xs coolgray-6) whitespace-pre">
+              {{ volumeStr }}
+            </label>
             <MySlider v-model="volume" :min="0" :max="150" />
           </div>
         </template>
       </Menu>
-      <button class="i-pixelarticons:debug hidden md:block" v-tooltip="'Debug'" />
-      <button class="i-pixelarticons:more-horizontal" v-tooltip="'More'" />
+      <button
+        class="i-pixelarticons:debug hidden md:block"
+        v-tooltip="'Debug'"
+        @click="toggleSideBar"
+      />
+      <button
+        class="i-pixelarticons:more-horizontal"
+        v-tooltip="'More'"
+        @click.stop="popupShow = true"
+      />
     </span>
   </header>
 </template>
@@ -48,7 +58,11 @@ import { computed } from 'vue'
 import { Menu } from 'floating-vue'
 import MySlider from './common/MySlider.vue'
 import { openFile } from '@/utils/fs'
+import { useShowSideBar } from './SideBar'
+import { useShowPopup } from './Popup'
 const emu = useEmulator()
+const sideBarShow = useShowSideBar()
+const popupShow = useShowPopup()
 const { freqScale, volume } = emu.config
 const { state } = emu.stat
 
@@ -88,6 +102,8 @@ const resetVolume = () => {
   }
 }
 const volumeStr = computed(() => `${volume.value.toString().padStart(3)}%`)
+
+const toggleSideBar = () => (sideBarShow.value = !sideBarShow.value)
 
 const openRom = async () => {
   const file = await openFile()

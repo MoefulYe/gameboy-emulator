@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 import TopEntry from '@/components/TopEntry.vue'
-import SplashScreen from '@/components/SplashScreen.vue'
+import SplashScreen from '@/components/common/MySplashScreen.vue'
 </script>
 
 <style lang="scss" scoped>

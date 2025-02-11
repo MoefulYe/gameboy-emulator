@@ -21,11 +21,12 @@
     "pinia": "^2.3.0",
     "vue": "^3.5.13",
     "vue-i18n": "^9.14.2",
-    "vue-resizables": "^0.7.1"
+    "vue-resizables": "^0.7.1",
+    "vue3-virtual-scroll-list": "^0.2.1"
   },
   "devDependencies": {
+    "@iconify-json/ant-design": "^1.2.2",
     "@iconify-json/pixelarticons": "^1.2.2",
-    "@iconify-json/solar": "^1.2.2",
     "@intlify/unplugin-vue-i18n": "^4.0.0",
     "@rushstack/eslint-patch": "^1.10.4",
     "@tsconfig/node20": "^20.1.4",

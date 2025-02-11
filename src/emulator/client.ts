@@ -1,3 +1,4 @@
+import logger from './logger'
 import { Listener, type EventCallback } from '@/utils/event/server_side_event'
 import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
 import { AudioReceiver } from './output/audio'
@@ -36,6 +37,7 @@ export class Client {
     this.audioReceiver = new AudioReceiver(audioPort)
     this.server = server
     this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
+    this.useLog()
   }
 
   private request<Event extends keyof ClientSideEvent>(
@@ -46,21 +48,25 @@ export class Client {
     return this.requester.request(type, data, transfer)
   }
 
-  public on<Event extends keyof ServerSideEvent>(
+  private useLog() {
+    this.use('log', ({ level, msg }) => logger(level, msg))
+  }
+
+  private on<Event extends keyof ServerSideEvent>(
     event: Event,
     callback: EventCallback<ServerSideEvent[Event]>
   ) {
     this.listener.on(event, callback)
   }
 
-  public off<Event extends keyof ServerSideEvent>(
+  private off<Event extends keyof ServerSideEvent>(
     event: Event,
     callback: EventCallback<ServerSideEvent[Event]>
   ) {
     this.listener.off(event, callback)
   }
 
-  public use<Event extends keyof ServerSideEvent>(
+  private use<Event extends keyof ServerSideEvent>(
     event: Event,
     callback: EventCallback<ServerSideEvent[Event]>
   ) {
