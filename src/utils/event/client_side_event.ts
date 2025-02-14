@@ -58,8 +58,8 @@ export type Handlers<Events extends Record<EventTypes, _EventDef>> = {
 }
 
 export class Requester<Events extends Record<EventTypes, _EventDef>> {
-  waiters = new Map<number, (resp: RespData<Events, EventTypes>) => void>()
-  id = 0
+  private waiters = new Map<number, (resp: RespData<Events, EventTypes>) => void>()
+  private id = 0
   public constructor(private port: MessagePort) {
     port.onmessage = (e: MessageEvent<RespPacket<Events, EventTypes>>) => {
       const { id, data } = e.data

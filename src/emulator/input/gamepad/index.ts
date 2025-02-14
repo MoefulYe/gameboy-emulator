@@ -1,13 +1,22 @@
-import { EmulatorButton as GameboyLayoutButton } from 'emulator/pkg/emulator'
 import type { Config } from '../../config'
 import { PhysicalGamepad } from './PhysicalGamepad'
 import { VirtualGamepad } from './VirutalGamepad'
 import type { ShallowRef } from 'vue'
-export { GameboyLayoutButton }
+
+export const enum GameboyLayoutButton {
+  Right = 0,
+  Left = 1,
+  Up = 2,
+  Down = 3,
+  A = 4,
+  B = 5,
+  Start = 6,
+  Select = 7
+}
 export type GameboyLayoutButtons = {
   [Button in GameboyLayoutButton]: boolean
 }
-export type Callback = (buttons: Readonly<GameboyLayoutButtons>) => void
+export type Callback = (buttons: GameboyLayoutButtons) => void
 export const enum GamepadMode {
   Virtual,
   Physical

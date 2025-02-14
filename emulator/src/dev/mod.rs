@@ -3,9 +3,9 @@ use log::warn;
 use std::default::Default;
 
 mod bus;
-mod buttons;
 mod cartridge;
 mod cpu;
+mod gamepad;
 mod int_regs;
 mod rams;
 mod serial;
@@ -15,7 +15,6 @@ pub trait Resetable {
     fn reset(&mut self);
 }
 
-pub use bus::{BREAK, NO_BREAK};
 impl<T> Resetable for T
 where
     T: Default,
@@ -55,7 +54,5 @@ pub trait Tickable: BusDevice {
 }
 
 pub use bus::Bus;
-pub use buttons::Button;
 pub use cartridge::PluginCartResult;
 pub use cpu::CPU;
-

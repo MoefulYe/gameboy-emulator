@@ -1,7 +1,5 @@
-use log::info;
-
 use super::{CartridgeInfo, Rom};
-use crate::error::{BoxedEmulatorError, EmulatorError};
+use crate::error::EmulatorError;
 use core::mem::offset_of;
 
 const KB: usize = 1024;
@@ -47,7 +45,7 @@ impl Header {
     }
 
     //TODO The CGB and later models only check the top half of the logo (the first $18 bytes).
-    pub fn check_logo(&self) -> Option<BoxedEmulatorError> {
+    pub fn check_logo(&self) -> Option<EmulatorError> {
         const CORRECT_LOGO: &[u8; LOGO_SIZE] = &[
             0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C,
             0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E, 0xDC, 0xCC, 0x6E, 0xE6,
@@ -57,10 +55,10 @@ impl Header {
         if &self.nintendo_logo == CORRECT_LOGO {
             None
         } else {
-            Some(Box::new(EmulatorError::InvalidLogo {
+            Some(EmulatorError::InvalidLogo {
                 expected: CORRECT_LOGO,
                 actual: self.nintendo_logo,
-            }))
+            })
         }
     }
 
@@ -98,7 +96,7 @@ impl Header {
         }
     }
 
-    pub fn checksum(&self) -> Option<BoxedEmulatorError> {
+    pub fn checksum(&self) -> Option<EmulatorError> {
         const OFFSET_OF_TITLE: usize = offset_of!(Header, title);
         const OFFSET_OF_CHECKSUM: usize = offset_of!(Header, checksum);
         let to_check = unsafe {
@@ -113,10 +111,10 @@ impl Header {
         if sum == self.checksum {
             None
         } else {
-            Some(Box::new(EmulatorError::InvalidChecksum {
+            Some(EmulatorError::InvalidChecksum {
                 expected: sum,
                 actual: self.checksum,
-            }))
+            })
         }
     }
 
@@ -172,9 +170,8 @@ impl Header {
         self.version
     }
 
-    /// 在日志中打印这张卡带的信息
     pub fn info(&self) -> CartridgeInfo {
-        let title = self.title().to_string().into_boxed_str();
+        let title = self.title().to_string();
         let cart_type = self.cart_typename();
         let rom_size = self.rom_size();
         let ram_size = self.ram_size();

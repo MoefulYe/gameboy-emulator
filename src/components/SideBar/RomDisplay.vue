@@ -12,7 +12,7 @@
         <label>rom-size: </label> <span>{{ rom.romSize }}</span>
       </li>
       <li>
-        <label>ram-size: </label> <span>{{ rom.ramSize }}</span>
+        <label>ram-size: </label> <span>{{ rom.ramSize ?? 'None' }}</span>
       </li>
       <li>
         <label>dest: </label> <span>{{ rom.dest }}</span>

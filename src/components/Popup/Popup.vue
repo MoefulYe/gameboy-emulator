@@ -8,21 +8,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, useTemplateRef } from 'vue'
-
-type Emits = {
-  close: []
-}
+import { useWindowListener } from '@/utils/hooks'
+import { useTemplateRef } from 'vue'
 const emit = defineEmits<Emits>()
 const content = useTemplateRef('content')
-const onclick = (e: MouseEvent) => {
+useWindowListener('click', (e) => {
   const ok = content.value!.contains(e.target as any)
   if (!ok) {
     emit('close')
   }
+})
+</script>
+
+<script lang="ts">
+type Emits = {
+  close: []
 }
-onMounted(() => window.addEventListener('click', onclick))
-onUnmounted(() => window.removeEventListener('click', onclick))
 </script>
 
 <style lang="scss" scoped>

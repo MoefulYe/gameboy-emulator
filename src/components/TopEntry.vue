@@ -1,11 +1,11 @@
 <template>
-  <div class="flex flex-col h-screen bg-coolgray-1">
+  <div class="min-h-screen max-h-screen bg-coolgray-1">
     <HeaderBar />
-    <div class="flex grow">
-      <EmulatorMain class="inline-block grow" />
+    <div class="content">
+      <GameBoy class="inline-block grow" />
       <Transition name="sidebar">
         <SideBar
-          v-if="sidebarShow"
+          v-show="sidebarShow"
           v-resizable="ASIDE_RESIZABLE_CONFIG"
           ref="sidebar"
           class="inline-block w-1/3"
@@ -14,7 +14,7 @@
     </div>
     <Teleport to="body">
       <Transition name="popup">
-        <Popup v-if="popupShow" @close="popupShow = false" />
+        <Popup v-show="popupShow" @close="popupShow = false" />
       </Transition>
     </Teleport>
   </div>
@@ -26,16 +26,28 @@ import { provide, ref } from 'vue'
 import { createEmulator, emuKey } from '@/emulator'
 import { vResizable, type ResizableConfig } from 'vue-resizables'
 import HeaderBar from './HeaderBar.vue'
-import EmulatorMain from './EmulatorMain.vue'
+import GameBoy from './GameBoy.vue'
 import SideBar, { sideBarShowKey } from './SideBar'
 import Popup, { popupShowKey } from './Popup'
+import { useDocumentListener } from '@/utils/hooks'
 
-const emu = await createEmulator()
 const sidebarShow = ref(true)
 const popupShow = ref(false)
-provide(emuKey, emu)
 provide(sideBarShowKey, sidebarShow)
 provide(popupShowKey, popupShow)
+useDocumentListener('keyup', (e) => {
+  e.stopImmediatePropagation()
+  switch (e.key) {
+    case 'a':
+      popupShow.value = !popupShow.value
+      break
+    case 's':
+      sidebarShow.value = !sidebarShow.value
+      break
+  }
+})
+const emu = await createEmulator()
+provide(emuKey, emu)
 </script>
 
 <script lang="ts">
@@ -49,6 +61,14 @@ const ASIDE_RESIZABLE_CONFIG = {
 </script>
 
 <style lang="scss" scoped>
+.content {
+  display: flex;
+  height: calc(100vh - 47px);
+  @media (min-width: 640px) {
+    height: calc(100vh - 65px);
+  }
+}
+
 .sidebar-enter-from,
 .sidebar-leave-to {
   transform: translateX(100%);
@@ -60,10 +80,10 @@ const ASIDE_RESIZABLE_CONFIG = {
 }
 
 .popup-enter-active {
-  animation: fade-in 300ms;
+  animation: fade-in 50ms;
 }
 .popup-leave-active {
-  animation: fade-in 300ms reverse;
+  animation: fade-in 50ms reverse;
 }
 
 @keyframes fade-in {

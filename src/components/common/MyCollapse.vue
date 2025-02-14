@@ -15,9 +15,9 @@ const toggle = () => (dropdown.value = !dropdown.value)
 </script>
 
 <template>
-  <div class="dropdown-set-group b-(1 coolgray-75) rounded-md">
+  <div class="dropdown-set-group b-(1 coolgray-2) rounded-md">
     <div class="dropdown-set-btn flex justify-between items-center" @click="toggle">
-      <div class="text-lg font-semibold text-coolgray-6">{{ title }}</div>
+      <div>{{ title }}</div>
       <div class="flex items-center">
         <span
           class="i-ant-design:down-outlined expand-more animation size-6 text-coolgray-5"
@@ -26,7 +26,7 @@ const toggle = () => (dropdown.value = !dropdown.value)
       </div>
     </div>
     <div
-      class="dropdown-set-content-area animation border-t-1 b-coolgray-75"
+      class="dropdown-set-content-area animation border-t-1 b-coolgray-2"
       :class="{ active: dropdown }"
       :style="{ 'max-height': !dropdown ? 0 : `${contentHeight}px` }"
     >

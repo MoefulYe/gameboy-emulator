@@ -40,6 +40,6 @@ export const createEmulator = async () => {
     log(LogLevel.Error, 'initialization failed!')
     throw res.err
   }
-  log(LogLevel.Info, 'initialization success!')
+  log(LogLevel.Info, res.ret)
   return client
 }

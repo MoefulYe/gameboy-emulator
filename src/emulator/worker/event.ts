@@ -1,3 +1,4 @@
+import type { CartridgeInfo } from 'emulator/pkg/emulator'
 import type { LogLevel } from '../constants'
 import type { GameboyLayoutButtons } from '../input/gamepad'
 
@@ -6,7 +7,7 @@ export type ClientSideEvent = {
     args: {
       rom: Uint8Array
     }
-    ret: undefined
+    ret: CartridgeInfo
     err: string
   }
   ping: {
@@ -28,13 +29,24 @@ export type ClientSideEvent = {
     ret: undefined
     err: undefined
   }
+  'set-fscale': {
+    args: number
+    ret: undefined
+    err: undefined
+  }
+  start: {
+    args: {}
+    ret: undefined
+    err: string
+  }
 }
 
 export type ServerSideEvent = {
-  hello: {}
-  abort: {}
   log: {
     level: LogLevel
     msg: string
+  }
+  serial: {
+    byte: number
   }
 }

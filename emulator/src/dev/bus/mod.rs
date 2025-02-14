@@ -1,4 +1,3 @@
-use self::breakpoint::BreakPoints;
 use super::{
     cartridge::{Cartridge, PluginCartResult},
     int_regs::{
@@ -13,12 +12,10 @@ use super::{
     BusDevice, Tickable,
 };
 use crate::{
-    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, Result},
+    error::{EmuErr, EmuResult, EmulatorError},
     types::{Addr, Word},
 };
 use log::warn;
-
-mod breakpoint;
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -43,7 +40,6 @@ pub struct Bus {
     int_flag_reg: InterruptFlagRegister,
     hram: HighRam,
     int_mask_reg: InterruptMaskRegsiter,
-    breakpoints: BreakPoints,
 }
 
 impl Bus {
@@ -58,12 +54,10 @@ impl Bus {
             int_flag_reg: InterruptFlagRegister::new(),
             hram: HighRam::new(),
             int_mask_reg: InterruptMaskRegsiter::new(),
-            breakpoints: BreakPoints::new(),
         }
     }
 
-    pub fn read(&self, addr: Addr) -> Result<(Word, bool)> {
-        let brk = self.breakpoints.break_memread(addr);
+    pub fn read(&self, addr: Addr) -> EmuResult<Word> {
         let word = match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
@@ -71,7 +65,7 @@ impl Bus {
                     c.read(addr)
                 } else {
                     warn!("no cartridge is plugged in! illegal read at address: 0x:{addr:04X}");
-                    return Err(Box::new(EmulatorError::NoCartridge));
+                    return EmuErr(EmulatorError::NoCartridge);
                 }
             }
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.read(addr),
@@ -89,11 +83,10 @@ impl Bus {
                 0xFF
             }
         };
-        Ok((word, brk))
+        Ok(word)
     }
 
-    pub fn write(&mut self, addr: Addr, data: Word) -> Result<bool> {
-        let brk = self.breakpoints.break_memwrite(addr);
+    pub fn write(&mut self, addr: Addr, data: Word) -> EmuResult<()> {
         match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
@@ -101,7 +94,7 @@ impl Bus {
                     c.write(addr, data)
                 } else {
                     warn!("no cartridge is plugged in! illegal write at address: 0x:{addr:04X}");
-                    return Err(Box::new(EmulatorError::NoCartridge));
+                    return EmuErr(EmulatorError::NoCartridge);
                 }
             }
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.write(addr, data),
@@ -116,26 +109,22 @@ impl Bus {
             INTERRUPT_MASK_REGISTER_ADDR => self.int_mask_reg.write(data),
             _ => warn!("illegal write at address: 0x{addr:04X}"),
         };
-        Ok(brk)
+        Ok(())
     }
 
     pub fn reset(&mut self) {
         todo!()
     }
 
-    pub fn tick(&mut self) -> bool {
-        let mut brk = NO_BREAK;
+    pub fn tick(&mut self) {
         let timer_int = self.timer.tick().int_req();
         if timer_int {
             self.int_flag_reg.set_timer_int();
-            brk |= self.breakpoints.break_timer();
         }
         let serial_int = self.serial.tick().int_req();
         if serial_int {
             self.int_flag_reg.set_serial_int();
-            brk |= self.breakpoints.break_serial();
         }
-        brk
     }
     /// 是否有中断事件等待处理
     pub fn has_int(&self) -> bool {
@@ -214,5 +203,3 @@ pub const WRAM_HIGH_BOUND_INCLUDED: Addr = WRAM_HIGH_BOUND - 1;
 pub const OAM_HIGH_BOUND_INCLUDED: Addr = OAM_HIGH_BOUND - 1;
 pub const IO_HIGH_BOUND_INCLUDED: Addr = IO_HIGH_BOUND - 1;
 pub const HRAM_HIGH_BOUND_INCLUDED: Addr = HRAM_HIGH_BOUND - 1;
-
-pub use breakpoint::{Break, BREAK, NO_BREAK};

@@ -1,6 +1,6 @@
 use crate::{
     types::{Addr, DWord, Word},
-    utils::bit_proxy::BitProxy,
+    utils::bits::BitProxy,
 };
 use std::default::Default;
 

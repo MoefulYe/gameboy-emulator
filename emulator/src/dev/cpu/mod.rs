@@ -1,11 +1,10 @@
-use super::bus::NO_BREAK;
 use crate::{
     dev::{
         bus::Bus,
         cpu::{ime::InterruptMasterEnableRegsiter, inst::Inst, regs::Regs},
     },
-    error::Result,
-    trace::CPUState,
+    dump::CPUStateDump,
+    error::EmuResult,
     types::{Addr, ClockCycle, OpCode, Word},
 };
 use std::ops::{Deref, DerefMut};
@@ -44,40 +43,40 @@ impl CPU {
         }
     }
 
-    /// 返回花费的时钟周期和是否触发断点
-    pub fn tick(&mut self, bus: &mut Bus) -> Result<(ClockCycle, bool)> {
+    /// 返回花费的时钟周期
+    pub fn tick(&mut self, bus: &mut Bus) -> EmuResult<ClockCycle> {
         if !self.halted {
             if let Some(int_entry) = bus.int_entry() {
                 self.handle_int(bus, int_entry)
             } else {
-                let (opcode, brk0) = self.fetch_opcode(bus)?;
+                let opcode = self.fetch_opcode(bus)?;
                 self.pc_inc();
                 let inst = Self::decode_inst(opcode);
-                let (cycles, brk1) = self.exec_inst(bus, inst)?;
+                let cycles = self.exec_inst(bus, inst)?;
                 self.ime.countdown();
-                Ok((cycles, brk0 || brk1))
+                Ok(cycles)
             }
         } else {
             if bus.has_int() {
                 self.halted = false;
             }
             self.ime.countdown();
-            Ok((4, NO_BREAK))
+            Ok(4)
         }
     }
 
-    pub fn trace(&self, bus: &mut Bus, pc: Addr) -> Box<CPUState> {
+    pub fn dump(&self, bus: &mut Bus, pc: Addr) -> CPUStateDump {
         let inst = bus
             .read(pc)
-            .map(|(op, _)| Self::mnemonic(op))
+            .map(|op| Self::mnemonic(op))
             .unwrap_or("UNKNOWN");
         let pc = self.pc();
         let three_words_at_pc = [
-            bus.read(pc).map(|(w, _)| w).unwrap_or(0),
-            bus.read(pc + 1).map(|(w, _)| w).unwrap_or(0),
-            bus.read(pc + 2).map(|(w, _)| w).unwrap_or(0),
+            bus.read(pc).unwrap_or(0),
+            bus.read(pc + 1).unwrap_or(0),
+            bus.read(pc + 2).unwrap_or(0),
         ];
-        Box::new(CPUState {
+        CPUStateDump {
             ime: self.ime.enabled(),
             halted: self.halted,
             a: self.a(),
@@ -100,25 +99,25 @@ impl CPU {
             carry_flag: self.carry_flag(),
             inst,
             three_words_at_pc,
-        })
+        }
     }
 
     pub fn reset(&mut self) {
         todo!()
     }
 
-    fn handle_int(&mut self, bus: &mut Bus, entry: Addr) -> Result<(ClockCycle, bool)> {
+    fn handle_int(&mut self, bus: &mut Bus, entry: Addr) -> EmuResult<ClockCycle> {
         self.ime.disable();
-        let brk = self.push_dword(bus, self.pc())?;
+        self.push_dword(bus, self.pc())?;
         self.jp(entry);
-        Ok((20, brk))
+        Ok(20)
     }
 
-    fn fetch_opcode(&self, bus: &Bus) -> Result<(OpCode, bool)> {
+    fn fetch_opcode(&self, bus: &Bus) -> EmuResult<OpCode> {
         bus.read(self.pc())
     }
 
-    fn exec_inst(&mut self, bus: &mut Bus, inst: Inst) -> Result<(ClockCycle, bool)> {
+    fn exec_inst(&mut self, bus: &mut Bus, inst: Inst) -> EmuResult<ClockCycle> {
         inst(self, bus)
     }
 

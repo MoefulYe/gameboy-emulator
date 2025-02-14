@@ -1,8 +1,8 @@
 use crate::{
-    dev::{Bus, Button, PluginCartResult, CPU, NO_BREAK},
-    error::{BoxedEmulatorError, BoxedEmulatorErrorInfo, EmulatorError, Result},
+    dev::{Bus, PluginCartResult, CPU},
+    dump::CPUStateDump,
+    error::{EmuResult, EmulatorError},
     log,
-    trace::CPUState,
     types::ClockCycle,
 };
 use serde::Serialize;
@@ -14,7 +14,7 @@ use web_sys::OffscreenCanvasRenderingContext2d;
 pub struct Emulator {
     cpu: CPU,
     bus: Bus,
-    stopped: bool,
+    aborted: bool,
 }
 
 #[wasm_bindgen(js_class = WasmEmulator)]
@@ -24,7 +24,7 @@ impl Emulator {
         Self {
             cpu: CPU::new(),
             bus: Bus::new(),
-            stopped: false,
+            aborted: false,
         }
     }
 
@@ -36,20 +36,23 @@ impl Emulator {
     #[wasm_bindgen(js_name = step)]
     pub fn step(&mut self) -> EmulatorStepResult {
         use EmulatorStepResult::*;
-        if self.stopped {
-            let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
-            return Abort { info };
+        if self.aborted {
+            let msg = self.handle_err(EmulatorError::RunWhenAborting);
+            return Abort { msg };
         }
         let pc = self.cpu.pc();
         let res = self.tick();
         match res {
-            Result::Ok((clock, _)) => {
-                let cpu = self.cpu.trace(&mut self.bus, pc);
-                Ok { cycles: clock, cpu }
+            EmuResult::Ok(clock) => {
+                let cpu_state = self.cpu.dump(&mut self.bus, pc);
+                Ok {
+                    cycles: clock,
+                    cpu_state,
+                }
             }
-            Result::Err(err) => {
-                let info = self.handle_err(err);
-                Abort { info }
+            EmuResult::Err(err) => {
+                let msg = self.handle_err(err);
+                Abort { msg }
             }
         }
     }
@@ -58,34 +61,27 @@ impl Emulator {
     pub fn reset(&mut self) {
         self.cpu.reset();
         self.bus.reset();
-        self.stopped = false
+        self.aborted = false
     }
 
     #[wasm_bindgen(js_name = update)]
     pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
         use EmulatorUpdateResult::*;
-        if self.stopped {
-            let info = self.handle_err(Box::new(EmulatorError::RunWhenAborting));
-            return Abort { info, cycles: 0 };
+        if self.aborted {
+            let msg = self.handle_err(EmulatorError::RunWhenAborting);
+            return Abort { msg, cycles: 0 };
         }
         let mut clocks = 0;
         while clocks < cycles {
-            let pc = self.cpu.pc();
             let res = self.tick();
             match res {
-                Result::Ok((cycles, brk)) => {
+                EmuResult::Ok(cycles) => {
                     clocks += cycles;
-                    if brk {
-                        return Break {
-                            cycles: clocks,
-                            cpu: self.cpu.trace(&mut self.bus, pc),
-                        };
-                    }
                 }
-                Result::Err(err) => {
-                    let info = self.handle_err(err);
+                EmuResult::Err(err) => {
+                    let msg = self.handle_err(err);
                     return Abort {
-                        info,
+                        msg,
                         cycles: clocks,
                     };
                 }
@@ -100,39 +96,37 @@ impl Emulator {
     }
 
     #[wasm_bindgen(js_name = setCanvas)]
-    pub fn set_canvas(&mut self, canvas_ctx: OffscreenCanvasRenderingContext2d) {
-    }
+    pub fn set_canvas(&mut self, canvas_ctx: OffscreenCanvasRenderingContext2d) {}
 
     #[wasm_bindgen(js_name = plugoutCart)]
     pub fn plugout_cart(&mut self) {
         self.bus.plugout_cart()
     }
 
-    fn handle_err(&mut self, err: BoxedEmulatorError) -> BoxedEmulatorErrorInfo {
-        self.stopped = true;
-        err.info()
+    #[wasm_bindgen(js_name = setButtons)]
+    pub fn set_buttons(&mut self, btns: u8) {}
+
+    fn handle_err(&mut self, err: impl AsRef<EmulatorError>) -> String {
+        self.aborted = true;
+        err.as_ref().msg()
     }
 
-    fn tick_devices(&mut self, cycles: ClockCycle) -> bool {
-        let mut brk = NO_BREAK;
+    fn tick_devices(&mut self, cycles: ClockCycle) {
         for _ in 0..cycles {
-            brk |= self.bus.tick();
+            self.bus.tick();
         }
-        brk
     }
 
-    fn tick(&mut self) -> Result<(ClockCycle, bool)> {
-        let (cycles, brk0) = self.cpu.tick(&mut self.bus)?;
-        let brk1 = self.tick_devices(cycles);
-        Ok((cycles, brk0 || brk1))
+    fn tick(&mut self) -> EmuResult<ClockCycle> {
+        let cycles = self.cpu.tick(&mut self.bus)?;
+        self.tick_devices(cycles);
+        Ok(cycles)
     }
 }
 
 // Function `__wbg_instanceof_JsType_24d65669860e1289` should have snake_case name, e.g. `__wbg_instanceof_js_type_24d65669860e1289`
 #[allow(non_snake_case)]
 mod tsify_derive {
-    use crate::error::EmulatorErrorInfo;
-
     use super::*;
     #[derive(Serialize, Tsify)]
     #[tsify(into_wasm_abi)]
@@ -143,13 +137,10 @@ mod tsify_derive {
         #[serde(rename = "break")]
         Break {
             cycles: ClockCycle,
-            cpu: Box<CPUState>,
+            cpu_state: Box<CPUStateDump>,
         },
         #[serde(rename = "abort")]
-        Abort {
-            cycles: ClockCycle,
-            info: Box<EmulatorErrorInfo>,
-        },
+        Abort { cycles: ClockCycle, msg: String },
     }
 
     #[derive(Serialize, Tsify)]
@@ -159,10 +150,10 @@ mod tsify_derive {
         #[serde(rename = "ok")]
         Ok {
             cycles: ClockCycle,
-            cpu: Box<CPUState>,
+            cpu_state: CPUStateDump,
         },
         #[serde(rename = "abort")]
-        Abort { info: Box<EmulatorErrorInfo> },
+        Abort { msg: String },
     }
 }
 

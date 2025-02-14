@@ -5,6 +5,7 @@ import { every } from '@/utils/timer'
 import { Responser } from '@/utils/event/client_side_event'
 import { Emitter } from '@/utils/event/server_side_event'
 import type { ClientSideEvent, ServerSideEvent } from './event'
+import type { GameboyLayoutButton } from '../input/gamepad'
 
 export type CreateOption = {
   audioPort: MessagePort
@@ -15,7 +16,6 @@ type ConstructorOption = CreateOption & { core: WasmEmulator }
 type Handler<Event extends keyof ClientSideEvent> =
   import('@/utils/event/client_side_event').Handler<ClientSideEvent, Event>
 type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEvent>
-
 export class Server {
   core: WasmEmulator
   audioPort: MessagePort
@@ -54,13 +54,6 @@ export class Server {
   }
 
   public static async create({ audioPort, emitPort, responsePort }: CreateOption) {
-    //注册回调
-    self.emulatorLogCallback = (level: LogLevel, msg: string) => {
-      console.log(level, msg)
-    }
-    self.emulatorSerialCallback = (byte: number) => {
-      console.log('serial', byte)
-    }
     await wasmInit()
     const core = new WasmEmulator()
     const worker = new Server({
@@ -69,6 +62,14 @@ export class Server {
       responsePort,
       emitPort
     })
+    const emitter = worker.emitter
+    //注册回调
+    self.emulatorLogCallback = (level: LogLevel, msg: string) => {
+      emitter.emit('log', { level, msg })
+    }
+    self.emulatorSerialCallback = (byte: number) => {
+      emitter.emit('serial', { byte })
+    }
     worker.run()
     return worker
   }
@@ -78,20 +79,27 @@ export class Server {
       'load-rom': this.handleLoadRom(),
       ping: this.handlePing(),
       'set-canvas': this.handleSetCanvas(),
-      'btn-action': this.handleBtnAction()
+      'btn-action': this.handleBtnAction(),
+      'set-fscale': this.handleSetFScale(),
+      start: this.handleStart()
     }
   }
 
   private handleLoadRom(): Handler<'load-rom'> {
     return ({ rom }) => {
-      console.log('loadrom', rom)
-      return [{ status: Ok, ret: undefined }, []]
+      const res = this.core.pluginCart(rom)
+      if (res.status === 'ok') {
+        const { info } = res
+        return [{ status: Ok, ret: info }, []]
+      } else {
+        const { msg } = res
+        return [{ status: Err, err: msg }, []]
+      }
     }
   }
 
   private handlePing(): Handler<'ping'> {
-    return ({ msg }) => {
-      console.log(msg)
+    return () => {
       return [{ status: Ok, ret: 'Emulator Copyright (C) 2024 Moefulye' }, []]
     }
   }
@@ -110,7 +118,36 @@ export class Server {
 
   private handleBtnAction(): Handler<'btn-action'> {
     return (btns) => {
-      console.log('btns', btns)
+      let u8 = 0
+      for (let i = 0; i < 8; i++) {
+        const pressed = btns[i as GameboyLayoutButton] ? 1 : 0
+        u8 |= pressed << i
+      }
+      this.core.setButtons(u8)
+      return [{ status: Ok, ret: undefined }, []]
+    }
+  }
+
+  private handleSetFScale(): Handler<'set-fscale'> {
+    return (scale) => {
+      this.freqScale = scale
+      return [{ status: Ok, ret: undefined }, []]
+    }
+  }
+
+  private handleStart(): Handler<'start'> {
+    return () => {
+      if (this.state === State.Aborted) {
+        return [{ status: Err, err: 'cannot start when aborted! Restart First!' }, []]
+      }
+      if (this.state === State.Running) {
+        this.emitter.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'emulator has been starting...'
+        })
+        return [{ status: Ok, ret: undefined }, []]
+      }
+      this.state = State.Running
       return [{ status: Ok, ret: undefined }, []]
     }
   }

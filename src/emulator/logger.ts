@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { LogLevel } from './constants'
-import { useLocalStorage, type LocalStorageKey } from './persistance/localstorage'
+import { useLocalStorage, type LocalStorageKey } from '../utils/localstorage'
 import { every } from '@/utils/timer'
 
 export type Log = {

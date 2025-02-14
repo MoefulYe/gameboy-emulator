@@ -32,12 +32,12 @@ impl Cartridge {
 
     pub fn check_and_get_info(&self) -> PluginCartResult {
         let header = self.header();
-        if let Some(info) = header
+        if let Some(msg) = header
             .check_logo()
             .or_else(|| header.checksum())
-            .map(|e| e.info())
+            .map(|e| e.msg())
         {
-            PluginCartResult::Err { info }
+            PluginCartResult::Err { msg }
         } else {
             let info = header.info();
             PluginCartResult::Ok { info }
@@ -72,13 +72,11 @@ mod tsify_derive {
     use serde::Serialize;
     use tsify::Tsify;
 
-    use crate::error::EmulatorErrorInfo;
-
     #[derive(Serialize, Tsify, Debug)]
     #[tsify(into_wasm_abi)]
     #[serde(rename_all = "camelCase")]
     pub struct CartridgeInfo {
-        pub title: Box<str>,
+        pub title: String,
         pub cart_type: &'static str,
         pub rom_size: usize,
         pub ram_size: Option<usize>,
@@ -94,7 +92,7 @@ mod tsify_derive {
         #[serde(rename = "ok")]
         Ok { info: CartridgeInfo },
         #[serde(rename = "error")]
-        Err { info: Box<EmulatorErrorInfo> },
+        Err { msg: String },
     }
 }
 

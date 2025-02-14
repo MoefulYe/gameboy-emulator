@@ -1,4 +1,4 @@
-import { useLocalStorage, type LocalStorageKey } from './persistance/localstorage'
+import { useLocalStorage, type LocalStorageKey } from '../utils/localstorage'
 import { computed } from 'vue'
 import { BASE_FREQ_HZ } from './constants'
 import { DEFAULT_BUTTON_MAPPINGS, type GamepadMapping } from './input/gamepad/PhysicalGamepad'

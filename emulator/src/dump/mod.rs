@@ -7,7 +7,7 @@ mod allow_non_snake_case {
     use super::*;
     #[derive(Serialize, Tsify)]
     #[serde(rename_all = "camelCase")]
-    pub struct CPUState {
+    pub struct CPUStateDump {
         pub ime: bool,
         pub halted: bool,
         pub a: Word,
@@ -33,4 +33,4 @@ mod allow_non_snake_case {
     }
 }
 
-pub use allow_non_snake_case::CPUState;
+pub use allow_non_snake_case::CPUStateDump;

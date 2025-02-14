@@ -6,23 +6,23 @@
         <span class="diod"></span>
       </div>
       <ul class="buttons">
-        <li @pointerdown="gamepad.down(EmulatorButton.A)" @pointerup="gamepad.up(EmulatorButton.A)">
+        <li @mousedown="gamepad.down(EmulatorButton.A)" @mouseup="gamepad.up(EmulatorButton.A)">
           <span>A</span>
         </li>
-        <li @pointerdown="gamepad.down(EmulatorButton.B)" @pointerup="gamepad.up(EmulatorButton.B)">
+        <li @mousedown="gamepad.down(EmulatorButton.B)" @mouseup="gamepad.up(EmulatorButton.B)">
           <span>B</span>
         </li>
       </ul>
       <ul id="gamecontrol">
         <li
-          @pointerdown="gamepad.down(EmulatorButton.Select)"
-          @pointerup="gamepad.up(EmulatorButton.Select)"
+          @mousedown="gamepad.down(EmulatorButton.Select)"
+          @mouseup="gamepad.up(EmulatorButton.Select)"
         >
           <span>SELECT</span>
         </li>
         <li
-          @pointerdown="gamepad.down(EmulatorButton.Start)"
-          @pointerup="gamepad.up(EmulatorButton.Start)"
+          @mousedown="gamepad.down(EmulatorButton.Start)"
+          @mouseup="gamepad.up(EmulatorButton.Start)"
         >
           <span>START</span>
         </li>
@@ -38,8 +38,8 @@
       <div class="stick">
         <ul
           class="left"
-          @pointerdown="gamepad.down(EmulatorButton.Left)"
-          @pointerup="gamepad.up(EmulatorButton.Left)"
+          @mousedown="gamepad.down(EmulatorButton.Left)"
+          @mouseup="gamepad.up(EmulatorButton.Left)"
         >
           <li></li>
           <li></li>
@@ -49,8 +49,8 @@
         </ul>
         <ul
           class="right"
-          @pointerdown="gamepad.down(EmulatorButton.Right)"
-          @pointerup="gamepad.up(EmulatorButton.Right)"
+          @mousedown="gamepad.down(EmulatorButton.Right)"
+          @mouseup="gamepad.up(EmulatorButton.Right)"
         >
           <li></li>
           <li></li>
@@ -63,8 +63,8 @@
         </ul>
         <ul
           class="top"
-          @pointerdown="gamepad.down(EmulatorButton.Up)"
-          @pointerup="gamepad.up(EmulatorButton.Up)"
+          @mousedown="gamepad.down(EmulatorButton.Up)"
+          @mouseup="gamepad.up(EmulatorButton.Up)"
         >
           <li></li>
           <li></li>
@@ -74,8 +74,8 @@
         </ul>
         <ul
           class="bottom sm:size-12 md:me-4 lg:text-2xl"
-          @pointerdown="gamepad.down(EmulatorButton.Down)"
-          @pointerup="gamepad.up(EmulatorButton.Down)"
+          @mousedown="gamepad.down(EmulatorButton.Down)"
+          @mouseup="gamepad.up(EmulatorButton.Down)"
         >
           <li></li>
           <li></li>
@@ -90,6 +90,7 @@
 
 <script setup lang="ts">
 import { EmulatorButton, useEmulator } from '@/emulator'
+import { debounce } from '@/utils/debounce'
 import { useElementSize } from '@/utils/hooks'
 import { useTemplateRef, watch } from 'vue'
 
@@ -102,15 +103,24 @@ emu.useCanvas(screen)
 const gamepad = emu.gamepad.virtual
 
 const containerSize = useElementSize(container)
-watch(containerSize, ({ w, h }) => {
-  const scaleX = (w * 0.8) / 265
-  const scaleY = (h * 0.9) / 433
-  const scale = Math.min(2.5, scaleX, scaleY)
-  const offset = (h - scale * 433) / 3
-  const el = gameboy.value!
-  el.style.scale = `${scale}`
-  el.style.translate = `0px ${offset}px`
-})
+watch(
+  containerSize,
+  debounce(
+    ({ w, h }) => {
+      const scaleX = (w * 0.8) / 265
+      const scaleY = (h * 0.9) / 433
+      const scale = Math.min(2.5, scaleX, scaleY)
+      const offset = (h - scale * 433) / 3
+      const el = gameboy.value!
+      el.style.scale = `${scale}`
+      el.style.translate = `0px ${offset}px`
+    },
+    300,
+    {
+      immediate: true
+    }
+  )
+)
 </script>
 
 <style scoped lang="scss">

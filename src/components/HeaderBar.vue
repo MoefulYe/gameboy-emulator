@@ -8,7 +8,7 @@
         class="i-pixelarticons:play"
         v-tooltip="tooltipPlay"
         :disabled="disablePlay"
-        @click="1"
+        @click="emu.start()"
       />
       <button class="i-pixelarticons:pause" v-tooltip="'pause'" :disabled="disablePause" />
       <button class="i-pixelarticons:next" v-tooltip="'next'" :disabled="disableNext" />

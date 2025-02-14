@@ -1,17 +1,34 @@
-import { type ShallowRef } from 'vue'
+import { shallowRef, type ShallowRef } from 'vue'
 import { GameboyLayoutButton, type GameboyLayoutButtons, type Callback } from '.'
 import { Config } from '@/emulator/config'
 import { every } from '@/utils/timer'
 import logger from '@/emulator/logger'
 import { LogLevel } from '@/emulator/constants'
 // https://w3c.github.io/gamepad/#remapping
-type StandardButton = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16
+export type StandardButton =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 11
+  | 12
+  | 13
+  | 14
+  | 15
+  | 16
 
 export type GamepadMapping = {
   readonly [Button in StandardButton]: GameboyLayoutButton | null
 }
 
-export const DEFAULT_BUTTON_MAPPINGS: GamepadMapping = [
+export const DEFAULT_BUTTON_MAPPINGS = [
   GameboyLayoutButton.B, // 0
   GameboyLayoutButton.A, // 1
   null, // 2
@@ -29,36 +46,29 @@ export const DEFAULT_BUTTON_MAPPINGS: GamepadMapping = [
   GameboyLayoutButton.Left, // 14
   GameboyLayoutButton.Right, // 15
   null // 16
-]
+] as const satisfies GamepadMapping
 
 export class PhysicalGamepad {
   private static readonly POLL_INTERVAL = 1000 / 60
-  private buttons: Readonly<GameboyLayoutButtons> = [
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false
-  ]
+  private buttons: GameboyLayoutButtons = [false, false, false, false, false, false, false, false]
   private gamepad?: Gamepad
-  private mapping: ShallowRef<GamepadMapping>
+  public readonly mapping: ShallowRef<GamepadMapping>
+  public readonly gamepadId = shallowRef('none')
   private connectListener(e: GamepadEvent) {
     const gamepad = e.gamepad
-    const msg = `connect to gamepad \`${gamepad.id}\``
+    const msg = 'connect to gamepad'
     logger(LogLevel.Info, msg)
     this.gamepad = gamepad
+    this.gamepadId.value = gamepad.id
   }
   private disconnectListener(e: GamepadEvent) {
-    const gamepad = e.gamepad
-    const msg = `disconnect to gamepad \`${gamepad.id}\``
+    const msg = 'disconnect to gamepad'
     logger(LogLevel.Info, msg)
     this.gamepad = undefined
+    this.gamepadId.value = 'none'
   }
 
-  private newButtons(): Readonly<GameboyLayoutButtons> {
+  private newButtons(): GameboyLayoutButtons {
     const mapping = this.mapping.value
     const buttons = [false, false, false, false, false, false, false, false]
     if (this.gamepad === undefined || !this.gamepad.connected) {
@@ -76,7 +86,7 @@ export class PhysicalGamepad {
     return buttons as any
   }
 
-  private hasChanged(oldButtons: Readonly<GameboyLayoutButtons>): boolean {
+  private hasChanged(oldButtons: GameboyLayoutButtons): boolean {
     for (let i = 0; i < 8; i++) {
       if (this.buttons[i as GameboyLayoutButton] !== oldButtons[i as GameboyLayoutButton])
         return true

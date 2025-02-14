@@ -1,14 +1,15 @@
-import logger from './logger'
 import { Listener, type EventCallback } from '@/utils/event/server_side_event'
 import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
 import { AudioReceiver } from './output/audio'
 import type { ClientSideEvent, ServerSideEvent } from './worker/event'
 import { useStat } from './stat'
-import { Err } from './constants'
+import { Err, LogLevel, Ok } from './constants'
 import type { DB } from './persistance/indexeddb'
 import type { Config } from './config'
 import { EmuGamepad, useGamepad, type GameboyLayoutButtons } from './input/gamepad'
-import { onMounted, type ShallowRef } from 'vue'
+import { onMounted, watch, type ShallowRef } from 'vue'
+import log from './logger'
+import { debounce } from '@/utils/debounce'
 
 type CreateOption = {
   config: Config
@@ -38,6 +39,8 @@ export class Client {
     this.server = server
     this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
     this.useLog()
+    this.useSerial()
+    this.useFScale()
   }
 
   private request<Event extends keyof ClientSideEvent>(
@@ -49,7 +52,23 @@ export class Client {
   }
 
   private useLog() {
-    this.use('log', ({ level, msg }) => logger(level, msg))
+    this.on('log', ({ level, msg }) => log(level, msg))
+  }
+
+  private useSerial() {
+    const bytes = this.stat.serialBytes
+    this.on('serial', ({ byte }) => {
+      bytes.value += `${byte.toString(16).padStart(2, '0')} `
+    })
+  }
+
+  private useFScale() {
+    const fscale = this.config.freqScale
+    const requester = this.requester
+    watch(
+      fscale,
+      debounce((scale: number) => requester.request('set-fscale', scale))
+    )
   }
 
   private on<Event extends keyof ServerSideEvent>(
@@ -83,10 +102,13 @@ export class Client {
     const args = { rom }
     const transfer = [buf]
     const res = await this.request('load-rom', args, transfer)
-    if (res.status === Err) {
+    if (res.status === Ok) {
+      const info = res.ret
+      log(LogLevel.Info, `insert rom \`${info.title}\``)
+      this.stat.rom.value = info
+    } else {
       const msg = res.err
-      console.log(msg)
-      return
+      log(LogLevel.Error, msg)
     }
   }
 
@@ -100,7 +122,7 @@ export class Client {
       const res = await this.request('set-canvas', { canvas }, [canvas])
       if (res.status === Err) {
         const msg = res.err
-        console.log(msg)
+        log(LogLevel.Error, msg)
         return
       }
     })
@@ -108,5 +130,9 @@ export class Client {
 
   public btnAction(buttons: Readonly<GameboyLayoutButtons>) {
     return this.request('btn-action', buttons)
+  }
+
+  public start() {
+    this.request('start', {})
   }
 }
