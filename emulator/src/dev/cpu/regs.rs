@@ -33,15 +33,15 @@ pub const CARRY: Word = 4;
 pub struct Regs([DWord; 6]);
 
 impl Regs {
-    const A: usize = 0;
     /// F（flags）寄存器用于存储CPU在运行过程中产生的各种位，其只有高位的4个比特有效，低位的4个比特永远是0
-    const F: usize = 1;
-    const B: usize = 2;
-    const C: usize = 3;
-    const D: usize = 4;
-    const E: usize = 5;
-    const H: usize = 6;
-    const L: usize = 7;
+    const F: usize = 0;
+    const A: usize = 1;
+    const C: usize = 2;
+    const B: usize = 3;
+    const E: usize = 4;
+    const D: usize = 5;
+    const L: usize = 6;
+    const H: usize = 7;
 
     const AF: usize = 0;
     const BC: usize = 1;

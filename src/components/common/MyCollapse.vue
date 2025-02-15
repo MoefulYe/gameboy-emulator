@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { useElementClientHeight } from '@/utils/hooks'
-import { ref, useTemplateRef } from 'vue'
-const { title = '', open = false } = defineProps<{
+import { useTemplateRef } from 'vue'
+const { title = '' } = defineProps<{
   title?: string
-  open?: boolean
 }>()
 defineSlots<{
   default(props: {}): any
 }>()
-const dropdown = ref(open)
+const open = defineModel<boolean>('open', {
+  default: false
+})
 const dropdownContent = useTemplateRef('dropdownContent')
 const contentHeight = useElementClientHeight(dropdownContent)
-const toggle = () => (dropdown.value = !dropdown.value)
+const toggle = () => (open.value = !open.value)
 </script>
 
 <template>
@@ -21,14 +22,14 @@ const toggle = () => (dropdown.value = !dropdown.value)
       <div class="flex items-center">
         <span
           class="i-ant-design:down-outlined expand-more animation size-6 text-coolgray-5"
-          :class="{ active: dropdown }"
+          :class="{ active: open }"
         ></span>
       </div>
     </div>
     <div
       class="dropdown-set-content-area animation border-t-1 b-coolgray-2"
-      :class="{ active: dropdown }"
-      :style="{ 'max-height': !dropdown ? 0 : `${contentHeight}px` }"
+      :class="{ active: open }"
+      :style="{ 'max-height': !open ? 0 : `${contentHeight}px` }"
     >
       <div class="dropdown-set-content" ref="dropdownContent">
         <div class="content">

@@ -7,6 +7,7 @@ mod cartridge;
 mod cpu;
 mod gamepad;
 mod int_regs;
+mod ppu;
 mod rams;
 mod serial;
 mod timer;

@@ -131,7 +131,10 @@ impl Bus {
         self.int_flag_reg.val() & self.int_mask_reg.val() != 0
     }
 
-    pub fn int_entry(&mut self) -> Option<Addr> {
+    pub fn int_entry(&mut self, ime: bool) -> Option<Addr> {
+        if !ime {
+            return None;
+        }
         let flags = self.int_flag_reg.val() & self.int_mask_reg.val();
         if flags == 0 {
             None

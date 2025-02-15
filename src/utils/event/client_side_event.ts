@@ -1,3 +1,4 @@
+import { type DeepReadonly } from './../types'
 import { withResolver } from '@/utils/promise'
 
 export const enum Status {
@@ -31,12 +32,12 @@ type ClientEventRespErr<
 > = Events[Event]['err']
 type RespData<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> =
   | {
-      status: Status.Ok
-      ret: RespRet<Events, Event>
+      readonly status: Status.Ok
+      readonly ret: DeepReadonly<RespRet<Events, Event>>
     }
   | {
-      status: Status.Err
-      err: ClientEventRespErr<Events, Event>
+      readonly status: Status.Err
+      readonly err: DeepReadonly<ClientEventRespErr<Events, Event>>
     }
 type RespPacket<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> = {
   id: number
@@ -45,10 +46,10 @@ type RespPacket<Events extends Record<EventTypes, _EventDef>, Event extends keyo
 
 type SyncHandler<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> = (
   args: ReqArgs<Events, Event>
-) => [RespData<Events, Event>, Transferable[]]
+) => readonly [RespData<Events, Event>, readonly Transferable[]]
 type AsyncHandler<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> = (
   args: ReqArgs<Events, Event>
-) => Promise<[RespData<Events, Event>, Transferable[]]>
+) => Promise<readonly [RespData<Events, Event>, readonly Transferable[]]>
 export type Handler<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> =
   | SyncHandler<Events, Event>
   | AsyncHandler<Events, Event>
@@ -99,12 +100,30 @@ export class Responser<Events extends Record<EventTypes, _EventDef>> {
       if (res instanceof Promise) {
         const [data, transfers] = await res
         const resp = { id, data } satisfies RespPacket<Events, keyof Events>
-        port.postMessage(resp, transfers)
+        port.postMessage(resp, transfers as Transferable[])
       } else {
         const [data, transfers] = res
         const resp = { id, data } satisfies RespPacket<Events, keyof Events>
-        port.postMessage(resp, transfers)
+        port.postMessage(resp, transfers as Transferable[])
       }
     }
   }
 }
+
+export const NONE = [{ status: Status.Ok, ret: undefined }, []] as const
+
+export const Right = <T>(
+  ret: DeepReadonly<T>,
+  transfers: readonly Transferable[] = []
+): readonly [
+  { readonly status: Status.Ok; readonly ret: DeepReadonly<T> },
+  readonly Transferable[]
+] => [{ status: Status.Ok, ret }, transfers]
+
+export const Throw = <T>(
+  err: DeepReadonly<T>,
+  transfers: readonly Transferable[] = []
+): readonly [
+  { readonly status: Status.Err; readonly err: DeepReadonly<T> },
+  readonly Transferable[]
+] => [{ status: Status.Err, err }, transfers]

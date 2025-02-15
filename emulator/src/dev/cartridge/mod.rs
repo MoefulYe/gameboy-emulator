@@ -57,7 +57,7 @@ impl BusDevice for Cartridge {
             // }
             0xA000..=0xBFFF => {
                 warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
-                todo!()
+                0xFF
             }
             _ => {
                 warn!("unimplemented read from cartridge at address: 0x{addr:04X}");

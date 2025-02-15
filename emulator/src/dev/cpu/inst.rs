@@ -1429,7 +1429,7 @@ impl CPU {
     /// POP AF
     fn inst_0xf1_pop_af(&mut self, bus: &mut Bus) -> InstExecResult {
         let data = self.pop_dword(bus)?;
-        *self.af_mut() = data;
+        *self.af_mut() = data & 0xFFF0;
         Ok(12)
     }
 
@@ -1629,7 +1629,7 @@ impl CPU {
         let result = b.wrapping_sub(1);
         *b = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1651,7 +1651,7 @@ impl CPU {
         let result = c.wrapping_sub(1);
         *c = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1673,7 +1673,7 @@ impl CPU {
         let result = d.wrapping_sub(1);
         *d = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1695,7 +1695,7 @@ impl CPU {
         let result = e.wrapping_sub(1);
         *e = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1711,13 +1711,13 @@ impl CPU {
         Ok(4)
     }
 
-    /// DEC HINC
+    /// DEC H
     fn inst_0x25_dec_h(&mut self, _: &mut Bus) -> InstExecResult {
         let h = self.h_mut();
         let result = h.wrapping_sub(1);
         *h = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1739,7 +1739,7 @@ impl CPU {
         let result = l.wrapping_sub(1);
         *l = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1761,7 +1761,7 @@ impl CPU {
         let result = a.wrapping_sub(1);
         *a = result;
         self.zero_flag_mut().setval(result == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((result & 0xF) == 0xF);
         Ok(4)
     }
@@ -1784,7 +1784,7 @@ impl CPU {
         let data = bus.read(addr)?;
         let data = data.wrapping_sub(1);
         self.zero_flag_mut().setval(data == 0);
-        self.negative_flag_mut().clear();
+        self.negative_flag_mut().set();
         self.half_carry_flag_mut().setval((data & 0xF) == 0xF);
         bus.write(addr, data)?;
         Ok(12)
@@ -1853,7 +1853,7 @@ impl CPU {
         self.negative_flag_mut().clear();
         self.zero_flag_mut().setval(result & 0xFF == 0);
         self.half_carry_flag_mut()
-            .setval(lhs & 0xF + rhs & 0xF > 0xF);
+            .setval((lhs & 0xF) + (rhs & 0xF) > 0xF);
         self.carry_flag_mut().setval(result > 0xFF);
         *self.a_mut() = result as Word;
     }
@@ -1920,7 +1920,7 @@ impl CPU {
         let result = lhs + rhs;
         self.negative_flag_mut().clear();
         self.half_carry_flag_mut()
-            .setval(lhs & 0xFFF + rhs & 0xFFF > 0xFFF);
+            .setval((lhs & 0xFFF) + (rhs & 0xFFF) > 0xFFF);
         self.carry_flag_mut().setval(result > 0xFFFF);
         *self.hl_mut() = result as DWord;
     }
@@ -1971,7 +1971,7 @@ impl CPU {
         self.zero_flag_mut().setval(result & 0xFF == 0);
         self.negative_flag_mut().clear();
         self.half_carry_flag_mut()
-            .setval(lhs & 0xF + rhs & 0xF + carry > 0xF);
+            .setval((lhs & 0xF) + (rhs & 0xF) + carry > 0xF);
         self.carry_flag_mut().setval(result > 0xFF);
         *self.a_mut() = result as Word;
     }
@@ -2092,7 +2092,7 @@ impl CPU {
         self.zero_flag_mut().setval(result & 0xFF == 0);
         self.negative_flag_mut().set();
         self.half_carry_flag_mut()
-            .setval(lhs & 0xF < rhs & 0xF + carry);
+            .setval((lhs & 0xF) < (rhs & 0xF) + carry);
         self.carry_flag_mut().setval(lhs < rhs + carry);
         *self.a_mut() = result as Word;
     }

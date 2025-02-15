@@ -46,10 +46,8 @@ impl CPU {
     /// 返回花费的时钟周期
     pub fn tick(&mut self, bus: &mut Bus) -> EmuResult<ClockCycle> {
         if !self.halted {
-            // TODO
-            if self.ime.enabled()
-                && let Some(int_entry) = bus.int_entry()
-            {
+            let ime = self.ime.enabled();
+            if let Some(int_entry) = bus.int_entry(ime) {
                 self.handle_int(bus, int_entry)
             } else {
                 let opcode = self.fetch_opcode(bus)?;
@@ -68,12 +66,12 @@ impl CPU {
         }
     }
 
-    pub fn dump(&self, bus: &mut Bus, pc: Addr) -> CPUStateDump {
+    pub fn dump(&self, bus: &Bus) -> CPUStateDump {
+        let pc = self.pc();
         let inst = bus
             .read(pc)
             .map(|op| Self::mnemonic(op))
             .unwrap_or("UNKNOWN");
-        let pc = self.pc();
         let three_words_at_pc = [
             bus.read(pc).unwrap_or(0),
             bus.read(pc + 1).unwrap_or(0),

@@ -43,18 +43,27 @@ export class Client {
   }
 
   private init() {
-    const { cpu, cycles, rom, state, serialBytes: bytes } = this.stat
+    const { cpu, cycles, state, serialBytes: bytes } = this.stat
     const { freqScale } = this.config
     this.on('log', ({ level, msg }) => log(level, msg))
-    this.on('serial', ({ byte }) => {
-      bytes.value += `${byte.toString(16).padStart(2, '0')} `
+    this.on('update', ({ state: $state, cycles: $cycles, cpu: $cpu, byte: $byte }) => {
+      if ($cycles !== undefined) {
+        cycles.value = $cycles
+      }
+      if ($state !== undefined) {
+        state.value = $state
+      }
+      if ($byte !== undefined) {
+        bytes.push($byte)
+      }
+      if ($cpu !== undefined) {
+        cpu.value = $cpu
+      }
     })
-    this.on('set-state', ({ state: s }) => (state.value = s))
     watch(
       freqScale,
       debounce((scale: number) => this.requester.request('set-fscale', scale))
     )
-    this.on('set-cycles', ({ cycles: c }) => (cycles.value = c))
   }
 
   private request<Event extends keyof ClientSideEvent>(
@@ -87,7 +96,7 @@ export class Client {
   }
 
   public async ping(msg: string) {
-    const res = await this.request('ping', { msg }, [])
+    const res = await this.request('ping', { msg })
     return res
   }
 
@@ -126,11 +135,15 @@ export class Client {
     return this.request('btn-action', buttons)
   }
 
-  public async start() {
-    const res = await this.request('start', {})
-    console.log(res)
-    if (res.status === Err) {
-      log(LogLevel.Error, res.err)
-    }
+  public start() {
+    this.request('start', {})
+  }
+
+  public pause() {
+    this.request('pause', {})
+  }
+
+  public step() {
+    this.request('step', {})
   }
 }

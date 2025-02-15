@@ -2,9 +2,9 @@ use super::{BusDevice, Tick, TickResult};
 use crate::{
     external::emulator_serial_callback,
     types::{Addr, Word},
-    utils::bits::BitMap,
+    utils::bits::{BitMap, BitProxy},
 };
-use log::warn;
+use log::{error, warn};
 
 const SERIAL_CONTROL_ENABLE: Word = 7;
 #[allow(unused)]
@@ -65,11 +65,11 @@ impl Serial {
     }
 
     fn transfer_enable(&self) -> bool {
-        self.sc.at(SERIAL_CONTROL_ENABLE) != 0
+        self.sc.test(SERIAL_CONTROL_ENABLE)
     }
 
     fn master(&self) -> bool {
-        self.sc.at(SERIAL_CONTROL_SELECT) != 0
+        self.sc.test(SERIAL_CONTROL_SELECT)
     }
 
     fn begin_transfer(&mut self) {
@@ -79,7 +79,7 @@ impl Serial {
     }
 
     fn transfer(&mut self) -> TickResult {
-        self.sb = self.sb << 1 | 1;
+        self.sb = (self.sb << 1) | 1;
         self.has_transfered += 1;
         if self.has_transfered >= 8 {
             self.end_transfer();
@@ -90,7 +90,7 @@ impl Serial {
     }
 
     fn end_transfer(&mut self) {
-        self.sc.clear_at(SERIAL_CONTROL_ENABLE);
+        self.sc = self.sc.clear_at(SERIAL_CONTROL_ENABLE);
         self.inprogress = false;
         emulator_serial_callback(self.out);
     }

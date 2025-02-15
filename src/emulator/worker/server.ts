@@ -2,7 +2,7 @@ import { WasmEmulator } from 'emulator/pkg/emulator'
 import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME, Ok, Err } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
-import { Responser } from '@/utils/event/client_side_event'
+import { NONE, Responser, Right, Throw } from '@/utils/event/client_side_event'
 import { Emitter, type EventData } from '@/utils/event/server_side_event'
 import type { ClientSideEvent, ServerSideEvent } from './event'
 import type { GameboyLayoutButton } from '../input/gamepad/constants'
@@ -18,6 +18,7 @@ export type CreateOption = {
 type Handler<Event extends keyof ClientSideEvent> =
   import('@/utils/event/client_side_event').Handler<ClientSideEvent, Event>
 type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEvent>
+
 export class Server {
   responser: Responser<ClientSideEvent>
 
@@ -48,35 +49,11 @@ export class Server {
     this.emitter.emit(event, data, transfers)
   }
 
-  private run() {
-    every(() => {
-      if (this.state !== State.Running) return
-      const cycles = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
-      const res = this.core.update(cycles)
-      this.cycles += res.cycles
-      this.emit('set-cycles', { cycles: this.cycles })
-      if (res.status === 'ok') {
-        return
-      } else {
-        this.state = State.Aborted
-        this.emit('set-state', { state: State.Aborted })
-        this.emit('log', {
-          level: LogLevel.Error,
-          msg: res.msg
-        })
-        return
-      }
-    }, MS_PER_FRAME)
-  }
-
   public static async create({ audioPort, emitPort, responsePort, freqScale }: CreateOption) {
     const audio = new AudioSender(audioPort)
     const emitter = new Emitter<ServerSideEvent>(emitPort)
     self.emulatorLogCallback = (level, msg) => emitter.emit('log', { level: level as any, msg })
-    self.emulatorSerialCallback = (byte) => {
-      console.log('serial')
-      emitter.emit('serial', { byte })
-    }
+    self.emulatorSerialCallback = (byte) => emitter.emit('update', { byte })
     await wasmInit()
     WasmEmulator.initLogger()
     const core = new WasmEmulator()
@@ -92,7 +69,9 @@ export class Server {
       'set-canvas': this.handleSetCanvas(),
       'btn-action': this.handleBtnAction(),
       'set-fscale': this.handleSetFScale(),
-      start: this.handleStart()
+      start: this.handleStart(),
+      pause: this.handlePause(),
+      step: this.handleStep()
     }
   }
 
@@ -101,17 +80,17 @@ export class Server {
       const res = this.core.pluginCart(rom)
       if (res.status === 'ok') {
         const { info } = res
-        return [{ status: Ok, ret: info }, []]
+        return Right(info)
       } else {
         const { msg } = res
-        return [{ status: Err, err: msg }, []]
+        return Throw(msg)
       }
     }
   }
 
   private handlePing(): Handler<'ping'> {
     return () => {
-      return [{ status: Ok, ret: 'Emulator Copyright (C) 2024 Moefulye' }, []]
+      return Right('emulator copyright (c) 2024 moefulye')
     }
   }
 
@@ -119,10 +98,10 @@ export class Server {
     return ({ canvas }) => {
       const ctx = canvas.getContext('2d')
       if (ctx === null) {
-        return [{ status: Err, err: 'set canvas failed! fail to get context' }, []]
+        return Throw('set canvas failed! fail to get context')
       }
       this.core.setCanvas(ctx)
-      return [{ status: Ok, ret: undefined }, []]
+      return NONE
     }
   }
 
@@ -134,32 +113,105 @@ export class Server {
         u8 |= pressed << i
       }
       this.core.setButtons(u8)
-      return [{ status: Ok, ret: undefined }, []]
+      return NONE
     }
   }
 
   private handleSetFScale(): Handler<'set-fscale'> {
     return (scale) => {
       this.freqScale = scale
-      return [{ status: Ok, ret: undefined }, []]
+      return NONE
     }
   }
 
   private handleStart(): Handler<'start'> {
     return () => {
       if (this.state === State.Aborted) {
-        return [{ status: Err, err: 'cannot start when aborted! Restart First!' }, []]
-      }
-      if (this.state === State.Running) {
         this.emit('log', {
           level: LogLevel.Warn,
-          msg: 'emulator has been starting...'
+          msg: 'emulator has been aborted! restart first!'
         })
-        return [{ status: Ok, ret: undefined }, []]
+      } else if (this.state === State.Running) {
+        this.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'emulator has been started!'
+        })
+      } else {
+        this.state = State.Running
+        this.emit('update', { state: State.Running })
       }
-      this.state = State.Running
-      this.emit('set-state', { state: State.Running })
-      return [{ status: Ok, ret: undefined }, []]
+      return NONE
     }
+  }
+
+  private handlePause(): Handler<'pause'> {
+    return () => {
+      if (this.state === State.Aborted) {
+        this.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'emulator has been aborted! restart first!'
+        })
+      } else if (this.state === State.Shutdown) {
+        this.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'emulator has been shutdown! boot first!'
+        })
+      } else if (this.state === State.Paused) {
+        this.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'emulator has been paused!'
+        })
+      } else {
+        this.state = State.Paused
+        this.emit('update', { state: State.Paused })
+      }
+      return NONE
+    }
+  }
+
+  private handleStep(): Handler<'step'> {
+    return () => {
+      if (this.state === State.Aborted) {
+        this.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'step when aborted! restart first!'
+        })
+      } else {
+        if (this.state !== State.Paused) {
+          this.state = State.Paused
+          this.emit('update', { state: State.Paused })
+        }
+        const res = this.core.step()
+        this.cycles += res.cycles
+        if (res.status === 'ok') {
+          const { cpu } = res
+          this.emit('update', { cpu, cycles: this.cycles })
+        } else {
+          this.state = State.Aborted
+          const { msg, cpu } = res
+          this.emit('update', { state: State.Aborted, cycles: this.cycles, cpu })
+          this.emit('log', { level: LogLevel.Error, msg })
+        }
+      }
+      return NONE
+    }
+  }
+
+  private run() {
+    every(() => {
+      if (this.state !== State.Running) return
+      const cycles = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
+      const res = this.core.update(cycles)
+      this.cycles += res.cycles
+      if (res.status === 'ok') {
+        const { cpu } = res
+        this.emit('update', { cpu, cycles: this.cycles })
+      } else {
+        this.state = State.Aborted
+        const { cpu, msg } = res
+        this.emit('update', { state: State.Aborted, cycles: this.cycles, cpu })
+        this.emit('log', { level: LogLevel.Error, msg })
+      }
+    }, MS_PER_FRAME)
   }
 }

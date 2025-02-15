@@ -101,15 +101,13 @@ impl Tick for Timer {
             _ => unreachable!(),
         };
         let update_tima = prev.test(pos) && !cur.test(pos);
-        if update_tima {
-            if self.tima == Word::MAX {
-                self.tima = self.tma;
-                TickResult::IntReq
-            } else {
-                self.tima += 1;
-                TickResult::Ok
-            }
+        if !update_tima {
+            TickResult::Ok
+        } else if self.tima == Word::MAX {
+            self.tima = self.tma;
+            TickResult::IntReq
         } else {
+            self.tima += 1;
             TickResult::Ok
         }
     }

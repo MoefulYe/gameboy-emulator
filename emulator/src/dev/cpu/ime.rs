@@ -11,10 +11,6 @@ impl InterruptMasterEnableRegsiter {
         }
     }
 
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
     pub fn enable(&mut self) {
         self.enabling_countdown = 2;
     }
@@ -22,6 +18,10 @@ impl InterruptMasterEnableRegsiter {
     pub fn disable(&mut self) {
         self.enabling_countdown = 0;
         self.enabled = false;
+    }
+
+    pub fn enabled(&self) -> bool {
+        self.enabled
     }
 
     pub fn countdown(&mut self) {

@@ -10,8 +10,18 @@
         :disabled="disablePlay"
         @click="emu.start()"
       />
-      <button class="i-pixelarticons:pause" v-tooltip="'pause'" :disabled="disablePause" />
-      <button class="i-pixelarticons:next" v-tooltip="'next'" :disabled="disableNext" />
+      <button
+        class="i-pixelarticons:pause"
+        v-tooltip="'pause'"
+        :disabled="disablePause"
+        @click="emu.pause()"
+      />
+      <button
+        class="i-pixelarticons:next"
+        v-tooltip="'next'"
+        :disabled="disableNext"
+        @click="emu.step()"
+      />
       <button class="i-pixelarticons:reload" v-tooltip="'reset'" />
       <button class="i-pixelarticons:close" v-tooltip="'shutdown'" :disabled="disableShutdown" />
       <span class="divider" />
@@ -73,7 +83,7 @@ const disablePlay = computed(() => {
   return s === State.Running || s === State.Aborted
 })
 const disablePause = computed(() => state.value !== State.Running)
-const disableNext = computed(() => state.value !== State.Paused)
+const disableNext = computed(() => state.value === State.Aborted)
 const disableShutdown = computed(() => state.value === State.Shutdown)
 
 const loggedSpeedScale = computed({

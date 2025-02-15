@@ -1,4 +1,4 @@
-import { shallowRef, watch, type ShallowRef } from 'vue'
+import { shallowRef, watch, type Ref, type ShallowRef } from 'vue'
 type T1 = number | string | boolean | null
 type T2 = readonly T4[]
 type T3 = { readonly [key: string]: T4 }
@@ -20,8 +20,9 @@ const setItem = <T extends T4>(key: LocalStorageKey<T>, val: T) => {
   localStorage.setItem(key, serded)
 }
 
-export function useLocalStorage<T extends T4>(key: LocalStorageKey<T>): ShallowRef<T | undefined>
-export function useLocalStorage<T extends T4>(key: LocalStorageKey<T>, defaultVal: T): ShallowRef<T>
+export function useLocalStorage<T extends T4>(key: string, defaultVal: T): Ref<T>
+export function useLocalStorage<T extends T4>(key: LocalStorageKey<T>): Ref<T | undefined>
+export function useLocalStorage<T extends T4>(key: LocalStorageKey<T>, defaultVal: T): Ref<T>
 
 export function useLocalStorage<T extends T4>(
   key: LocalStorageKey<T>,

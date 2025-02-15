@@ -1,5 +1,5 @@
 import { type CPUStateDump, type CartridgeInfo } from 'emulator/pkg/emulator'
-import { ref, shallowRef } from 'vue'
+import { reactive, ref, shallowRef } from 'vue'
 import { State } from './constants'
 
 const CPU_STATE_INIT = {
@@ -31,7 +31,7 @@ export class Stat {
   public readonly rom = shallowRef<CartridgeInfo>()
   public readonly cycles = ref(0)
   public readonly state = ref(State.Shutdown)
-  public readonly serialBytes = ref('')
+  public readonly serialBytes = reactive([] as number[])
   public readonly cpu = shallowRef<CPUStateDump>(CPU_STATE_INIT)
 }
 

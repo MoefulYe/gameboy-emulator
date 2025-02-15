@@ -38,21 +38,29 @@ impl Emulator {
         use EmulatorStepResult::*;
         if self.aborted {
             let msg = self.handle_err(EmulatorError::RunWhenAborting);
-            return Abort { msg };
+            let cpu_state = self.cpu.dump(&mut self.bus);
+            return Abort {
+                msg,
+                cycles: 0,
+                cpu: cpu_state,
+            };
         }
-        let pc = self.cpu.pc();
-        let res = self.tick();
-        match res {
+        match self.tick() {
             EmuResult::Ok(clock) => {
-                let cpu_state = self.cpu.dump(&mut self.bus, pc);
+                let cpu_state = self.cpu.dump(&mut self.bus);
                 Ok {
                     cycles: clock,
-                    cpu_state,
+                    cpu: cpu_state,
                 }
             }
             EmuResult::Err(err) => {
                 let msg = self.handle_err(err);
-                Abort { msg }
+                let cpu_state = self.cpu.dump(&mut self.bus);
+                Abort {
+                    msg,
+                    cycles: 0,
+                    cpu: cpu_state,
+                }
             }
         }
     }
@@ -69,7 +77,12 @@ impl Emulator {
         use EmulatorUpdateResult::*;
         if self.aborted {
             let msg = self.handle_err(EmulatorError::RunWhenAborting);
-            return Abort { msg, cycles: 0 };
+            let cpu_state = self.cpu.dump(&self.bus);
+            return Abort {
+                msg,
+                cycles: 0,
+                cpu: cpu_state,
+            };
         }
         let mut clocks = 0;
         while clocks < cycles {
@@ -80,14 +93,20 @@ impl Emulator {
                 }
                 EmuResult::Err(err) => {
                     let msg = self.handle_err(err);
+                    let cpu_state = self.cpu.dump(&self.bus);
                     return Abort {
                         msg,
                         cycles: clocks,
+                        cpu: cpu_state,
                     };
                 }
             }
         }
-        Ok { cycles: clocks }
+        let cpu_state = self.cpu.dump(&self.bus);
+        Ok {
+            cycles: clocks,
+            cpu: cpu_state,
+        }
     }
 
     #[wasm_bindgen(js_name = pluginCart)]
@@ -133,9 +152,16 @@ mod tsify_derive {
     #[serde(tag = "status")]
     pub enum EmulatorUpdateResult {
         #[serde(rename = "ok")]
-        Ok { cycles: ClockCycle },
+        Ok {
+            cycles: ClockCycle,
+            cpu: CPUStateDump,
+        },
         #[serde(rename = "abort")]
-        Abort { cycles: ClockCycle, msg: String },
+        Abort {
+            cycles: ClockCycle,
+            msg: String,
+            cpu: CPUStateDump,
+        },
     }
 
     #[derive(Serialize, Tsify)]
@@ -145,10 +171,14 @@ mod tsify_derive {
         #[serde(rename = "ok")]
         Ok {
             cycles: ClockCycle,
-            cpu_state: CPUStateDump,
+            cpu: CPUStateDump,
         },
         #[serde(rename = "abort")]
-        Abort { msg: String },
+        Abort {
+            cycles: ClockCycle,
+            msg: String,
+            cpu: CPUStateDump,
+        },
     }
 }
 

@@ -1,4 +1,4 @@
-import type { CartridgeInfo } from 'emulator/pkg/emulator'
+import type { CPUStateDump, CartridgeInfo } from 'emulator/pkg/emulator'
 import type { LogLevel, State } from '../constants'
 import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 
@@ -39,6 +39,16 @@ export type ClientSideEvent = {
     ret: undefined
     err: string
   }
+  pause: {
+    args: {}
+    ret: undefined
+    err: undefined
+  }
+  step: {
+    args: {}
+    ret: undefined
+    err: undefined
+  }
 }
 
 export type ServerSideEvent = {
@@ -46,13 +56,10 @@ export type ServerSideEvent = {
     level: LogLevel
     msg: string
   }
-  serial: {
-    byte: number
-  }
-  'set-state': {
-    state: State
-  }
-  'set-cycles': {
-    cycles: number
+  update: {
+    state?: State
+    cycles?: number
+    cpu?: CPUStateDump
+    byte?: number
   }
 }

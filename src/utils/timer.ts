@@ -8,6 +8,10 @@ export const every = async (callback: () => void, ms: number) => {
     callback()
     const diff = performance.now() - ts
     const delta = ms - diff
-    await wait(Math.max(0, delta))
+    if (delta > 0) {
+      await wait(delta)
+    } else {
+      console.log('every')
+    }
   }
 }
