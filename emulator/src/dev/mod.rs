@@ -11,11 +11,11 @@ mod rams;
 mod serial;
 mod timer;
 
-pub trait Resetable {
+pub trait Reset {
     fn reset(&mut self);
 }
 
-impl<T> Resetable for T
+impl<T> Reset for T
 where
     T: Default,
 {
@@ -49,7 +49,7 @@ impl TickResult {
     }
 }
 
-pub trait Tickable: BusDevice {
+pub trait Tick: BusDevice {
     fn tick(&mut self) -> TickResult;
 }
 

@@ -5,7 +5,7 @@ use crate::{
     utils::bits::BitMap,
 };
 
-use super::{BusDevice, TickResult, Tickable};
+use super::{BusDevice, Tick, TickResult};
 
 const TIMER_DIV_REG_ADDR: Addr = 0xFF04;
 const TIMER_TIMA_REG_ADDR: Addr = 0xFF05;
@@ -16,9 +16,14 @@ pub const TIMER_ADDR_LOW_BOUND: Addr = TIMER_DIV_REG_ADDR;
 pub const TIMER_ADDR_HIGH_BOUND_INCLUDED: Addr = TIMER_TAC_REG_ADDR;
 /// ref https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff04--div-divider-register
 pub struct Timer {
+    // Divider
     div: DWord,
+    // Timer Counter
     tima: Word,
+    // Timer Modulo
     tma: Word,
+    // Timer Control
+    // 2: enable 1-0: select
     tac: Word,
 }
 
@@ -41,10 +46,13 @@ impl Timer {
     fn read_div(&self) -> Word {
         (self.div >> 8) as Word
     }
-    fn disabled(&self) -> bool {
-        self.tac & 0x04 == 0
-    }
 
+    fn enabled(&self) -> bool {
+        self.tac.test(2)
+    }
+    fn disabled(&self) -> bool {
+        !self.enabled()
+    }
     fn clock_select(&self) -> Word {
         self.tac & 0x03
     }
@@ -75,13 +83,14 @@ impl BusDevice for Timer {
     }
 }
 
-impl Tickable for Timer {
+impl Tick for Timer {
     fn tick(&mut self) -> TickResult {
+        let prev = self.div;
+        let cur = prev.wrapping_add(1);
+        self.div = cur;
         if self.disabled() {
             return TickResult::Ok;
         }
-        let old = self.div;
-        let new = old.wrapping_add(1);
         // ref https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff07--tac-timer-control
         let pos: DWord = match self.clock_select() {
             // 4096 Hz
@@ -91,7 +100,7 @@ impl Tickable for Timer {
             0b11 => 7,
             _ => unreachable!(),
         };
-        let update_tima = old.at(pos) && !new.at(pos);
+        let update_tima = prev.test(pos) && !cur.test(pos);
         if update_tima {
             if self.tima == Word::MAX {
                 self.tima = self.tma;

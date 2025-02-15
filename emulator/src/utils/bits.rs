@@ -26,7 +26,7 @@ impl<'a> BitProxy<'a> {
         *self.byte &= !(1 << self.pos);
     }
 
-    pub fn set_value(&mut self, val: bool) {
+    pub fn setval(&mut self, val: bool) {
         if val {
             self.set();
         } else {
@@ -36,23 +36,27 @@ impl<'a> BitProxy<'a> {
 }
 
 pub trait BitMap {
-    type AtType;
     fn empty() -> Self;
-    fn at(self, pos: Self) -> Self::AtType;
+    fn test(self, pos: Self) -> bool;
+    fn at(self, pos: Self) -> Self;
     fn set_at(self, pos: Self) -> Self;
     fn clear_at(self, pos: Self) -> Self;
-    fn set_at_with(self, pos: Self, val: bool) -> Self;
+    fn setval_at(self, pos: Self, val: bool) -> Self;
 }
 
 impl BitMap for Word {
-    type AtType = Self;
     #[inline]
     fn empty() -> Self {
         0
     }
 
     #[inline]
-    fn at(self, pos: Self) -> Self::AtType {
+    fn test(self, pos: Self) -> bool {
+        self & (1 << pos) != 0
+    }
+
+    #[inline]
+    fn at(self, pos: Self) -> Self {
         if self & (1 << pos) != 0 {
             1
         } else {
@@ -71,7 +75,7 @@ impl BitMap for Word {
     }
 
     #[inline]
-    fn set_at_with(self, pos: Self, val: bool) -> Self {
+    fn setval_at(self, pos: Self, val: bool) -> Self {
         if val {
             self.set_at(pos)
         } else {
@@ -81,14 +85,22 @@ impl BitMap for Word {
 }
 
 impl BitMap for DWord {
-    type AtType = bool;
     #[inline]
     fn empty() -> Self {
         0
     }
 
     #[inline]
-    fn at(self, pos: Self) -> Self::AtType {
+    fn at(self, pos: Self) -> Self {
+        if self & (1 << pos) != 0 {
+            1
+        } else {
+            0
+        }
+    }
+
+    #[inline]
+    fn test(self, pos: Self) -> bool {
         self & (1 << pos) != 0
     }
 
@@ -103,7 +115,7 @@ impl BitMap for DWord {
     }
 
     #[inline]
-    fn set_at_with(self, pos: Self, val: bool) -> Self {
+    fn setval_at(self, pos: Self, val: bool) -> Self {
         if val {
             self.set_at(pos)
         } else {

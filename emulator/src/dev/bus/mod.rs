@@ -9,10 +9,10 @@ use super::{
     rams::{HighRam, ObjectAttributeMem, VedioRam, WorkRam},
     serial::{Serial, SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED, SERIAL_TRANSFER_ADDR_LOW_BOUND},
     timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
-    BusDevice, Tickable,
+    BusDevice, Tick,
 };
 use crate::{
-    error::{EmuErr, EmuResult, EmulatorError},
+    error::{EmuErr, EmuResult, EmulatorError, NoCartridge},
     types::{Addr, Word},
 };
 use log::warn;
@@ -65,7 +65,7 @@ impl Bus {
                     c.read(addr)
                 } else {
                     warn!("no cartridge is plugged in! illegal read at address: 0x:{addr:04X}");
-                    return EmuErr(EmulatorError::NoCartridge);
+                    return EmuErr(NoCartridge);
                 }
             }
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.read(addr),
@@ -94,7 +94,7 @@ impl Bus {
                     c.write(addr, data)
                 } else {
                     warn!("no cartridge is plugged in! illegal write at address: 0x:{addr:04X}");
-                    return EmuErr(EmulatorError::NoCartridge);
+                    return EmuErr(NoCartridge);
                 }
             }
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.write(addr, data),

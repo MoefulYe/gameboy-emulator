@@ -50,11 +50,17 @@ impl BusDevice for Cartridge {
     fn read(&self, addr: Addr) -> Word {
         // https://gbdev.io/pandocs/Memory_Map.html
         match addr {
-            0x0000..=0x3FFF => unsafe { *self.rom.get_unchecked(addr as usize) },
-            0x4000..=0x7FFF => todo!(),
-            0xA000..=0xBFFF => todo!(),
+            0x0000..=0x7FFF => unsafe { *self.rom.get_unchecked(addr as usize) },
+            // 0x4000..=0x7FFF => {
+            //     warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
+            //     todo!()
+            // }
+            0xA000..=0xBFFF => {
+                warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
+                todo!()
+            }
             _ => {
-                warn!("illegal read from cartridge at address: 0x{addr:04X}");
+                warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
                 0xFF
             }
         }
@@ -62,7 +68,9 @@ impl BusDevice for Cartridge {
 
     fn write(&mut self, addr: Addr, data: Word) {
         match addr {
-            0xA000..=0xBFFF => todo!(),
+            0xA000..=0xBFFF => {
+                warn!("unimplemented write from cartridge at address: 0x{addr:04X}");
+            }
             _ => warn!("illegal write to cartridge at address: 0x{addr:04X}"),
         }
     }

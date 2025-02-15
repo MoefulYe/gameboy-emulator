@@ -73,7 +73,10 @@ export class Server {
     const audio = new AudioSender(audioPort)
     const emitter = new Emitter<ServerSideEvent>(emitPort)
     self.emulatorLogCallback = (level, msg) => emitter.emit('log', { level: level as any, msg })
-    self.emulatorSerialCallback = (byte) => emitter.emit('serial', { byte })
+    self.emulatorSerialCallback = (byte) => {
+      console.log('serial')
+      emitter.emit('serial', { byte })
+    }
     await wasmInit()
     WasmEmulator.initLogger()
     const core = new WasmEmulator()

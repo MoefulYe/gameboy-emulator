@@ -62,8 +62,8 @@ fn cb_inst_0b00000_rlc(val: Word, _: Word) -> (Word, Word) {
     let carry = val.at(7);
     let val = val << 1 | carry;
     let flag = Word::empty()
-        .set_at_with(CARRY, carry != 0)
-        .set_at_with(ZERO, val == 0);
+        .setval_at(CARRY, carry != 0)
+        .setval_at(ZERO, val == 0);
     (val, flag)
 }
 
@@ -71,8 +71,8 @@ fn cb_inst_0b00001_rrc(val: Word, _: Word) -> (Word, Word) {
     let carry = val.at(0);
     let val = val >> 1 | carry << 7;
     let flag = Word::empty()
-        .set_at_with(CARRY, carry != 0)
-        .set_at_with(ZERO, val == 0);
+        .setval_at(CARRY, carry != 0)
+        .setval_at(ZERO, val == 0);
     (val, flag)
 }
 
@@ -80,8 +80,8 @@ fn cb_inst_0b00010_rl(val: Word, flag: Word) -> (Word, Word) {
     let new_carry = val.at(7);
     let new_val = val << 1 | flag.at(CARRY);
     let flag = Word::empty()
-        .set_at_with(CARRY, new_carry != 0)
-        .set_at_with(ZERO, new_val == 0);
+        .setval_at(CARRY, new_carry != 0)
+        .setval_at(ZERO, new_val == 0);
     (new_val, flag)
 }
 
@@ -89,8 +89,8 @@ fn cb_inst_0b00011_rr(val: Word, flag: Word) -> (Word, Word) {
     let new_carry = val.at(0);
     let new_val = val >> 1 | flag.at(CARRY) << 7;
     let flag = Word::empty()
-        .set_at_with(CARRY, new_carry != 0)
-        .set_at_with(ZERO, new_val == 0);
+        .setval_at(CARRY, new_carry != 0)
+        .setval_at(ZERO, new_val == 0);
     (new_val, flag)
 }
 
@@ -98,8 +98,8 @@ fn cb_inst_0b00100_sla(val: Word, _: Word) -> (Word, Word) {
     let carry = val.at(7);
     let val = val << 1;
     let flag = Word::empty()
-        .set_at_with(CARRY, carry != 0)
-        .set_at_with(ZERO, val == 0);
+        .setval_at(CARRY, carry != 0)
+        .setval_at(ZERO, val == 0);
     (val, flag)
 }
 
@@ -107,8 +107,8 @@ fn cb_inst_0b00101_sra(val: Word, _: Word) -> (Word, Word) {
     let carry = val.at(0);
     let val = (val >> 1) | (val & 0b1000_0000);
     let flag = Word::empty()
-        .set_at_with(CARRY, carry != 0)
-        .set_at_with(ZERO, val == 0);
+        .setval_at(CARRY, carry != 0)
+        .setval_at(ZERO, val == 0);
     (val, flag)
 }
 
@@ -116,7 +116,7 @@ fn cb_inst_0b00110_swap(val: Word, _: Word) -> (Word, Word) {
     let high = val >> 4;
     let low = val & 0b0000_1111;
     let val = low << 4 | high;
-    let flag = Word::empty().set_at_with(ZERO, val != 0);
+    let flag = Word::empty().setval_at(ZERO, val != 0);
     (val, flag)
 }
 
@@ -124,15 +124,15 @@ fn cb_inst_0b00111_srl(val: Word, _: Word) -> (Word, Word) {
     let carry = val.at(0);
     let val = val >> 1;
     let flag = Word::empty()
-        .set_at_with(CARRY, carry != 0)
-        .set_at_with(ZERO, val == 0);
+        .setval_at(CARRY, carry != 0)
+        .setval_at(ZERO, val == 0);
     (val, flag)
 }
 
 fn cb_inst_0b01000_bit0(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(0);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -141,7 +141,7 @@ fn cb_inst_0b01000_bit0(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01001_bit1(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(1);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -150,7 +150,7 @@ fn cb_inst_0b01001_bit1(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01010_bit2(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(2);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -159,7 +159,7 @@ fn cb_inst_0b01010_bit2(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01011_bit3(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(3);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -168,7 +168,7 @@ fn cb_inst_0b01011_bit3(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01100_bit4(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(4);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -177,7 +177,7 @@ fn cb_inst_0b01100_bit4(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01101_bit5(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(5);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -186,7 +186,7 @@ fn cb_inst_0b01101_bit5(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01110_bit6(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(6);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)
@@ -195,7 +195,7 @@ fn cb_inst_0b01110_bit6(val: Word, flag: Word) -> (Word, Word) {
 fn cb_inst_0b01111_bit7(val: Word, flag: Word) -> (Word, Word) {
     let bit = val.at(7);
     let flag = flag
-        .set_at_with(ZERO, bit != 0)
+        .setval_at(ZERO, bit != 0)
         .clear_at(NEGATIVE)
         .set_at(HALF_CARRY);
     (val, flag)

@@ -22,6 +22,8 @@ pub enum EmulatorError {
     InvalidChecksum { expected: u8, actual: u8 },
 }
 
+pub use EmulatorError::*;
+
 impl EmulatorError {
     pub fn msg(&self) -> String {
         self.to_string()

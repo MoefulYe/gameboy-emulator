@@ -1,4 +1,4 @@
-use super::{BusDevice, TickResult, Tickable};
+use super::{BusDevice, Tick, TickResult};
 use crate::{
     external::emulator_serial_callback,
     types::{Addr, Word},
@@ -96,7 +96,7 @@ impl Serial {
     }
 }
 
-impl Tickable for Serial {
+impl Tick for Serial {
     fn tick(&mut self) -> TickResult {
         self.ticks = self.ticks.wrapping_add(1);
         if self.ticks % 512 != 0 {
