@@ -37,8 +37,8 @@ pub struct Bus {
     oam: ObjectAttributeMem,
     serial: Serial,
     timer: Timer,
-    int_flag_reg: InterruptFlagRegister,
     hram: HighRam,
+    int_flag_reg: InterruptFlagRegister,
     int_mask_reg: InterruptMaskRegsiter,
 }
 

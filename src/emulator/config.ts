@@ -2,7 +2,7 @@ import { useLocalStorage, type LocalStorageKey } from '../utils/localstorage'
 import { computed } from 'vue'
 import { BASE_FREQ_HZ } from './constants'
 import { DEFAULT_BUTTON_MAPPINGS, type GamepadMapping } from './input/gamepad/PhysicalGamepad'
-import { DEFAULT_GAMEPAD_MODE, GamepadMode } from './input/gamepad'
+import { DEFAULT_GAMEPAD_MODE, GamepadMode } from './input/gamepad/constants'
 
 const VOLUME = 'volume' as LocalStorageKey<number>
 const FREQ_SCALE = 'freq-scale' as LocalStorageKey<number>

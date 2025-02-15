@@ -1,6 +1,6 @@
 import type { CartridgeInfo } from 'emulator/pkg/emulator'
-import type { LogLevel } from '../constants'
-import type { GameboyLayoutButtons } from '../input/gamepad'
+import type { LogLevel, State } from '../constants'
+import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 
 export type ClientSideEvent = {
   'load-rom': {
@@ -48,5 +48,11 @@ export type ServerSideEvent = {
   }
   serial: {
     byte: number
+  }
+  'set-state': {
+    state: State
+  }
+  'set-cycles': {
+    cycles: number
   }
 }

@@ -118,10 +118,6 @@ impl Header {
         }
     }
 
-    pub fn cart_type(&self) -> u8 {
-        self.cart_type
-    }
-
     pub fn cart_typename(&self) -> &'static str {
         match self.cart_type {
             0x00 => "ROM ONLY",

@@ -3,26 +3,32 @@
     <div id="gameboy" ref="gameboy">
       <div class="reflex">
         <canvas id="screen" ref="screen" width="160" height="144"></canvas>
-        <span class="diod"></span>
+        <span class="diod" :class="LIGHT_COLORS[state]"></span>
       </div>
       <ul class="buttons">
-        <li @mousedown="gamepad.down(EmulatorButton.A)" @mouseup="gamepad.up(EmulatorButton.A)">
+        <li
+          @mousedown="gamepad.down(GameboyLayoutButton.A)"
+          @mouseup="gamepad.up(GameboyLayoutButton.A)"
+        >
           <span>A</span>
         </li>
-        <li @mousedown="gamepad.down(EmulatorButton.B)" @mouseup="gamepad.up(EmulatorButton.B)">
+        <li
+          @mousedown="gamepad.down(GameboyLayoutButton.B)"
+          @mouseup="gamepad.up(GameboyLayoutButton.B)"
+        >
           <span>B</span>
         </li>
       </ul>
       <ul id="gamecontrol">
         <li
-          @mousedown="gamepad.down(EmulatorButton.Select)"
-          @mouseup="gamepad.up(EmulatorButton.Select)"
+          @mousedown="gamepad.down(GameboyLayoutButton.Select)"
+          @mouseup="gamepad.up(GameboyLayoutButton.Select)"
         >
           <span>SELECT</span>
         </li>
         <li
-          @mousedown="gamepad.down(EmulatorButton.Start)"
-          @mouseup="gamepad.up(EmulatorButton.Start)"
+          @mousedown="gamepad.down(GameboyLayoutButton.Start)"
+          @mouseup="gamepad.up(GameboyLayoutButton.Start)"
         >
           <span>START</span>
         </li>
@@ -38,8 +44,8 @@
       <div class="stick">
         <ul
           class="left"
-          @mousedown="gamepad.down(EmulatorButton.Left)"
-          @mouseup="gamepad.up(EmulatorButton.Left)"
+          @mousedown="gamepad.down(GameboyLayoutButton.Left)"
+          @mouseup="gamepad.up(GameboyLayoutButton.Left)"
         >
           <li></li>
           <li></li>
@@ -49,8 +55,8 @@
         </ul>
         <ul
           class="right"
-          @mousedown="gamepad.down(EmulatorButton.Right)"
-          @mouseup="gamepad.up(EmulatorButton.Right)"
+          @mousedown="gamepad.down(GameboyLayoutButton.Right)"
+          @mouseup="gamepad.up(GameboyLayoutButton.Right)"
         >
           <li></li>
           <li></li>
@@ -63,8 +69,8 @@
         </ul>
         <ul
           class="top"
-          @mousedown="gamepad.down(EmulatorButton.Up)"
-          @mouseup="gamepad.up(EmulatorButton.Up)"
+          @mousedown="gamepad.down(GameboyLayoutButton.Up)"
+          @mouseup="gamepad.up(GameboyLayoutButton.Up)"
         >
           <li></li>
           <li></li>
@@ -74,8 +80,8 @@
         </ul>
         <ul
           class="bottom sm:size-12 md:me-4 lg:text-2xl"
-          @mousedown="gamepad.down(EmulatorButton.Down)"
-          @mouseup="gamepad.up(EmulatorButton.Down)"
+          @mousedown="gamepad.down(GameboyLayoutButton.Down)"
+          @mouseup="gamepad.up(GameboyLayoutButton.Down)"
         >
           <li></li>
           <li></li>
@@ -89,7 +95,9 @@
 </template>
 
 <script setup lang="ts">
-import { EmulatorButton, useEmulator } from '@/emulator'
+import { useEmulator } from '@/emulator'
+import type { State } from '@/emulator/constants'
+import { GameboyLayoutButton } from '@/emulator/input/gamepad/constants'
 import { debounce } from '@/utils/debounce'
 import { useElementSize } from '@/utils/hooks'
 import { useTemplateRef, watch } from 'vue'
@@ -99,6 +107,7 @@ const container = useTemplateRef('container')
 const gameboy = useTemplateRef('gameboy')
 
 const emu = useEmulator()
+const state = emu.stat.state
 emu.useCanvas(screen)
 const gamepad = emu.gamepad.virtual
 
@@ -121,6 +130,15 @@ watch(
     }
   )
 )
+</script>
+
+<script lang="ts">
+const LIGHT_COLORS = [
+  'b-gray-6 bg-gray-4',
+  'b-green-6 bg-green-4',
+  'b-yellow-6 bg-yellow-4',
+  'b-red-6 bg-red-4'
+] as const satisfies Record<State, string>
 </script>
 
 <style scoped lang="scss">
@@ -194,13 +212,11 @@ watch(
   display: block;
   width: 9px;
   height: 9px;
-  border: 1px solid #ac774d;
-  border-radius: 50px;
-  background: #e4b443;
-  box-shadow:
-    0 0 5px #ac774d,
-    -1px 1px 1px rgba(83, 53, 41, 0.99),
-    inset 0 1px 2px #fcb251;
+  border: {
+    radius: 50px;
+    width: 1px;
+    style: solid;
+  }
 }
 
 .buttons {

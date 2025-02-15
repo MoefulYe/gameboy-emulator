@@ -1,14 +1,15 @@
 import { Listener, type EventCallback } from '@/utils/event/server_side_event'
 import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
-import { AudioReceiver } from './output/audio'
-import type { ClientSideEvent, ServerSideEvent } from './worker/event'
-import { useStat } from './stat'
-import { Err, LogLevel, Ok } from './constants'
-import type { DB } from './persistance/indexeddb'
-import type { Config } from './config'
-import { EmuGamepad, useGamepad, type GameboyLayoutButtons } from './input/gamepad'
+import { AudioReceiver } from '../output/audio'
+import type { ClientSideEvent, ServerSideEvent } from './event'
+import { useStat } from '../stat'
+import { Err, LogLevel, Ok } from '../constants'
+import type { DB } from '../persistance/indexeddb'
+import type { Config } from '../config'
+import { EmuGamepad, useGamepad } from '../input/gamepad'
+import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 import { onMounted, watch, type ShallowRef } from 'vue'
-import log from './logger'
+import log from '../logger'
 import { debounce } from '@/utils/debounce'
 
 type CreateOption = {
@@ -38,9 +39,22 @@ export class Client {
     this.audioReceiver = new AudioReceiver(audioPort)
     this.server = server
     this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
-    this.useLog()
-    this.useSerial()
-    this.useFScale()
+    this.init()
+  }
+
+  private init() {
+    const { cpu, cycles, rom, state, serialBytes: bytes } = this.stat
+    const { freqScale } = this.config
+    this.on('log', ({ level, msg }) => log(level, msg))
+    this.on('serial', ({ byte }) => {
+      bytes.value += `${byte.toString(16).padStart(2, '0')} `
+    })
+    this.on('set-state', ({ state: s }) => (state.value = s))
+    watch(
+      freqScale,
+      debounce((scale: number) => this.requester.request('set-fscale', scale))
+    )
+    this.on('set-cycles', ({ cycles: c }) => (cycles.value = c))
   }
 
   private request<Event extends keyof ClientSideEvent>(
@@ -49,26 +63,6 @@ export class Client {
     transfer: Transferable[] = []
   ) {
     return this.requester.request(type, data, transfer)
-  }
-
-  private useLog() {
-    this.on('log', ({ level, msg }) => log(level, msg))
-  }
-
-  private useSerial() {
-    const bytes = this.stat.serialBytes
-    this.on('serial', ({ byte }) => {
-      bytes.value += `${byte.toString(16).padStart(2, '0')} `
-    })
-  }
-
-  private useFScale() {
-    const fscale = this.config.freqScale
-    const requester = this.requester
-    watch(
-      fscale,
-      debounce((scale: number) => requester.request('set-fscale', scale))
-    )
   }
 
   private on<Event extends keyof ServerSideEvent>(
@@ -132,7 +126,11 @@ export class Client {
     return this.request('btn-action', buttons)
   }
 
-  public start() {
-    this.request('start', {})
+  public async start() {
+    const res = await this.request('start', {})
+    console.log(res)
+    if (res.status === Err) {
+      log(LogLevel.Error, res.err)
+    }
   }
 }

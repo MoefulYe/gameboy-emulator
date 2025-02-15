@@ -1,5 +1,17 @@
 <template>
   <div>
+    <label>input-mode: </label>
+    <span @dblclick="toggleMode">
+      {{ INPUT_MODE_STR[mode] }}
+    </span>
+  </div>
+  <div>
+    <label>gamepad-id: </label>
+    <span>
+      {{ gamepadId }}
+    </span>
+  </div>
+  <div>
     <label>mappings: </label>
   </div>
   <div class="py-2 px-4 b-1 b-coolgray-2 rounded-sm text-sm flex flex-col gap-1">
@@ -15,23 +27,15 @@
       />
     </div>
   </div>
-  <div>
-    <label>input-mode: </label>
-    <span @dblclick="toggleMode">
-      {{ INPUT_MODE_STR[mode] }}
-    </span>
-  </div>
-  <div>
-    <label>gamepad-id: </label>
-    <span>
-      {{ gamepadId }}
-    </span>
-  </div>
 </template>
 
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
-import { GameboyLayoutButton, GamepadMode, INPUT_MODE_STR } from '@/emulator/input/gamepad'
+import {
+  GameboyLayoutButton,
+  GamepadMode,
+  INPUT_MODE_STR
+} from '@/emulator/input/gamepad/constants'
 import MyDropdown from '../common/MyDropdown.vue'
 import type { StandardButton } from '@/emulator/input/gamepad/PhysicalGamepad'
 

@@ -1,5 +1,5 @@
 import { shallowRef, type ShallowRef } from 'vue'
-import { GameboyLayoutButton, type GameboyLayoutButtons, type Callback } from '.'
+import { GameboyLayoutButton, type GameboyLayoutButtons, type Callback } from './constants'
 import { Config } from '@/emulator/config'
 import { every } from '@/utils/timer'
 import logger from '@/emulator/logger'

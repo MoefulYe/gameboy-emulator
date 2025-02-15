@@ -1,7 +1,10 @@
 import { onMounted, onUnmounted } from 'vue'
 
 type EventTypes = string
-type EventData<Events extends Record<EventTypes, {}>, Event extends keyof Events> = Events[Event]
+export type EventData<
+  Events extends Record<EventTypes, {}>,
+  Event extends keyof Events
+> = Events[Event]
 type Packet<Events extends Record<EventTypes, {}>, Event extends keyof Events> = {
   type: Event
   data: EventData<Events, Event>

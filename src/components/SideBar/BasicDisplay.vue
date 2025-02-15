@@ -4,7 +4,7 @@
       <label>state: </label> <span>{{ STATE_STR[state] }}</span>
     </li>
     <li>
-      <label>freq: </label> <span>{{ Math.floor(freqHz) }}</span>
+      <label>freq: </label> <span>{{ Math.floor(freqHz) }}HZ</span>
       <span> (x{{ freqScale.toFixed(2) }})</span>
     </li>
     <li>

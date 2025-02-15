@@ -46,7 +46,10 @@ impl CPU {
     /// 返回花费的时钟周期
     pub fn tick(&mut self, bus: &mut Bus) -> EmuResult<ClockCycle> {
         if !self.halted {
-            if let Some(int_entry) = bus.int_entry() {
+            // TODO
+            if self.ime.enabled()
+                && let Some(int_entry) = bus.int_entry()
+            {
                 self.handle_int(bus, int_entry)
             } else {
                 let opcode = self.fetch_opcode(bus)?;

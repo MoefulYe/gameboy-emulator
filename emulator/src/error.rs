@@ -26,6 +26,13 @@ impl EmulatorError {
     pub fn msg(&self) -> String {
         self.to_string()
     }
+
+    pub fn is_stop(&self) -> bool {
+        match self {
+            EmulatorError::StopInstruction { .. } => true,
+            _ => false,
+        }
+    }
 }
 
 impl AsRef<EmulatorError> for EmulatorError {

@@ -1,5 +1,5 @@
 import { Config } from '@/emulator/config'
-import type { GameboyLayoutButtons, GameboyLayoutButton, Callback } from '.'
+import type { GameboyLayoutButtons, GameboyLayoutButton, Callback } from './constants'
 
 export class VirtualGamepad {
   private buttons: GameboyLayoutButtons = [false, false, false, false, false, false, false, false]

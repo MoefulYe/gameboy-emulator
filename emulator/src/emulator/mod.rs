@@ -134,11 +134,6 @@ mod tsify_derive {
     pub enum EmulatorUpdateResult {
         #[serde(rename = "ok")]
         Ok { cycles: ClockCycle },
-        #[serde(rename = "break")]
-        Break {
-            cycles: ClockCycle,
-            cpu_state: Box<CPUStateDump>,
-        },
         #[serde(rename = "abort")]
         Abort { cycles: ClockCycle, msg: String },
     }

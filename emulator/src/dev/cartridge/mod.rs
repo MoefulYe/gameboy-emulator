@@ -1,6 +1,7 @@
 use self::header::Header;
 use crate::{
     dev::BusDevice,
+    log::unreachable_addr,
     types::{Addr, Word},
 };
 use log::warn;

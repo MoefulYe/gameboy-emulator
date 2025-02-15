@@ -3,24 +3,23 @@ import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME, Ok, Err } 
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
 import { Responser } from '@/utils/event/client_side_event'
-import { Emitter } from '@/utils/event/server_side_event'
+import { Emitter, type EventData } from '@/utils/event/server_side_event'
 import type { ClientSideEvent, ServerSideEvent } from './event'
-import type { GameboyLayoutButton } from '../input/gamepad'
+import type { GameboyLayoutButton } from '../input/gamepad/constants'
+import { AudioSender } from '../output/audio'
 
 export type CreateOption = {
   audioPort: MessagePort
   responsePort: MessagePort
   emitPort: MessagePort
+  freqScale: number
 }
-type ConstructorOption = CreateOption & { core: WasmEmulator }
+
 type Handler<Event extends keyof ClientSideEvent> =
   import('@/utils/event/client_side_event').Handler<ClientSideEvent, Event>
 type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEvent>
 export class Server {
-  core: WasmEmulator
-  audioPort: MessagePort
   responser: Responser<ClientSideEvent>
-  emitter: Emitter<ServerSideEvent>
 
   freqScale = 1.0
   state = State.Shutdown
@@ -30,12 +29,23 @@ export class Server {
   }
   mode = 1
 
-  private constructor({ core, audioPort, responsePort, emitPort }: ConstructorOption) {
-    this.core = core
-    this.audioPort = audioPort
-    this.emitter = new Emitter(emitPort)
+  private constructor(
+    private core: WasmEmulator,
+    private audio: AudioSender,
+    private emitter: Emitter<ServerSideEvent>,
+    responsePort: MessagePort
+  ) {
     const handlers = this.clientSideEventHandlers()
     this.responser = new Responser(responsePort, handlers)
+    this.run()
+  }
+
+  private emit<Event extends keyof ServerSideEvent>(
+    event: Event,
+    data: EventData<ServerSideEvent, Event>,
+    transfers: Transferable[] = []
+  ) {
+    this.emitter.emit(event, data, transfers)
   }
 
   private run() {
@@ -44,34 +54,32 @@ export class Server {
       const cycles = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
       const res = this.core.update(cycles)
       this.cycles += res.cycles
+      this.emit('set-cycles', { cycles: this.cycles })
       if (res.status === 'ok') {
         return
       } else {
         this.state = State.Aborted
+        this.emit('set-state', { state: State.Aborted })
+        this.emit('log', {
+          level: LogLevel.Error,
+          msg: res.msg
+        })
         return
       }
     }, MS_PER_FRAME)
   }
 
-  public static async create({ audioPort, emitPort, responsePort }: CreateOption) {
+  public static async create({ audioPort, emitPort, responsePort, freqScale }: CreateOption) {
+    const audio = new AudioSender(audioPort)
+    const emitter = new Emitter<ServerSideEvent>(emitPort)
+    self.emulatorLogCallback = (level, msg) => emitter.emit('log', { level: level as any, msg })
+    self.emulatorSerialCallback = (byte) => emitter.emit('serial', { byte })
     await wasmInit()
+    WasmEmulator.initLogger()
     const core = new WasmEmulator()
-    const worker = new Server({
-      core,
-      audioPort,
-      responsePort,
-      emitPort
-    })
-    const emitter = worker.emitter
-    //注册回调
-    self.emulatorLogCallback = (level: LogLevel, msg: string) => {
-      emitter.emit('log', { level, msg })
-    }
-    self.emulatorSerialCallback = (byte: number) => {
-      emitter.emit('serial', { byte })
-    }
-    worker.run()
-    return worker
+    const server = new Server(core, audio, emitter, responsePort)
+    server.freqScale = freqScale
+    return server
   }
 
   private clientSideEventHandlers(): Handlers {
@@ -107,7 +115,6 @@ export class Server {
   private handleSetCanvas(): Handler<'set-canvas'> {
     return ({ canvas }) => {
       const ctx = canvas.getContext('2d')
-      console.log('set canvas')
       if (ctx === null) {
         return [{ status: Err, err: 'set canvas failed! fail to get context' }, []]
       }
@@ -141,13 +148,14 @@ export class Server {
         return [{ status: Err, err: 'cannot start when aborted! Restart First!' }, []]
       }
       if (this.state === State.Running) {
-        this.emitter.emit('log', {
+        this.emit('log', {
           level: LogLevel.Warn,
           msg: 'emulator has been starting...'
         })
         return [{ status: Ok, ret: undefined }, []]
       }
       this.state = State.Running
+      this.emit('set-state', { state: State.Running })
       return [{ status: Ok, ret: undefined }, []]
     }
   }

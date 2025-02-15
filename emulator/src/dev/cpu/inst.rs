@@ -78,7 +78,7 @@ impl CPU {
             CPU::inst_0x33_inc_sp,
             CPU::inst_0x34_inc_mhl,
             CPU::inst_0x35_dec_mhl,
-            CPU::inst_0x36_ld_mdl_imm8,
+            CPU::inst_0x36_ld_mhl_imm8,
             CPU::inst_0x37_scf,
             CPU::inst_0x38_jr_c_imm8,
             CPU::inst_0x39_add_hl_sp,
@@ -1063,7 +1063,7 @@ impl CPU {
 
 /// LD (16 bits register pointers to memory), immediate 8bit data
 impl CPU {
-    fn inst_0x36_ld_mdl_imm8(&mut self, bus: &mut Bus) -> InstExecResult {
+    fn inst_0x36_ld_mhl_imm8(&mut self, bus: &mut Bus) -> InstExecResult {
         let word = self.read_word(bus)?;
         let hl = self.hl();
         bus.write(hl, word)?;
@@ -1166,17 +1166,18 @@ impl CPU {
 }
 
 impl CPU {
+    /// TODO
     /// LD HL, SP + imme8
     fn inst_0xf8_ld_hl_sp_imm8(&mut self, bus: &mut Bus) -> InstExecResult {
-        let imm8 = self.read_word(bus)?;
-        let imm8 = imm8 as i8 as i16;
         self.zero_flag_mut().clear();
         self.negative_flag_mut().clear();
+        let imm8 = self.read_word(bus)? as i8 as i16;
         let sp = self.sp() as i16;
         let result = sp.wrapping_add(imm8);
         let check = sp ^ imm8 ^ result;
         self.half_carry_flag_mut().set_value(check & 0x10 != 0);
         self.carry_flag_mut().set_value(check & 0x100 != 0);
+        *self.hl_mut() = result as DWord;
         Ok(12)
     }
 }
@@ -1247,16 +1248,16 @@ impl CPU {
 impl CPU {
     /// JP imme16
     fn inst_0xc3_jp_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let addr = self.read_dword(bus)?;
-        self.jp(addr);
+        let target = self.read_dword(bus)?;
+        self.jp(target);
         Ok(16)
     }
 
     /// JP NZ, imme16
     fn inst_0xc2_jp_nz_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if !self.regs.zero_flag() {
-            self.jp(jump_to);
+            self.jp(target);
             Ok(16)
         } else {
             Ok(12)
@@ -1265,9 +1266,9 @@ impl CPU {
 
     /// JP Z, imme16
     fn inst_0xca_jp_z_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if self.regs.zero_flag() {
-            self.jp(jump_to);
+            self.jp(target);
             Ok(16)
         } else {
             Ok(12)
@@ -1276,9 +1277,9 @@ impl CPU {
 
     /// JP NC, imme16
     fn inst_0xd2_jp_nc_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if !self.regs.carry_flag() {
-            self.jp(jump_to);
+            self.jp(target);
             Ok(16)
         } else {
             Ok(12)
@@ -1287,9 +1288,9 @@ impl CPU {
 
     /// JP C, imme16
     fn inst_0xda_jp_c_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if self.regs.carry_flag() {
-            self.jp(jump_to);
+            self.jp(target);
             Ok(16)
         } else {
             Ok(12)
@@ -1435,20 +1436,20 @@ impl CPU {
 
     /// CALL imme16
     fn inst_0xcd_call_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         let pc = self.pc();
         self.push_dword(bus, pc)?;
-        self.jp(jump_to);
+        self.jp(target);
         Ok(24)
     }
 
     /// CALL NZ, imme16
     fn inst_0xc4_call_nz_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if !self.regs.zero_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
-            self.jp(jump_to);
+            self.jp(target);
             Ok(24)
         } else {
             Ok(12)
@@ -1457,11 +1458,11 @@ impl CPU {
 
     /// CALL Z, imme16
     fn inst_0xcc_call_z_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if self.regs.zero_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
-            self.jp(jump_to);
+            self.jp(target);
             Ok(24)
         } else {
             Ok(12)
@@ -1470,11 +1471,11 @@ impl CPU {
 
     /// CALL NC, imme16
     fn inst_0xd4_call_nc_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if !self.regs.carry_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
-            self.jp(jump_to);
+            self.jp(target);
             Ok(24)
         } else {
             Ok(12)
@@ -1483,11 +1484,11 @@ impl CPU {
 
     /// CALL C, imme16
     fn inst_0xdc_call_c_imm16(&mut self, bus: &mut Bus) -> InstExecResult {
-        let jump_to = self.read_dword(bus)?;
+        let target = self.read_dword(bus)?;
         if self.regs.carry_flag() {
             let pc = self.pc();
             self.push_dword(bus, pc)?;
-            self.jp(jump_to);
+            self.jp(target);
             Ok(24)
         } else {
             Ok(12)
@@ -1849,7 +1850,7 @@ impl CPU {
     fn add_a_with(&mut self, rhs: Word) {
         let lhs = self.a() as u32;
         let rhs = rhs as u32;
-        let result = lhs.wrapping_add(rhs);
+        let result = lhs + rhs;
         self.negative_flag_mut().clear();
         self.zero_flag_mut().set_value(result & 0xFF == 0);
         self.half_carry_flag_mut()
@@ -1917,7 +1918,7 @@ impl CPU {
     fn add_hl_with(&mut self, rhs: DWord) {
         let lhs = self.hl() as u32;
         let rhs = rhs as u32;
-        let result = lhs.wrapping_add(rhs);
+        let result = lhs + rhs;
         self.negative_flag_mut().clear();
         self.half_carry_flag_mut()
             .set_value(lhs & 0xFFF + rhs & 0xFFF > 0xFFF);
@@ -1952,8 +1953,7 @@ impl CPU {
     /// ADD SP, imm8
     fn inst_0xe8_add_sp_imm8(&mut self, bus: &mut Bus) -> InstExecResult {
         let lhs = self.sp();
-        let imm8 = self.read_word(bus)?;
-        let imm8 = imm8 as i8 as DWord;
+        let imm8 = self.read_word(bus)? as i8 as i16 as DWord;
         let result = lhs.wrapping_add(imm8);
         let check = lhs ^ result ^ imm8;
         *self.sp_mut() = result;
@@ -2086,11 +2086,11 @@ impl CPU {
     }
 
     fn sbc_a_with(&mut self, rhs: Word) {
-        let carry: Word = if self.carry_flag() { 1 } else { 0 };
-        let lhs = self.a();
-        let rhs = rhs;
+        let carry = if self.carry_flag() { 1 } else { 0 };
+        let lhs = self.a() as u32;
+        let rhs = rhs as u32;
         let result = lhs.wrapping_sub(rhs).wrapping_sub(carry);
-        self.zero_flag_mut().set_value(result == 0);
+        self.zero_flag_mut().set_value(result & 0xFF == 0);
         self.negative_flag_mut().set();
         self.half_carry_flag_mut()
             .set_value(lhs & 0xF < rhs & 0xF + carry);
@@ -2461,6 +2461,8 @@ impl CPU {
         let carry = a.at(7);
         let val = a << 1 | carry;
         *self.a_mut() = val;
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
         self.zero_flag_mut().clear();
         self.carry_flag_mut().set_value(carry != 0);
         Ok(4)
@@ -2471,6 +2473,8 @@ impl CPU {
         let carry = a.at(0);
         let val = a >> 1 | carry << 7;
         *self.a_mut() = val;
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
         self.zero_flag_mut().clear();
         self.carry_flag_mut().set_value(carry != 0);
         Ok(4)
@@ -2481,6 +2485,8 @@ impl CPU {
         let new_carry = a.at(7);
         let new_val = a << 1 | if self.carry_flag() { 1 } else { 0 };
         *self.a_mut() = new_val;
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
         self.zero_flag_mut().clear();
         self.carry_flag_mut().set_value(new_carry != 0);
         Ok(4)
@@ -2489,8 +2495,10 @@ impl CPU {
     fn inst_0x1f_rra(&mut self, _: &mut Bus) -> InstExecResult {
         let a = self.a();
         let new_carry = a.at(0);
-        let new_val = a >> 1 | if self.carry_flag() { 1 } else { 0 } << 7;
+        let new_val = a >> 1 | (if self.carry_flag() { 1 } else { 0 }) << 7;
         *self.a_mut() = new_val;
+        self.negative_flag_mut().clear();
+        self.half_carry_flag_mut().clear();
         self.zero_flag_mut().clear();
         self.carry_flag_mut().set_value(new_carry != 0);
         Ok(4)
