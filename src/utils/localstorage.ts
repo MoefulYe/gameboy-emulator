@@ -20,9 +20,9 @@ const setItem = <T extends T4>(key: LocalStorageKey<T>, val: T) => {
   localStorage.setItem(key, serded)
 }
 
-export function useLocalStorage<T extends T4>(key: string, defaultVal: T): Ref<T>
 export function useLocalStorage<T extends T4>(key: LocalStorageKey<T>): Ref<T | undefined>
 export function useLocalStorage<T extends T4>(key: LocalStorageKey<T>, defaultVal: T): Ref<T>
+export function useLocalStorage<T extends T4>(key: string, defaultVal: T): Ref<T>
 
 export function useLocalStorage<T extends T4>(
   key: LocalStorageKey<T>,

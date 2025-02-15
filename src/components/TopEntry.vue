@@ -31,7 +31,7 @@ import SideBar, { sideBarShowKey } from './SideBar'
 import Popup, { popupShowKey } from './Popup'
 import { useDocumentListener } from '@/utils/hooks'
 
-const sidebarShow = ref(true)
+const sidebarShow = ref(false)
 const popupShow = ref(false)
 provide(sideBarShowKey, sidebarShow)
 provide(popupShowKey, popupShow)
@@ -80,10 +80,10 @@ const ASIDE_RESIZABLE_CONFIG = {
 }
 
 .popup-enter-active {
-  animation: fade-in 50ms;
+  animation: fade-in 200ms;
 }
 .popup-leave-active {
-  animation: fade-in 50ms reverse;
+  animation: fade-in 200ms reverse;
 }
 
 @keyframes fade-in {

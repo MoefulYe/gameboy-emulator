@@ -18,7 +18,7 @@ const logOpen = useLocalStorage<boolean>('sidebar-log', true)
 
 <template>
   <aside
-    class="bg-coolgray-50 m-8 p-4 rounded-md min-w-36 text-coolgray-7 b-(1 coolgray-2) text-lg max-h-full overflow-auto no-scroller"
+    class="bg-coolgray-50 m-8 p-4 rounded-md min-w-36 text-coolgray-7 b-(1 coolgray-2) text-lg max-h-full overflow-auto no-scroller shadow-sm"
   >
     <MyCollapse title="Basic" v-model:open="basicOpen">
       <SummaryDisplay />
