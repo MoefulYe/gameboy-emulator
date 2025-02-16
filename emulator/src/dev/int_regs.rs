@@ -14,6 +14,14 @@ pub const INT_TIMER_MASK: Word = 1 << INT_TIMER;
 pub const INT_LCD_STAT_MASK: Word = 1 << INT_LCD_STAT;
 pub const INT_VBLANK_MASK: Word = 1 << INT_VBLANK;
 
+pub type IRQ = Word;
+pub const IRQ_JOYPAD: IRQ = 1 << INT_JOYPAD;
+pub const IRQ_SERIAL: IRQ = 1 << INT_SERIAL;
+pub const IRQ_TIMER: IRQ = 1 << INT_TIMER;
+pub const IRQ_LCD_STAT: IRQ = 1 << INT_LCD_STAT;
+pub const IRQ_VBLANK: IRQ = 1 << INT_VBLANK;
+pub const IRQ_NONE: IRQ = 0;
+
 pub const INT_JOYPAD_ENTRY: Addr = 0x60;
 pub const INT_SERIAL_ENTRY: Addr = 0x58;
 pub const INT_TIMER_ENTRY: Addr = 0x50;
@@ -61,53 +69,32 @@ impl InterruptFlagRegister {
         self.0 = new_val;
     }
 
-    #[inline]
     pub fn val(self) -> Word {
         self.0
     }
 
-    fn set_at(&mut self, pos: u8) {
-        self.0 = self.0.set_at(pos)
+    pub fn add(&mut self, irq: IRQ) {
+        self.0 = self.0 | irq
     }
 
     fn clear_at(&mut self, pos: u8) {
         self.0 = self.0.clear_at(pos)
     }
 
-    pub fn set_timer_int(&mut self) {
-        self.set_at(INT_TIMER)
-    }
-
     pub fn clear_timer_int(&mut self) {
         self.clear_at(INT_TIMER)
-    }
-
-    pub fn set_serial_int(&mut self) {
-        self.set_at(INT_SERIAL)
     }
 
     pub fn clear_serial_int(&mut self) {
         self.clear_at(INT_SERIAL)
     }
 
-    pub fn set_joypad_int(&mut self) {
-        self.set_at(INT_JOYPAD)
-    }
-
     pub fn clear_joypad_int(&mut self) {
         self.clear_at(INT_JOYPAD)
     }
 
-    pub fn set_lcd_stat_int(&mut self) {
-        self.set_at(INT_LCD_STAT)
-    }
-
     pub fn clear_lcd_stat_int(&mut self) {
         self.clear_at(INT_LCD_STAT)
-    }
-
-    pub fn set_vblank_int(&mut self) {
-        self.set_at(INT_VBLANK)
     }
 
     pub fn clear_vblank_int(&mut self) {

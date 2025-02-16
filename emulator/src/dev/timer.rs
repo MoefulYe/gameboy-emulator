@@ -5,7 +5,10 @@ use crate::{
     utils::bits::BitMap,
 };
 
-use super::{BusDevice, Tick, TickResult};
+use super::{
+    int_regs::{IRQ, IRQ_NONE, IRQ_TIMER},
+    BusDevice, Tick,
+};
 
 const TIMER_DIV_REG_ADDR: Addr = 0xFF04;
 const TIMER_TIMA_REG_ADDR: Addr = 0xFF05;
@@ -84,12 +87,12 @@ impl BusDevice for Timer {
 }
 
 impl Tick for Timer {
-    fn tick(&mut self) -> TickResult {
+    fn tick(&mut self) -> IRQ {
         let prev = self.div;
         let cur = prev.wrapping_add(1);
         self.div = cur;
         if self.disabled() {
-            return TickResult::Ok;
+            return IRQ_NONE;
         }
         // ref https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff07--tac-timer-control
         let pos: DWord = match self.clock_select() {
@@ -102,13 +105,13 @@ impl Tick for Timer {
         };
         let update_tima = prev.test(pos) && !cur.test(pos);
         if !update_tima {
-            TickResult::Ok
+            IRQ_NONE
         } else if self.tima == Word::MAX {
             self.tima = self.tma;
-            TickResult::IntReq
+            IRQ_TIMER
         } else {
             self.tima += 1;
-            TickResult::Ok
+            IRQ_NONE
         }
     }
 }

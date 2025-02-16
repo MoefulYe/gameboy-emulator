@@ -9,7 +9,7 @@ use crate::{
             CPU,
         },
     },
-    error::{EmuErr, EmuResult, EmulatorError},
+    error::{EmuErr, EmuResult, IllegalInstruction, StopInstruction},
     types::{Addr, ClockCycle, DWord, OpCode, Word},
     utils::bits::BitMap,
 };
@@ -553,7 +553,7 @@ impl CPU {
     fn inst_illegal(&mut self, bus: &mut Bus) -> InstExecResult {
         let addr = self.pc() - 1;
         let opcode = bus.read(addr)?;
-        EmuErr(EmulatorError::IllegalInstruction { opcode, addr })
+        EmuErr(IllegalInstruction { opcode, addr })
     }
 
     fn inst_0x76_halt(&mut self, _: &mut Bus) -> InstExecResult {
@@ -563,7 +563,7 @@ impl CPU {
 
     fn inst_0x10_stop(&mut self, _: &mut Bus) -> InstExecResult {
         let addr = self.pc() - 1;
-        EmuErr(EmulatorError::StopInstruction { addr })
+        EmuErr(StopInstruction { addr })
     }
 
     fn inst_0xf3_di(&mut self, _: &mut Bus) -> InstExecResult {

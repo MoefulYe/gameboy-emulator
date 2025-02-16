@@ -6,16 +6,18 @@ use super::{
         INT_SERIAL_ENTRY, INT_SERIAL_MASK, INT_TIMER_ENTRY, INT_TIMER_MASK, INT_VBLANK_ENTRY,
         INT_VBLANK_MASK,
     },
-    rams::{HighRam, ObjectAttributeMem, VedioRam, WorkRam},
-    serial::{Serial, SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED, SERIAL_TRANSFER_ADDR_LOW_BOUND},
+    ppu::{PPU, PPU_ADDR_HIGH_BOUND_INCLUDED, PPU_ADDR_LOW_BOUND},
+    rams::{HighRam, WRAM},
+    serial::{Serial, SERIAL_ADDR_HIGH_BOUND_INCLUDED, SERIAL_ADDR_LOW_BOUND},
     timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
     BusDevice, Tick,
 };
 use crate::{
-    error::{EmuErr, EmuResult, EmulatorError, NoCartridge},
+    error::{EmuErr, EmuResult, NoCartridge},
     types::{Addr, Word},
 };
 use log::warn;
+use web_sys::OffscreenCanvasRenderingContext2d;
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -32,10 +34,9 @@ use log::warn;
 /// 写操作非法地址不做任何操作
 pub struct Bus {
     cartridge: Option<Cartridge>,
-    vram: VedioRam,
-    wram: WorkRam,
-    oam: ObjectAttributeMem,
+    wram: WRAM,
     serial: Serial,
+    ppu: PPU,
     timer: Timer,
     hram: HighRam,
     int_flag_reg: InterruptFlagRegister,
@@ -46,10 +47,9 @@ impl Bus {
     pub fn new() -> Self {
         Bus {
             cartridge: None,
-            vram: VedioRam::new(),
-            wram: WorkRam::new(),
-            oam: ObjectAttributeMem::new(),
+            wram: WRAM::new(),
             serial: Serial::new(),
+            ppu: PPU::new(),
             timer: Timer::new(),
             int_flag_reg: InterruptFlagRegister::new(),
             hram: HighRam::new(),
@@ -68,12 +68,11 @@ impl Bus {
                     return EmuErr(NoCartridge);
                 }
             }
-            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.read(addr),
+            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram().read(addr),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.read(addr),
-            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.read(addr),
-            SERIAL_TRANSFER_ADDR_LOW_BOUND..=SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED => {
-                self.serial.read(addr)
-            }
+            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam().read(addr),
+            SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => self.serial.read(addr),
+            PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.read(addr),
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.read(addr),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.read(),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
@@ -97,12 +96,13 @@ impl Bus {
                     return EmuErr(NoCartridge);
                 }
             }
-            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.vram.write(addr, data),
+            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram_mut().write(addr, data),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
-            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.oam.write(addr, data),
-            SERIAL_TRANSFER_ADDR_LOW_BOUND..=SERIAL_TRANSFER_ADDR_HIGH_BOUND_INCLUDED => {
+            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam_mut().write(addr, data),
+            SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => {
                 self.serial.write(addr, data)
             }
+            PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.write(addr, data),
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.write(addr, data),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.write(data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),
@@ -117,14 +117,11 @@ impl Bus {
     }
 
     pub fn tick(&mut self) {
-        let timer_int = self.timer.tick().int_req();
-        if timer_int {
-            self.int_flag_reg.set_timer_int();
-        }
-        let serial_int = self.serial.tick().int_req();
-        if serial_int {
-            self.int_flag_reg.set_serial_int();
-        }
+        let irq0 = self.timer.tick();
+        let irq1 = self.serial.tick();
+        let irq2 = self.ppu.tick();
+        let irq = irq0 | irq1 | irq2;
+        self.int_flag_reg.add(irq);
     }
     /// 是否有中断事件等待处理
     pub fn has_int(&self) -> bool {
@@ -172,6 +169,10 @@ impl Bus {
     }
     pub fn plugout_cart(&mut self) {
         self.cartridge = None
+    }
+
+    pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+        self.ppu.set_canvas(canvas)
     }
 }
 

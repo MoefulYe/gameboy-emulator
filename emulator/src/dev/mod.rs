@@ -1,4 +1,5 @@
 use crate::types::{Addr, Word};
+use int_regs::IRQ;
 use log::warn;
 use std::default::Default;
 
@@ -38,20 +39,8 @@ pub trait BusDevice {
     }
 }
 
-#[derive(PartialEq, Eq)]
-pub enum TickResult {
-    IntReq,
-    Ok,
-}
-
-impl TickResult {
-    pub fn int_req(self) -> bool {
-        self == TickResult::IntReq
-    }
-}
-
 pub trait Tick: BusDevice {
-    fn tick(&mut self) -> TickResult;
+    fn tick(&mut self) -> IRQ;
 }
 
 pub use bus::Bus;

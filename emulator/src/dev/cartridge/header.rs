@@ -1,5 +1,5 @@
 use super::{CartridgeInfo, Rom};
-use crate::error::EmulatorError;
+use crate::error::{EmulatorError, InvalidChecksum, InvalidLogo};
 use core::mem::offset_of;
 
 const KB: usize = 1024;
@@ -55,7 +55,7 @@ impl Header {
         if &self.nintendo_logo == CORRECT_LOGO {
             None
         } else {
-            Some(EmulatorError::InvalidLogo {
+            Some(InvalidLogo {
                 expected: CORRECT_LOGO,
                 actual: self.nintendo_logo,
             })
@@ -111,7 +111,7 @@ impl Header {
         if sum == self.checksum {
             None
         } else {
-            Some(EmulatorError::InvalidChecksum {
+            Some(InvalidChecksum {
                 expected: sum,
                 actual: self.checksum,
             })

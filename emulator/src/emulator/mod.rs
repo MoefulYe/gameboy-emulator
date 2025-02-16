@@ -1,7 +1,7 @@
 use crate::{
     dev::{Bus, PluginCartResult, CPU},
     dump::CPUStateDump,
-    error::{EmuResult, EmulatorError},
+    error::{EmuResult, EmulatorError, RunWhenAborting},
     log,
     types::ClockCycle,
 };
@@ -37,7 +37,7 @@ impl Emulator {
     pub fn step(&mut self) -> EmulatorStepResult {
         use EmulatorStepResult::*;
         if self.aborted {
-            let msg = self.handle_err(EmulatorError::RunWhenAborting);
+            let msg = self.handle_err(RunWhenAborting);
             let cpu_state = self.cpu.dump(&mut self.bus);
             return Abort {
                 msg,
@@ -76,7 +76,7 @@ impl Emulator {
     pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
         use EmulatorUpdateResult::*;
         if self.aborted {
-            let msg = self.handle_err(EmulatorError::RunWhenAborting);
+            let msg = self.handle_err(RunWhenAborting);
             let cpu_state = self.cpu.dump(&self.bus);
             return Abort {
                 msg,
@@ -115,7 +115,9 @@ impl Emulator {
     }
 
     #[wasm_bindgen(js_name = setCanvas)]
-    pub fn set_canvas(&mut self, canvas_ctx: OffscreenCanvasRenderingContext2d) {}
+    pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+        self.bus.set_canvas(canvas)
+    }
 
     #[wasm_bindgen(js_name = plugoutCart)]
     pub fn plugout_cart(&mut self) {
