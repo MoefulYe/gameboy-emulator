@@ -47,3 +47,6 @@ export const DEFAULT_VOLUME = 50
 
 export const Ok = Status.Ok
 export const Err = Status.Err
+
+export const TILE_BITMAP_WIDTH = 128
+export const TILE_BITMAP_HEIGHT = 192

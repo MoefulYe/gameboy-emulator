@@ -24,6 +24,13 @@ export type ClientSideEvent = {
     ret: undefined
     err: string
   }
+  'tile-canvas': {
+    args: {
+      canvas: OffscreenCanvas
+    }
+    ret: undefined
+    err: string
+  }
   'btn-action': {
     args: Readonly<GameboyLayoutButtons>
     ret: undefined

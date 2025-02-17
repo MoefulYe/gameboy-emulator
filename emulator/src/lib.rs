@@ -1,3 +1,4 @@
+#![feature(exact_size_is_empty)]
 pub mod dev;
 pub mod dump;
 pub mod emulator;

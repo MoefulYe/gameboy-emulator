@@ -33,14 +33,14 @@ use web_sys::OffscreenCanvasRenderingContext2d;
 /// 读取非法地址返回0xFF
 /// 写操作非法地址不做任何操作
 pub struct Bus {
-    cartridge: Option<Cartridge>,
-    wram: WRAM,
-    serial: Serial,
-    ppu: PPU,
-    timer: Timer,
-    hram: HighRam,
-    int_flag_reg: InterruptFlagRegister,
-    int_mask_reg: InterruptMaskRegsiter,
+    pub cartridge: Option<Cartridge>,
+    pub wram: WRAM,
+    pub serial: Serial,
+    pub ppu: PPU,
+    pub timer: Timer,
+    pub hram: HighRam,
+    pub int_flag_reg: InterruptFlagRegister,
+    pub int_mask_reg: InterruptMaskRegsiter,
 }
 
 impl Bus {
@@ -153,14 +153,6 @@ impl Bus {
         }
     }
 
-    pub fn serial(&self) -> &Serial {
-        &self.serial
-    }
-
-    pub fn serial_mut(&mut self) -> &mut Serial {
-        &mut self.serial
-    }
-
     pub fn plugin_cart(&mut self, cartridge: Box<[u8]>) -> PluginCartResult {
         let cartridge = Cartridge::new(cartridge);
         let res = cartridge.check_and_get_info();
@@ -169,10 +161,6 @@ impl Bus {
     }
     pub fn plugout_cart(&mut self) {
         self.cartridge = None
-    }
-
-    pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.ppu.set_canvas(canvas)
     }
 }
 

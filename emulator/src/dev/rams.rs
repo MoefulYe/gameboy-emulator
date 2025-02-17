@@ -6,11 +6,11 @@ use crate::{
     dev::BusDevice,
     types::{Addr, Word},
 };
-pub struct WRAM([Word; WRAM_SIZE]);
+pub struct WRAM(pub Box<[Word; WRAM_SIZE]>);
 
 impl Default for WRAM {
     fn default() -> Self {
-        Self([0; WRAM_SIZE])
+        Self(Box::new([0; WRAM_SIZE]))
     }
 }
 
@@ -30,11 +30,11 @@ impl WRAM {
     }
 }
 
-pub struct VRAM([Word; VRAM_SIZE]);
+pub struct VRAM(pub Box<[Word; VRAM_SIZE]>);
 
 impl Default for VRAM {
     fn default() -> Self {
-        Self([0; VRAM_SIZE])
+        Self(Box::new([0; VRAM_SIZE]))
     }
 }
 
@@ -54,11 +54,11 @@ impl VRAM {
     }
 }
 
-pub struct OAM([Word; OAM_SIZE]);
+pub struct OAM(pub Box<[Word; OAM_SIZE]>);
 
 impl Default for OAM {
     fn default() -> Self {
-        Self([0; OAM_SIZE])
+        Self(Box::new([0; OAM_SIZE]))
     }
 }
 
@@ -78,11 +78,11 @@ impl OAM {
     }
 }
 
-pub struct HighRam([Word; HRAM_SIZE]);
+pub struct HighRam(pub Box<[Word; HRAM_SIZE]>);
 
 impl Default for HighRam {
     fn default() -> Self {
-        Self([0; HRAM_SIZE])
+        Self(Box::new([0; HRAM_SIZE]))
     }
 }
 

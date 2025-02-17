@@ -5,7 +5,7 @@ use super::{
 use crate::{
     external::emulator_serial_callback,
     types::{Addr, Word},
-    utils::bits::{BitMap, BitProxy},
+    utils::bits::BitMap,
 };
 use log::warn;
 

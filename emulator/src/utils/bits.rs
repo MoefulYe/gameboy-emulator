@@ -18,12 +18,12 @@ impl<'a> BitProxy<'a> {
         *self.byte |= 1 << self.pos;
     }
 
-    pub fn flip(&mut self) {
-        *self.byte ^= 1 << self.pos;
-    }
-
     pub fn clear(&mut self) {
         *self.byte &= !(1 << self.pos);
+    }
+
+    pub fn flip(&mut self) {
+        *self.byte ^= 1 << self.pos;
     }
 
     pub fn setval(&mut self, val: bool) {

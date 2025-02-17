@@ -30,6 +30,7 @@ export class Client {
   public readonly config: Config
   public readonly stat = useStat()
   public readonly gamepad: EmuGamepad
+  public tilesCanvas?: ImageBitmapRenderingContext
 
   constructor({ listenPort, requestPort, audioPort, server, config, db }: CreateOption) {
     this.config = config
@@ -123,6 +124,22 @@ export class Client {
       }
       const canvas = el.transferControlToOffscreen()
       const res = await this.request('set-canvas', { canvas }, [canvas])
+      if (res.status === Err) {
+        const msg = res.err
+        log(LogLevel.Error, msg)
+        return
+      }
+    })
+  }
+
+  public async useTilesCanvas(elRef: Readonly<ShallowRef<HTMLCanvasElement | null>>) {
+    onMounted(async () => {
+      const el = elRef.value
+      if (el === null) {
+        return
+      }
+      const canvas = el.transferControlToOffscreen()
+      const res = await this.request('tile-canvas', { canvas }, [canvas])
       if (res.status === Err) {
         const msg = res.err
         log(LogLevel.Error, msg)

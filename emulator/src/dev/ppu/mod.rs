@@ -1,6 +1,10 @@
+use std::{mem::size_of, ptr::slice_from_raw_parts};
+
+use graphic::{decode_tiles, Palette, TilesBitmap, TILES_HEIGHT, TILES_WIDTH};
+use js_sys::Uint8ClampedArray;
 use lcdc::{LCDControl, PPU_ENABLE_POS};
 use lcds::{LCDStat, WorkMode};
-use web_sys::OffscreenCanvasRenderingContext2d;
+use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
 
 use crate::{
     types::{Addr, Word},
@@ -13,6 +17,7 @@ use super::{
     BusDevice, Reset, Tick,
 };
 
+mod graphic;
 mod lcdc;
 mod lcds;
 
@@ -37,6 +42,12 @@ const PPU_LINES_PER_FRAME: u8 = 154;
 const PPU_CYCLES_PER_LINE: u32 = 456;
 const PPU_YRES: Word = 144;
 const PPU_XRES: Word = 160;
+const PLAETTE: Palette = [
+    [0xff, 0xff, 0xff, 0xff],
+    [0xaa, 0xaa, 0xaa, 0xff],
+    [0x55, 0x55, 0x55, 0xff],
+    [0x00, 0x00, 0x00, 0xff],
+];
 
 pub struct PPU {
     /// 0xFF40
@@ -63,14 +74,29 @@ pub struct PPU {
     wx: Word,
     /// 0xFF4B
     wy: Word,
-    canvas: Option<OffscreenCanvasRenderingContext2d>,
     ticks: u32,
+    palette: Palette,
     oam: OAM,
     vram: VRAM,
+    canvas: Option<OffscreenCanvasRenderingContext2d>,
+    tiles_canvas: Option<OffscreenCanvasRenderingContext2d>,
+    tiles_buffer: Box<TilesBitmap>,
+    tiles_image_data: ImageData,
 }
 
 impl PPU {
     pub fn new() -> Self {
+        let tiles_buffer = Box::new([[[0; 4]; 128]; 192]);
+        let _tiles_buffer = unsafe {
+            &*slice_from_raw_parts(tiles_buffer.as_ptr() as *const u8, size_of::<TilesBitmap>())
+        };
+        let u8s = unsafe { Uint8ClampedArray::view(_tiles_buffer) };
+        let tiles_image_data = ImageData::new_with_js_u8_clamped_array_and_sh(
+            &u8s,
+            TILES_WIDTH as _,
+            TILES_HEIGHT as _,
+        )
+        .unwrap();
         Self {
             lcdc: LCDControl::new(0b10010001),
             lcds: LCDStat::new(0x2),
@@ -88,6 +114,10 @@ impl PPU {
             oam: OAM::new(),
             vram: VRAM::new(),
             canvas: None,
+            tiles_canvas: None,
+            palette: PLAETTE,
+            tiles_buffer,
+            tiles_image_data,
         }
     }
 
@@ -125,6 +155,19 @@ impl PPU {
 
     pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
         self.canvas = Some(canvas)
+    }
+
+    pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+        self.tiles_canvas = Some(canvas)
+    }
+
+    pub fn decode_tiles(&mut self) {
+        if let Some(canvas) = &self.tiles_canvas {
+            decode_tiles(self.vram.0.as_ref(), &self.palette, &mut self.tiles_buffer);
+            canvas
+                .put_image_data(&self.tiles_image_data, 0.0, 0.0)
+                .unwrap();
+        }
     }
 }
 

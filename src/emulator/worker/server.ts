@@ -1,5 +1,13 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
-import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME, Ok, Err } from '../constants'
+import {
+  State,
+  LogLevel,
+  BASE_FREQ_HZ,
+  VISUAL_FREQ_HZ,
+  MS_PER_FRAME,
+  TILE_BITMAP_WIDTH as TILES_BITMAP_WIDTH,
+  TILE_BITMAP_HEIGHT as TILES_BITMAP_HEIGHT
+} from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
 import { NONE, Responser, Right, Throw } from '@/utils/event/client_side_event'
@@ -21,10 +29,8 @@ type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEve
 
 export class Server {
   responser: Responser<ClientSideEvent>
-
   freqScale = 1.0
   state = State.Shutdown
-  cycles = 0
   get freqHz() {
     return BASE_FREQ_HZ * this.freqScale
   }
@@ -38,7 +44,7 @@ export class Server {
   ) {
     const handlers = this.clientSideEventHandlers()
     this.responser = new Responser(responsePort, handlers)
-    this.run()
+    this.poll()
   }
 
   private emit<Event extends keyof ServerSideEvent>(
@@ -62,11 +68,49 @@ export class Server {
     return server
   }
 
+  private handleStep(): Handler<'step'> {
+    return () => {
+      if (this.state === State.Aborted) {
+        this.emit('log', {
+          level: LogLevel.Warn,
+          msg: 'step when aborted! restart first!'
+        })
+      } else {
+        if (this.state !== State.Paused) {
+          this.state = State.Paused
+          this.emit('update', { state: State.Paused })
+        }
+        this.update(1)
+      }
+      return NONE
+    }
+  }
+
+  private poll() {
+    every(() => {
+      if (this.state !== State.Running) return
+      const toExec = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
+      this.update(toExec)
+    }, MS_PER_FRAME)
+  }
+
+  private update(cyclesToExec: number) {
+    const { err, cpu, cycles } = this.core.update(cyclesToExec)
+    if (err === null) {
+      this.emit('update', { cpu, cycles })
+    } else {
+      this.state = State.Aborted
+      this.emit('update', { state: State.Aborted, cycles, cpu })
+      this.emit('log', { level: LogLevel.Error, msg: err })
+    }
+  }
+
   private clientSideEventHandlers(): Handlers {
     return {
       'load-rom': this.handleLoadRom(),
       ping: this.handlePing(),
       'set-canvas': this.handleSetCanvas(),
+      'tile-canvas': this.handleSetTileCanvas(),
       'btn-action': this.handleBtnAction(),
       'set-fscale': this.handleSetFScale(),
       start: this.handleStart(),
@@ -101,6 +145,17 @@ export class Server {
         return Throw('set canvas failed! fail to get context')
       }
       this.core.setCanvas(ctx)
+      return NONE
+    }
+  }
+
+  private handleSetTileCanvas(): Handler<'tile-canvas'> {
+    return ({ canvas }) => {
+      const ctx = canvas.getContext('2d')
+      if (ctx === null) {
+        return Throw('set tiles canvas failed! fail to get context')
+      }
+      this.core.setTilesCanvas(ctx)
       return NONE
     }
   }
@@ -167,51 +222,5 @@ export class Server {
       }
       return NONE
     }
-  }
-
-  private handleStep(): Handler<'step'> {
-    return () => {
-      if (this.state === State.Aborted) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'step when aborted! restart first!'
-        })
-      } else {
-        if (this.state !== State.Paused) {
-          this.state = State.Paused
-          this.emit('update', { state: State.Paused })
-        }
-        const res = this.core.step()
-        this.cycles += res.cycles
-        if (res.status === 'ok') {
-          const { cpu } = res
-          this.emit('update', { cpu, cycles: this.cycles })
-        } else {
-          this.state = State.Aborted
-          const { msg, cpu } = res
-          this.emit('update', { state: State.Aborted, cycles: this.cycles, cpu })
-          this.emit('log', { level: LogLevel.Error, msg })
-        }
-      }
-      return NONE
-    }
-  }
-
-  private run() {
-    every(() => {
-      if (this.state !== State.Running) return
-      const cycles = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
-      const res = this.core.update(cycles)
-      this.cycles += res.cycles
-      if (res.status === 'ok') {
-        const { cpu } = res
-        this.emit('update', { cpu, cycles: this.cycles })
-      } else {
-        this.state = State.Aborted
-        const { cpu, msg } = res
-        this.emit('update', { state: State.Aborted, cycles: this.cycles, cpu })
-        this.emit('log', { level: LogLevel.Error, msg })
-      }
-    }, MS_PER_FRAME)
   }
 }

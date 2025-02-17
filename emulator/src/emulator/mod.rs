@@ -15,7 +15,23 @@ pub struct Emulator {
     cpu: CPU,
     bus: Bus,
     aborted: bool,
+    cycles: ClockCycle,
 }
+
+// Function `__wbg_instanceof_JsType_24d65669860e1289` should have snake_case name, e.g. `__wbg_instanceof_js_type_24d65669860e1289`
+#[allow(non_snake_case)]
+mod tsify_derive {
+    use super::*;
+    #[derive(Serialize, Tsify)]
+    #[tsify(into_wasm_abi)]
+    pub struct EmulatorUpdateResult {
+        pub cycles: ClockCycle,
+        pub cpu: CPUStateDump,
+        pub err: Option<String>,
+    }
+}
+
+pub use tsify_derive::EmulatorUpdateResult;
 
 #[wasm_bindgen(js_class = WasmEmulator)]
 impl Emulator {
@@ -25,6 +41,7 @@ impl Emulator {
             cpu: CPU::new(),
             bus: Bus::new(),
             aborted: false,
+            cycles: 0,
         }
     }
 
@@ -33,56 +50,17 @@ impl Emulator {
         log::init_logger();
     }
 
-    #[wasm_bindgen(js_name = step)]
-    pub fn step(&mut self) -> EmulatorStepResult {
-        use EmulatorStepResult::*;
-        if self.aborted {
-            let msg = self.handle_err(RunWhenAborting);
-            let cpu_state = self.cpu.dump(&mut self.bus);
-            return Abort {
-                msg,
-                cycles: 0,
-                cpu: cpu_state,
-            };
-        }
-        match self.tick() {
-            EmuResult::Ok(clock) => {
-                let cpu_state = self.cpu.dump(&mut self.bus);
-                Ok {
-                    cycles: clock,
-                    cpu: cpu_state,
-                }
-            }
-            EmuResult::Err(err) => {
-                let msg = self.handle_err(err);
-                let cpu_state = self.cpu.dump(&mut self.bus);
-                Abort {
-                    msg,
-                    cycles: 0,
-                    cpu: cpu_state,
-                }
-            }
-        }
-    }
-
-    #[wasm_bindgen(js_name = reset)]
-    pub fn reset(&mut self) {
-        self.cpu.reset();
-        self.bus.reset();
-        self.aborted = false
-    }
-
     #[wasm_bindgen(js_name = update)]
     pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
-        use EmulatorUpdateResult::*;
+        let err = self._update(cycles);
+        let cpu = self.cpu.dump(&self.bus);
+        let cycles = self.cycles;
+        self.bus.ppu.decode_tiles();
+        EmulatorUpdateResult { cycles, cpu, err }
+    }
+    pub fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
         if self.aborted {
-            let msg = self.handle_err(RunWhenAborting);
-            let cpu_state = self.cpu.dump(&self.bus);
-            return Abort {
-                msg,
-                cycles: 0,
-                cpu: cpu_state,
-            };
+            return self.handle_err(RunWhenAborting);
         }
         let mut clocks = 0;
         while clocks < cycles {
@@ -92,21 +70,11 @@ impl Emulator {
                     clocks += cycles;
                 }
                 EmuResult::Err(err) => {
-                    let msg = self.handle_err(err);
-                    let cpu_state = self.cpu.dump(&self.bus);
-                    return Abort {
-                        msg,
-                        cycles: clocks,
-                        cpu: cpu_state,
-                    };
+                    return self.handle_err(err);
                 }
             }
         }
-        let cpu_state = self.cpu.dump(&self.bus);
-        Ok {
-            cycles: clocks,
-            cpu: cpu_state,
-        }
+        None
     }
 
     #[wasm_bindgen(js_name = pluginCart)]
@@ -116,7 +84,12 @@ impl Emulator {
 
     #[wasm_bindgen(js_name = setCanvas)]
     pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.bus.set_canvas(canvas)
+        self.bus.ppu.set_canvas(canvas)
+    }
+
+    #[wasm_bindgen(js_name = setTilesCanvas)]
+    pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+        self.bus.ppu.set_tiles_canvas(canvas)
     }
 
     #[wasm_bindgen(js_name = plugoutCart)]
@@ -127,9 +100,9 @@ impl Emulator {
     #[wasm_bindgen(js_name = setButtons)]
     pub fn set_buttons(&mut self, btns: u8) {}
 
-    fn handle_err(&mut self, err: impl AsRef<EmulatorError>) -> String {
+    fn handle_err(&mut self, err: impl AsRef<EmulatorError>) -> Option<String> {
         self.aborted = true;
-        err.as_ref().msg()
+        Some(err.as_ref().msg())
     }
 
     fn tick_devices(&mut self, cycles: ClockCycle) {
@@ -141,47 +114,7 @@ impl Emulator {
     fn tick(&mut self) -> EmuResult<ClockCycle> {
         let cycles = self.cpu.tick(&mut self.bus)?;
         self.tick_devices(cycles);
+        self.cycles += cycles;
         Ok(cycles)
     }
 }
-
-// Function `__wbg_instanceof_JsType_24d65669860e1289` should have snake_case name, e.g. `__wbg_instanceof_js_type_24d65669860e1289`
-#[allow(non_snake_case)]
-mod tsify_derive {
-    use super::*;
-    #[derive(Serialize, Tsify)]
-    #[tsify(into_wasm_abi)]
-    #[serde(tag = "status")]
-    pub enum EmulatorUpdateResult {
-        #[serde(rename = "ok")]
-        Ok {
-            cycles: ClockCycle,
-            cpu: CPUStateDump,
-        },
-        #[serde(rename = "abort")]
-        Abort {
-            cycles: ClockCycle,
-            msg: String,
-            cpu: CPUStateDump,
-        },
-    }
-
-    #[derive(Serialize, Tsify)]
-    #[tsify(into_wasm_abi)]
-    #[serde(tag = "status")]
-    pub enum EmulatorStepResult {
-        #[serde(rename = "ok")]
-        Ok {
-            cycles: ClockCycle,
-            cpu: CPUStateDump,
-        },
-        #[serde(rename = "abort")]
-        Abort {
-            cycles: ClockCycle,
-            msg: String,
-            cpu: CPUStateDump,
-        },
-    }
-}
-
-pub use tsify_derive::{EmulatorStepResult, EmulatorUpdateResult};

@@ -46,7 +46,6 @@ impl AsRef<EmulatorError> for EmulatorError {
 pub type BoxedEmulatorError = Box<EmulatorError>;
 pub type EmuResult<T = (), E = BoxedEmulatorError> = std::result::Result<T, E>;
 pub use ignore_upper_camel_case_func::EmuErr;
-pub use EmulatorError::*;
 
 #[allow(non_snake_case)]
 mod ignore_upper_camel_case_func {
