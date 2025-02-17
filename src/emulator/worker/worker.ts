@@ -7,5 +7,3 @@ self.onmessage = async (e: MessageEvent<CreateOption>) => {
   const server = await Server.create(e.data)
   r(server)
 }
-
-const server = await p
