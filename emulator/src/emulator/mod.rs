@@ -5,6 +5,7 @@ use crate::{
     log,
     types::ClockCycle,
 };
+use ::log::info;
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -55,7 +56,8 @@ impl Emulator {
         let err = self._update(cycles);
         let cpu = self.cpu.dump(&self.bus);
         let cycles = self.cycles;
-        self.bus.ppu.decode_tiles();
+        self.bus.ppu.update_tiles();
+        self.bus.ppu.update_screen();
         EmulatorUpdateResult { cycles, cpu, err }
     }
     pub fn _update(&mut self, cycles: ClockCycle) -> Option<String> {

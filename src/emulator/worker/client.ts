@@ -139,6 +139,8 @@ export class Client {
         return
       }
       const canvas = el.transferControlToOffscreen()
+      canvas.width = 128
+      canvas.height = 192
       const res = await this.request('tile-canvas', { canvas }, [canvas])
       if (res.status === Err) {
         const msg = res.err

@@ -26,10 +26,5 @@ impl Log for EmulatorLogger {
 pub fn init_logger() {
     static LOGGER: EmulatorLogger = EmulatorLogger::new();
     log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(LevelFilter::Error)
-}
-
-pub fn unreachable_addr(addr: Addr) -> ! {
-    error!("illegal address 0x{addr:04X}");
-    unreachable!()
+    log::set_max_level(LevelFilter::Trace)
 }

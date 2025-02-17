@@ -1,9 +1,16 @@
-use std::{mem::size_of, ptr::slice_from_raw_parts};
-
-use graphic::{decode_tiles, Palette, TilesBitmap, TILES_HEIGHT, TILES_WIDTH};
-use js_sys::Uint8ClampedArray;
+use bgp::BGP;
+use fetcher::{FetchState, FetchType, Fetcher};
+use graphic::{
+    decode_tiles, Palette, RawPxiel, ScreenBitmap, TilesBitmap, NO_COLOR, PALETTE,
+    PPU_CYCLES_PER_LINE, PPU_LINES_PER_FRAME, PPU_XRES, PPU_YRES, SCREEN_HEIGHT, SCREEN_WIDTH,
+    TILES_HEIGHT, TILES_WIDTH,
+};
+use js_sys::{Uint8Array, Uint8ClampedArray};
+use lcd::LCDDriver;
 use lcdc::{LCDControl, PPU_ENABLE_POS};
 use lcds::{LCDStat, WorkMode};
+use log::{info, warn};
+use std::{collections::VecDeque, convert::TryInto, mem::size_of, ptr::slice_from_raw_parts};
 use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
 
 use crate::{
@@ -17,7 +24,10 @@ use super::{
     BusDevice, Reset, Tick,
 };
 
-mod graphic;
+mod bgp;
+mod fetcher;
+pub mod graphic;
+mod lcd;
 mod lcdc;
 mod lcds;
 
@@ -38,18 +48,33 @@ pub const PPU_ADDR_LOW_BOUND: Addr = LCDC_REG_ADDR;
 pub const PPU_ADDR_HIGH_BOUND_INCLUDED: Addr = WY_REG_ADDR + 1;
 pub const PPU_ADDR_HIGH_BOUND: Addr = WY_REG_ADDR + 1;
 
-const PPU_LINES_PER_FRAME: u8 = 154;
-const PPU_CYCLES_PER_LINE: u32 = 456;
-const PPU_YRES: Word = 144;
-const PPU_XRES: Word = 160;
-const PLAETTE: Palette = [
-    [0xff, 0xff, 0xff, 0xff],
-    [0xaa, 0xaa, 0xaa, 0xff],
-    [0x55, 0x55, 0x55, 0xff],
-    [0x00, 0x00, 0x00, 0xff],
-];
+#[repr(u8)]
+pub enum TileAreaType {
+    From8800To97FF = 0,
+    From8000To8FFF = 1,
+}
+
+impl TileAreaType {
+    /// 给定图块索引号，返回data_area数组下标
+    pub fn addr(self, idx: Word) -> Addr {
+        match self {
+            TileAreaType::From8800To97FF => idx.wrapping_add(128) as Addr + 128,
+            TileAreaType::From8000To8FFF => idx.into(),
+        }
+    }
+}
+
+#[repr(u8)]
+pub enum MapAreaType {
+    From9800To9BFF = 0,
+    From9C00To9FFF = 1,
+}
+
+pub type TileAreaIdx = u8;
+pub type MapArea = [TileAreaIdx; 1024];
 
 pub struct PPU {
+    // regs
     /// 0xFF40
     lcdc: LCDControl,
     /// 0xFF41
@@ -65,7 +90,7 @@ pub struct PPU {
     /// 0xFF46
     dma: Word,
     /// 0xFF47
-    bgp: Word,
+    bgp: BGP,
     /// 0xFF48
     obp0: Word,
     /// 0xFF49
@@ -74,50 +99,52 @@ pub struct PPU {
     wx: Word,
     /// 0xFF4B
     wy: Word,
-    ticks: u32,
+
+    cycles: u32,
+
+    pub oam: OAM,
+    pub vram: VRAM,
+
+    bgw_queue: VecDeque<RawPxiel>,
+    fetcher: Fetcher,
+    lcd_driver: LCDDriver,
     palette: Palette,
-    oam: OAM,
-    vram: VRAM,
-    canvas: Option<OffscreenCanvasRenderingContext2d>,
+
     tiles_canvas: Option<OffscreenCanvasRenderingContext2d>,
     tiles_buffer: Box<TilesBitmap>,
-    tiles_image_data: ImageData,
+    screen_canvas: Option<OffscreenCanvasRenderingContext2d>,
+    screen_buffer: Box<ScreenBitmap>,
 }
 
 impl PPU {
     pub fn new() -> Self {
-        let tiles_buffer = Box::new([[[0; 4]; 128]; 192]);
-        let _tiles_buffer = unsafe {
-            &*slice_from_raw_parts(tiles_buffer.as_ptr() as *const u8, size_of::<TilesBitmap>())
-        };
-        let u8s = unsafe { Uint8ClampedArray::view(_tiles_buffer) };
-        let tiles_image_data = ImageData::new_with_js_u8_clamped_array_and_sh(
-            &u8s,
-            TILES_WIDTH as _,
-            TILES_HEIGHT as _,
-        )
-        .unwrap();
+        let tiles_buffer: Box<TilesBitmap> = Box::new([[NO_COLOR; 128]; 192]);
+        let screen_buffer: Box<ScreenBitmap> = Box::new([[NO_COLOR; 160]; 144]);
         Self {
-            lcdc: LCDControl::new(0b10010001),
-            lcds: LCDStat::new(0x2),
+            lcdc: LCDControl(0b10010001),
+            lcds: LCDStat(0x2),
             scy: 0,
             scx: 0,
             ly: 0,
             lyc: 0,
             dma: 0,
-            bgp: 0xFC,
+            bgp: BGP(0xFC),
             obp0: 0xFF,
             obp1: 0xFF,
             wx: 0,
             wy: 0,
-            ticks: 0,
+            cycles: 0,
             oam: OAM::new(),
             vram: VRAM::new(),
-            canvas: None,
             tiles_canvas: None,
-            palette: PLAETTE,
+            palette: PALETTE,
             tiles_buffer,
-            tiles_image_data,
+            // tiles_image_data,
+            bgw_queue: VecDeque::new(),
+            fetcher: Fetcher::new(),
+            lcd_driver: LCDDriver::new(),
+            screen_canvas: None,
+            screen_buffer,
         }
     }
 
@@ -136,38 +163,46 @@ impl PPU {
     fn set_mode(&mut self, mode: WorkMode) {
         self.lcds.set_mode(mode)
     }
+}
 
-    pub fn oam(&self) -> &OAM {
-        &self.oam
-    }
-
-    pub fn vram(&self) -> &VRAM {
-        &self.vram
-    }
-
-    pub fn oam_mut(&mut self) -> &mut OAM {
-        &mut self.oam
-    }
-
-    pub fn vram_mut(&mut self) -> &mut VRAM {
-        &mut self.vram
-    }
-
+impl PPU {
     pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.canvas = Some(canvas)
+        self.screen_canvas = Some(canvas)
     }
 
     pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
         self.tiles_canvas = Some(canvas)
     }
 
-    pub fn decode_tiles(&mut self) {
+    pub fn update_tiles(&mut self) {
         if let Some(canvas) = &self.tiles_canvas {
-            decode_tiles(self.vram.0.as_ref(), &self.palette, &mut self.tiles_buffer);
-            canvas
-                .put_image_data(&self.tiles_image_data, 0.0, 0.0)
-                .unwrap();
+            decode_tiles(
+                self.vram.tiles_area(),
+                &self.palette,
+                &mut self.tiles_buffer,
+            );
+            let buf = unsafe {
+                &*slice_from_raw_parts(
+                    self.tiles_buffer.as_ptr() as *const u8,
+                    size_of::<TilesBitmap>(),
+                )
+            };
+            let u8s = unsafe { Uint8ClampedArray::view(buf) };
+            let data = ImageData::new_with_js_u8_clamped_array_and_sh(
+                &u8s,
+                TILES_WIDTH as _,
+                TILES_HEIGHT as _,
+            )
+            .unwrap();
+            canvas.put_image_data(&data, 0.0, 0.0).unwrap();
         }
+    }
+    pub fn update_screen(&mut self) {
+        // if let Some(canvas) = &self.screen_canvas {
+        //     canvas
+        //         .put_image_data(&self.screen_image_data, 0.0, 0.0)
+        //         .unwrap();
+        // }
     }
 }
 
@@ -181,12 +216,12 @@ impl BusDevice for PPU {
             LY_REG_ADDR => self.ly,
             LYC_REG_ADDR => self.lyc,
             DMA_REG_ADDR => self.dma,
-            BGP_REG_ADDR => self.bgp,
+            BGP_REG_ADDR => self.bgp.0,
             OBP0_REG_ADDR => self.obp0,
             OBP1_REG_ADDR => self.obp1,
             WX_REG_ADDR => self.wx,
             WY_REG_ADDR => self.wy,
-            _ => unreachable!(),
+            _ => 0xFF,
         }
     }
 
@@ -196,7 +231,7 @@ impl BusDevice for PPU {
                 if self.enabled() && !data.test(PPU_ENABLE_POS) {
                     self.set_mode(WorkMode::HBlank);
                     self.ly = 0;
-                    self.ticks = 0;
+                    self.cycles = 0;
                 }
                 *self.lcdc = data
             }
@@ -207,12 +242,12 @@ impl BusDevice for PPU {
             LY_REG_ADDR => {}
             LYC_REG_ADDR => self.lyc = data,
             DMA_REG_ADDR => self.dma = data,
-            BGP_REG_ADDR => self.bgp = data,
+            BGP_REG_ADDR => self.bgp.0 = data,
             OBP0_REG_ADDR => self.obp0 = data,
             OBP1_REG_ADDR => self.obp1 = data,
             WX_REG_ADDR => self.wx = data,
             WY_REG_ADDR => self.wy = data,
-            _ => unreachable!(),
+            _ => {}
         }
     }
 }
@@ -228,7 +263,7 @@ impl Tick for PPU {
         if self.disabled() {
             return IRQ_NONE;
         }
-        self.ticks += 1;
+        self.cycles += 1;
         let mode = self.mode();
         match mode {
             WorkMode::HBlank => self.tick_hblank(),
@@ -241,49 +276,62 @@ impl Tick for PPU {
 
 impl PPU {
     fn tick_oam_scan(&mut self) -> IRQ {
-        // TODO
-        if self.ticks >= 80 {
-            self.set_mode(WorkMode::Drawing)
+        if self.cycles >= 80 {
+            self.set_mode(WorkMode::Drawing);
+            self.fetcher.fetch_type = FetchType::FetchWindow;
+            self.fetcher.state = FetchState::Tile;
+            self.fetcher.fetch_x = 0;
+            self.fetcher.push_x = 0;
+            self.lcd_driver.draw_x = 0;
+            self.bgw_queue.clear();
         }
         IRQ_NONE
     }
 
     fn tick_drawing(&mut self) -> IRQ {
-        if self.ticks >= 369 {
-            self.set_mode(WorkMode::HBlank);
-            if self.lcds.hblank_int() {
-                IRQ_LCD_STAT
-            } else {
-                IRQ_NONE
+        let mut irq = IRQ_NONE;
+        if self.cycles % 2 == 0 {
+            self.fetcher_update();
+            if self.lcd_driver.draw_x >= PPU_XRES {
+                self.set_mode(WorkMode::HBlank);
+                if self.lcds.hblank_int() {
+                    irq |= IRQ_LCD_STAT;
+                }
             }
-        } else {
-            IRQ_NONE
         }
+        self.lcd_draw_pixel();
+        irq
     }
 
     fn tick_hblank(&mut self) -> IRQ {
-        if self.ticks >= PPU_CYCLES_PER_LINE {
-            let mut irq = self.inc_ly();
+        let mut irq = IRQ_NONE;
+        if self.cycles >= PPU_CYCLES_PER_LINE {
+            irq |= self.inc_ly();
             if self.ly >= PPU_YRES {
                 self.set_mode(WorkMode::VBlank);
                 irq |= IRQ_VBLANK;
                 if self.lcds.vblank_int() {
-                    irq |= IRQ_LCD_STAT
+                    irq |= IRQ_LCD_STAT;
                 }
+                self.update_screen();
             } else {
                 self.set_mode(WorkMode::OAMScan);
                 if self.lcds.oam_int() {
-                    irq |= IRQ_LCD_STAT
+                    irq |= IRQ_LCD_STAT;
                 }
             }
-            self.ticks = 0;
-            irq
-        } else {
-            IRQ_NONE
+            self.cycles = 0;
         }
+        irq
     }
 
     fn inc_ly(&mut self) -> IRQ {
+        if self.window_visible()
+            && self.ly >= self.wy
+            && (self.ly as u16) < (self.wy as u16 + PPU_YRES as u16)
+        {
+            self.fetcher.window_line += 1;
+        }
         self.ly += 1;
         if self.ly == self.lyc {
             self.lcds.lyc_flag().set();
@@ -299,19 +347,24 @@ impl PPU {
     }
 
     fn tick_vblank(&mut self) -> IRQ {
-        if self.ticks >= PPU_CYCLES_PER_LINE {
+        if self.cycles >= PPU_CYCLES_PER_LINE {
             let mut irq = self.inc_ly();
             if self.ly >= PPU_LINES_PER_FRAME {
                 self.set_mode(WorkMode::OAMScan);
                 self.ly = 0;
+                self.fetcher.window_line = 0;
                 if self.lcds.oam_int() {
                     irq |= IRQ_LCD_STAT;
                 }
             }
-            self.ticks = 0;
+            self.cycles = 0;
             irq
         } else {
             IRQ_NONE
         }
+    }
+
+    fn window_visible(&self) -> bool {
+        self.lcdc.window_enable() && self.wx <= 166 && self.wy < PPU_YRES
     }
 }

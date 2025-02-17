@@ -14,7 +14,7 @@ pub enum WorkMode {
 }
 
 /// https://gbdev.io/pandocs/STAT.html
-pub struct LCDStat(Word);
+pub struct LCDStat(pub Word);
 
 impl Deref for LCDStat {
     type Target = Word;

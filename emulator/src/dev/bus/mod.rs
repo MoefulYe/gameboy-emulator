@@ -16,8 +16,7 @@ use crate::{
     error::{EmuErr, EmuResult, NoCartridge},
     types::{Addr, Word},
 };
-use log::warn;
-use web_sys::OffscreenCanvasRenderingContext2d;
+use log::{info, warn};
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -68,9 +67,9 @@ impl Bus {
                     return EmuErr(NoCartridge);
                 }
             }
-            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram().read(addr),
+            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram.read(addr),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.read(addr),
-            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam().read(addr),
+            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam.read(addr),
             SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => self.serial.read(addr),
             PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.read(addr),
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.read(addr),
@@ -96,9 +95,9 @@ impl Bus {
                     return EmuErr(NoCartridge);
                 }
             }
-            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram_mut().write(addr, data),
+            VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram.write(addr, data),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
-            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam_mut().write(addr, data),
+            OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam.write(addr, data),
             SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => {
                 self.serial.write(addr, data)
             }
@@ -119,8 +118,8 @@ impl Bus {
     pub fn tick(&mut self) {
         let irq0 = self.timer.tick();
         let irq1 = self.serial.tick();
-        let irq2 = self.ppu.tick();
-        let irq = irq0 | irq1 | irq2;
+        // let irq2 = self.ppu.tick();
+        let irq = irq0 | irq1;
         self.int_flag_reg.add(irq);
     }
     /// 是否有中断事件等待处理

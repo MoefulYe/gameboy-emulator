@@ -74,7 +74,7 @@ impl InterruptFlagRegister {
     }
 
     pub fn add(&mut self, irq: IRQ) {
-        self.0 = self.0 | irq
+        self.0 |= irq
     }
 
     fn clear_at(&mut self, pos: u8) {
