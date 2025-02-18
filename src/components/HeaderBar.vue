@@ -47,6 +47,7 @@
           </div>
         </template>
       </Menu>
+      <button class="i-pixelarticons:scale" v-tooltip="'fullscreen'" @click="emu.fullscreen()" />
       <button
         class="i-pixelarticons:debug hidden md:block"
         v-tooltip="'Debug'"

@@ -61,37 +61,37 @@ impl VRAM {
     }
 
     pub fn flatten_tiles_area(&self) -> &FlattenRawTiles {
-        unsafe { &*(self as *const Self as *const _) }
+        unsafe { &*(self.0.as_ptr() as *const _) }
     }
 
     pub fn flatten_tiles_area_mut(&mut self) -> &mut FlattenRawTiles {
-        unsafe { &mut *(self as *mut Self as *mut _) }
+        unsafe { &mut *(self.0.as_mut_ptr() as *mut _) }
     }
 
     pub fn tiles_area(&self) -> &RawTiles {
-        unsafe { &*(self as *const Self as *const _) }
+        unsafe { &*(self.0.as_ptr() as *const _) }
     }
 
     pub fn tiles_area_mut(&mut self) -> &mut RawTiles {
-        unsafe { &mut *(self as *mut Self as *mut _) }
+        unsafe { &mut *(self.0.as_mut_ptr() as *mut _) }
     }
 
     // 0x9800
     pub fn map_area1(&self) -> &MapArea {
-        let base = self as *const Self as usize;
+        let base = self.0.as_ptr() as usize;
         unsafe { &*((base + 0x1800) as *const _) }
     }
     // 0x9C00
     pub fn map_area2(&self) -> &MapArea {
-        let base = self as *const Self as usize;
+        let base = self.0.as_ptr() as usize;
         unsafe { &*((base + 0x1C00) as *const _) }
     }
     pub fn map_area1_mut(&mut self) -> &mut MapArea {
-        let base = self as *mut Self as usize;
+        let base = self.0.as_mut_ptr() as usize;
         unsafe { &mut *((base + 0x1800) as *mut _) }
     }
     pub fn map_area2_mut(&mut self) -> &mut MapArea {
-        let base = self as *mut Self as usize;
+        let base = self.0.as_mut_ptr() as usize;
         unsafe { &mut *((base + 0x1C00) as *mut _) }
     }
 

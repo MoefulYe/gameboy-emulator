@@ -26,6 +26,6 @@ impl PPU {
         let x = self.lcd_driver.draw_x;
         let y = self.ly;
         self.screen_buffer[y as usize][x as usize] = rgba;
-        self.lcd_driver.draw_x = x + 1;
+        self.lcd_driver.draw_x += 1;
     }
 }

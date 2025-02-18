@@ -16,7 +16,7 @@ use crate::{
     error::{EmuErr, EmuResult, NoCartridge},
     types::{Addr, Word},
 };
-use log::{info, warn};
+use log::warn;
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -118,8 +118,8 @@ impl Bus {
     pub fn tick(&mut self) {
         let irq0 = self.timer.tick();
         let irq1 = self.serial.tick();
-        // let irq2 = self.ppu.tick();
-        let irq = irq0 | irq1;
+        let irq2 = self.ppu.tick();
+        let irq = irq0 | irq1 | irq2;
         self.int_flag_reg.add(irq);
     }
     /// 是否有中断事件等待处理

@@ -9,13 +9,16 @@ use js_sys::{Uint8Array, Uint8ClampedArray};
 use lcd::LCDDriver;
 use lcdc::{LCDControl, PPU_ENABLE_POS};
 use lcds::{LCDStat, WorkMode};
-use log::{info, warn};
-use std::{collections::VecDeque, convert::TryInto, mem::size_of, ptr::slice_from_raw_parts};
+use log::{debug, error, info, log, warn};
+use std::{
+    borrow::BorrowMut, collections::VecDeque, convert::TryInto, mem::size_of,
+    ptr::slice_from_raw_parts,
+};
 use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
 
 use crate::{
     types::{Addr, Word},
-    utils::bits::BitMap,
+    utils::{bits::BitMap, bytes::as_bytes},
 };
 
 use super::{
@@ -100,7 +103,7 @@ pub struct PPU {
     /// 0xFF4B
     wy: Word,
 
-    cycles: u32,
+    line_cycles: u32,
 
     pub oam: OAM,
     pub vram: VRAM,
@@ -133,13 +136,12 @@ impl PPU {
             obp1: 0xFF,
             wx: 0,
             wy: 0,
-            cycles: 0,
+            line_cycles: 0,
             oam: OAM::new(),
             vram: VRAM::new(),
             tiles_canvas: None,
             palette: PALETTE,
             tiles_buffer,
-            // tiles_image_data,
             bgw_queue: VecDeque::new(),
             fetcher: Fetcher::new(),
             lcd_driver: LCDDriver::new(),
@@ -179,30 +181,31 @@ impl PPU {
             decode_tiles(
                 self.vram.tiles_area(),
                 &self.palette,
-                &mut self.tiles_buffer,
+                self.tiles_buffer.as_mut(),
             );
-            let buf = unsafe {
-                &*slice_from_raw_parts(
-                    self.tiles_buffer.as_ptr() as *const u8,
-                    size_of::<TilesBitmap>(),
-                )
-            };
-            let u8s = unsafe { Uint8ClampedArray::view(buf) };
-            let data = ImageData::new_with_js_u8_clamped_array_and_sh(
+            let buffer = as_bytes::<TilesBitmap>(self.tiles_buffer.as_ref());
+            let u8s = unsafe { Uint8ClampedArray::view(buffer) };
+            let image_data = ImageData::new_with_js_u8_clamped_array_and_sh(
                 &u8s,
                 TILES_WIDTH as _,
                 TILES_HEIGHT as _,
             )
             .unwrap();
-            canvas.put_image_data(&data, 0.0, 0.0).unwrap();
+            canvas.put_image_data(&image_data, 0.0, 0.0).unwrap();
         }
     }
     pub fn update_screen(&mut self) {
-        // if let Some(canvas) = &self.screen_canvas {
-        //     canvas
-        //         .put_image_data(&self.screen_image_data, 0.0, 0.0)
-        //         .unwrap();
-        // }
+        if let Some(canvas) = &self.screen_canvas {
+            let buffer = as_bytes::<ScreenBitmap>(self.screen_buffer.as_ref());
+            let u8s = unsafe { Uint8ClampedArray::view(buffer) };
+            let image_data = ImageData::new_with_js_u8_clamped_array_and_sh(
+                &u8s,
+                SCREEN_WIDTH as _,
+                SCREEN_HEIGHT as _,
+            )
+            .unwrap();
+            canvas.put_image_data(&image_data, 0.0, 0.0).unwrap()
+        }
     }
 }
 
@@ -231,7 +234,7 @@ impl BusDevice for PPU {
                 if self.enabled() && !data.test(PPU_ENABLE_POS) {
                     self.set_mode(WorkMode::HBlank);
                     self.ly = 0;
-                    self.cycles = 0;
+                    self.line_cycles = 0;
                 }
                 *self.lcdc = data
             }
@@ -263,7 +266,7 @@ impl Tick for PPU {
         if self.disabled() {
             return IRQ_NONE;
         }
-        self.cycles += 1;
+        self.line_cycles += 1;
         let mode = self.mode();
         match mode {
             WorkMode::HBlank => self.tick_hblank(),
@@ -276,9 +279,9 @@ impl Tick for PPU {
 
 impl PPU {
     fn tick_oam_scan(&mut self) -> IRQ {
-        if self.cycles >= 80 {
+        if self.line_cycles >= 80 {
             self.set_mode(WorkMode::Drawing);
-            self.fetcher.fetch_type = FetchType::FetchWindow;
+            self.fetcher.fetch_type = FetchType::FetchBackground;
             self.fetcher.state = FetchState::Tile;
             self.fetcher.fetch_x = 0;
             self.fetcher.push_x = 0;
@@ -290,7 +293,7 @@ impl PPU {
 
     fn tick_drawing(&mut self) -> IRQ {
         let mut irq = IRQ_NONE;
-        if self.cycles % 2 == 0 {
+        if self.line_cycles % 2 == 0 {
             self.fetcher_update();
             if self.lcd_driver.draw_x >= PPU_XRES {
                 self.set_mode(WorkMode::HBlank);
@@ -305,7 +308,7 @@ impl PPU {
 
     fn tick_hblank(&mut self) -> IRQ {
         let mut irq = IRQ_NONE;
-        if self.cycles >= PPU_CYCLES_PER_LINE {
+        if self.line_cycles >= PPU_CYCLES_PER_LINE {
             irq |= self.inc_ly();
             if self.ly >= PPU_YRES {
                 self.set_mode(WorkMode::VBlank);
@@ -320,7 +323,7 @@ impl PPU {
                     irq |= IRQ_LCD_STAT;
                 }
             }
-            self.cycles = 0;
+            self.line_cycles = 0;
         }
         irq
     }
@@ -347,8 +350,9 @@ impl PPU {
     }
 
     fn tick_vblank(&mut self) -> IRQ {
-        if self.cycles >= PPU_CYCLES_PER_LINE {
-            let mut irq = self.inc_ly();
+        let mut irq = IRQ_NONE;
+        if self.line_cycles >= PPU_CYCLES_PER_LINE {
+            irq |= self.inc_ly();
             if self.ly >= PPU_LINES_PER_FRAME {
                 self.set_mode(WorkMode::OAMScan);
                 self.ly = 0;
@@ -357,11 +361,9 @@ impl PPU {
                     irq |= IRQ_LCD_STAT;
                 }
             }
-            self.cycles = 0;
-            irq
-        } else {
-            IRQ_NONE
+            self.line_cycles = 0;
         }
+        irq
     }
 
     fn window_visible(&self) -> bool {

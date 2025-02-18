@@ -30,7 +30,7 @@ export class Client {
   public readonly config: Config
   public readonly stat = useStat()
   public readonly gamepad: EmuGamepad
-  public tilesCanvas?: ImageBitmapRenderingContext
+  private canvasEl: HTMLCanvasElement | null = null
 
   constructor({ listenPort, requestPort, audioPort, server, config, db }: CreateOption) {
     this.config = config
@@ -122,6 +122,7 @@ export class Client {
       if (el === null) {
         return
       }
+      this.canvasEl = el
       const canvas = el.transferControlToOffscreen()
       const res = await this.request('set-canvas', { canvas }, [canvas])
       if (res.status === Err) {
@@ -164,5 +165,9 @@ export class Client {
 
   public step() {
     this.request('step', {})
+  }
+
+  public fullscreen() {
+    this.canvasEl?.requestFullscreen()
   }
 }

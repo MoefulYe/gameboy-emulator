@@ -67,11 +67,11 @@ pub fn decode_tiles(tiles: &RawTiles, palette: &Palette, buffer: &mut TilesBitma
 
 pub const NO_COLOR: RGBA = rgba(0, 0, 0, 0);
 const WHITE: RGBA = rgba(153, 161, 120, 255);
-const DEEP_GRAY: RGBA = rgba(87, 93, 67, 255);
-const GRAY: RGBA = rgba(42, 46, 32, 255);
+const GRAY: RGBA = rgba(87, 93, 67, 255);
+const DEEP_GRAY: RGBA = rgba(42, 46, 32, 255);
 const BLACK: RGBA = rgba(10, 10, 2, 255);
 // const WHITE: RGBA = rgba(0xff, 0xff, 0xff, 0xff);
 // const DEEP_GRAY: RGBA = rgba(0xaa, 0xaa, 0xaa, 0xff);
 // const GRAY: RGBA = rgba(0x44, 0x44, 0x44, 0xff);
 // const BLACK: RGBA = rgba(0, 0, 0, 0);
-pub const PALETTE: Palette = [WHITE, DEEP_GRAY, GRAY, BLACK];
+pub const PALETTE: Palette = [WHITE, GRAY, DEEP_GRAY, BLACK];

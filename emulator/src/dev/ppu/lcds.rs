@@ -6,6 +6,7 @@ use crate::{
 };
 
 #[repr(u8)]
+#[derive(Debug)]
 pub enum WorkMode {
     HBlank = 0,
     VBlank = 1,

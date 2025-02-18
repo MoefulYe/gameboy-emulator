@@ -62,7 +62,7 @@
     <div class="b-1 b-coolgray-2 p-2 rounded text-sm">
       <div>
         <label>inst: </label>
-        <span>{{ state.inst }}</span>
+        <span class="whitespace-nowrap">{{ state.inst }}</span>
       </div>
       <div>
         <label>words: </label>

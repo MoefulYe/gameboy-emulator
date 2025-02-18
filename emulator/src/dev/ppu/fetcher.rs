@@ -82,7 +82,7 @@ impl PPU {
     fn get_data1(&mut self) {
         if self.lcdc.window_bg_enable() {
             let (i, j) = self.fetcher.bgw_data_idx;
-            self.fetcher.bgw_fetched_data[0] = *unsafe {
+            self.fetcher.bgw_fetched_data[1] = *unsafe {
                 self.vram
                     .flatten_tiles_area()
                     .get_unchecked(i as usize)
@@ -158,7 +158,7 @@ impl PPU {
                 .get_unchecked(tile_idx)
         };
         self.fetcher.bgw_data_idx = (self.lcdc.window_bg_data_area().addr(data_idx), y % 8);
-        let tile_x = (self.fetcher.fetch_x as i16) - ((self.wx) - 7) as i16;
+        let tile_x = (self.fetcher.fetch_x as i16) - (self.wx as i16) + 7;
         self.fetcher.tile_x_begin = (tile_x / 8) * 8 + (self.wx as i16) - 7;
     }
 }
