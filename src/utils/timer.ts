@@ -11,7 +11,8 @@ export const every = async (callback: () => void, ms: number) => {
     if (delta > 0) {
       await wait(delta)
     } else {
-      console.log('every')
+      console.warn(`Callback took longer than interval: ${-delta}ms`)
+      await wait(0)
     }
   }
 }

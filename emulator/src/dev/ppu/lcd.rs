@@ -21,8 +21,13 @@ impl PPU {
             return;
         }
         // queue len >= 8 > 0
-        let color = unsafe { self.bgw_queue.pop_front().unwrap_unchecked() };
-        let &rgba = unsafe { self.palette.get_unchecked(color as usize) };
+        let bgw_pixel = unsafe { self.bgw_queue.pop_front().unwrap_unchecked() };
+        let obj_pixel = unsafe { self.obj_queue.pop_front().unwrap_unchecked() };
+        let bgw_color = bgw_pixel.final_color();
+        let obj_color = obj_pixel.final_color();
+        let draw_obj = obj_pixel.color != 0 && (!obj_pixel.bg_priority || bgw_color == 0);
+        let final_color = if draw_obj { obj_color } else { bgw_color };
+        let &rgba = unsafe { self.palette.get_unchecked(final_color as usize) };
         let x = self.lcd_driver.draw_x;
         let y = self.ly;
         self.screen_buffer[y as usize][x as usize] = rgba;

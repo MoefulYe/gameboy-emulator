@@ -1,5 +1,5 @@
-use crate::{external::emulator_log_callback, types::Addr};
-use log::{error, LevelFilter, Log};
+use crate::external::emulator_log_callback;
+use log::{LevelFilter, Log};
 
 pub struct EmulatorLogger;
 

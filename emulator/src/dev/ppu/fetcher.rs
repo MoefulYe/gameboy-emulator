@@ -1,9 +1,19 @@
+use smallvec::SmallVec;
+
 use crate::{
     types::{Addr, Word},
     utils::bits::BitMap,
 };
 
-use super::{graphic::TilePos, PPU};
+use super::{
+    graphic::TilePos,
+    oam::{
+        Object,
+        ObjectPaletteSelect::{OBP0, OBP1},
+        ObjectPixel,
+    },
+    BGWPixel, PPU,
+};
 pub(super) enum FetchState {
     Tile,
     Data0,
@@ -28,6 +38,10 @@ pub(super) struct Fetcher {
     pub push_x: Word,
     /// 块号, 块内行号
     pub bgw_data_idx: (Addr, Word),
+
+    pub objects: SmallVec<[Object; 10]>,
+    pub fetched_objects: SmallVec<[Object; 3]>,
+    pub objects_fetched_data: [[Word; 2]; 3],
 }
 
 impl Fetcher {
@@ -41,6 +55,9 @@ impl Fetcher {
             bgw_fetched_data: [0, 0],
             push_x: 0,
             bgw_data_idx: (0, 0),
+            objects: todo!(),
+            fetched_objects: todo!(),
+            objects_fetched_data: todo!(),
         }
     }
 }
@@ -57,17 +74,22 @@ impl PPU {
     }
 
     fn get_tile(&mut self) {
-        if self.lcdc.window_bg_enable() {
+        if self.lcdc.window_bg_enabled() {
             match self.fetcher.fetch_type {
                 super::FetchType::FetchWindow => self.get_window_tile(),
                 super::FetchType::FetchBackground => self.get_background_tile(),
             }
+        } else {
+            self.fetcher.tile_x_begin = self.fetcher.fetch_x as i16;
+        }
+        if self.lcdc.obj_enabled() {
+            self.get_object_tile()
         }
         self.fetcher.state = FetchState::Data0;
         self.fetcher.fetch_x += 8;
     }
     fn get_data0(&mut self) {
-        if self.lcdc.window_bg_enable() {
+        if self.lcdc.window_bg_enabled() {
             let (i, j) = self.fetcher.bgw_data_idx;
             self.fetcher.bgw_fetched_data[0] = *unsafe {
                 self.vram
@@ -77,10 +99,39 @@ impl PPU {
                     .get_unchecked(0)
             };
         }
+        if self.lcdc.obj_enabled() {
+            let obj_height = self.lcdc.obj_height();
+            for (i, obj) in self.fetcher.fetched_objects.iter().enumerate() {
+                let ty = self.ly + 16 - obj.y;
+                let ty = if obj.y_flip() {
+                    obj_height.wrapping_sub(1).wrapping_sub(ty)
+                } else {
+                    ty
+                };
+                let tile_idx = obj.tile_idx;
+                let tile_idx = if obj_height == 16 {
+                    tile_idx.clear_at(0)
+                } else {
+                    tile_idx
+                };
+                *unsafe {
+                    self.fetcher
+                        .objects_fetched_data
+                        .get_unchecked_mut(i as usize)
+                        .get_unchecked_mut(0)
+                } = *unsafe {
+                    self.vram
+                        .flatten_tiles_area()
+                        .get_unchecked(tile_idx as usize)
+                        .get_unchecked(ty as usize)
+                        .get_unchecked(0)
+                };
+            }
+        }
         self.fetcher.state = FetchState::Data1;
     }
     fn get_data1(&mut self) {
-        if self.lcdc.window_bg_enable() {
+        if self.lcdc.window_bg_enabled() {
             let (i, j) = self.fetcher.bgw_data_idx;
             self.fetcher.bgw_fetched_data[1] = *unsafe {
                 self.vram
@@ -89,6 +140,35 @@ impl PPU {
                     .get_unchecked(j as usize)
                     .get_unchecked(1)
             };
+        }
+        if self.lcdc.obj_enabled() {
+            let obj_height = self.lcdc.obj_height();
+            for (i, obj) in self.fetcher.fetched_objects.iter().enumerate() {
+                let ty = self.ly + 16 - obj.y;
+                let ty = if obj.y_flip() {
+                    obj_height.wrapping_sub(1).wrapping_sub(ty)
+                } else {
+                    ty
+                };
+                let tile_idx = obj.tile_idx;
+                let tile_idx = if obj_height == 16 {
+                    tile_idx.clear_at(0)
+                } else {
+                    tile_idx
+                };
+                *unsafe {
+                    self.fetcher
+                        .objects_fetched_data
+                        .get_unchecked_mut(i as usize)
+                        .get_unchecked_mut(1)
+                } = *unsafe {
+                    self.vram
+                        .flatten_tiles_area()
+                        .get_unchecked(tile_idx as usize)
+                        .get_unchecked(ty as usize)
+                        .get_unchecked(1)
+                };
+            }
         }
         self.fetcher.state = FetchState::Idle;
     }
@@ -99,7 +179,10 @@ impl PPU {
     fn push_pixel(&mut self) {
         let mut pushed = false;
         if self.bgw_queue.len() < 8 {
+            let push_begin = self.fetcher.push_x;
             self.push_bgw_pixel();
+            let push_end = self.fetcher.push_x;
+            self.push_object_pixels(push_begin, push_end);
             pushed = true
         }
         if pushed {
@@ -122,16 +205,58 @@ impl PPU {
                 self.fetcher.fetch_x = self.fetcher.push_x;
                 break;
             }
-            let pixel = if self.lcdc.window_bg_enable() {
+            let pixel = if self.lcdc.window_bg_enabled() {
                 let lo = lo.at(7 - i);
                 let hi = hi.at(7 - i);
                 let color = hi << 1 | lo;
-                self.bgp.apply(color)
+                BGWPixel {
+                    color,
+                    palette: self.bgp,
+                }
             } else {
-                0
+                Default::default()
             };
             self.bgw_queue.push_back(pixel);
             self.fetcher.push_x += 1;
+        }
+    }
+
+    fn push_object_pixels(&mut self, push_begin: Word, push_end: Word) {
+        for i in push_begin..push_end {
+            let mut pixel = ObjectPixel::new();
+            if self.lcdc.enabled() {
+                for j in 0..self.fetcher.fetched_objects.len() {
+                    let obj = *unsafe { self.fetcher.fetched_objects.get_unchecked(j) };
+                    let x = (obj.x as i16) - 8;
+                    let offset = (i as i16) - x;
+                    if offset < 0 || offset > 7 {
+                        continue;
+                    }
+                    let [b1, b2] = *unsafe { self.fetcher.objects_fetched_data.get_unchecked(j) };
+                    let b = if obj.x_flip() {
+                        7 - offset as Word
+                    } else {
+                        offset as Word
+                    };
+                    let lo = b1.at(b);
+                    let hi = b2.at(b);
+                    let color = hi << 1 | lo;
+                    if color == 0 {
+                        continue;
+                    }
+                    let palette = match obj.palette() {
+                        OBP0 => self.obp0,
+                        OBP1 => self.obp1,
+                    };
+                    let bg_priority = obj.priority();
+                    pixel = ObjectPixel {
+                        color,
+                        palette,
+                        bg_priority,
+                    }
+                }
+            }
+            self.obj_queue.push_back(pixel);
         }
     }
 
@@ -148,6 +273,7 @@ impl PPU {
         let tile_x = (self.fetcher.fetch_x as i16) + (self.scx as i16);
         self.fetcher.tile_x_begin = (tile_x / 8) * 8 - self.scx as i16;
     }
+
     fn get_window_tile(&mut self) {
         let y = self.fetcher.window_line;
         let x = self.fetcher.fetch_x + 7 - self.wx;
@@ -160,5 +286,45 @@ impl PPU {
         self.fetcher.bgw_data_idx = (self.lcdc.window_bg_data_area().addr(data_idx), y % 8);
         let tile_x = (self.fetcher.fetch_x as i16) - (self.wx as i16) + 7;
         self.fetcher.tile_x_begin = (tile_x / 8) * 8 + (self.wx as i16) - 7;
+    }
+
+    fn get_object_tile(&mut self) {
+        let fetcher = &mut self.fetcher;
+        fetcher.fetched_objects.clear();
+        for obj in &fetcher.objects {
+            let x = (obj.x as i16) - 8;
+            if x >= fetcher.tile_x_begin && x < fetcher.tile_x_begin + 8
+                || x + 7 >= fetcher.tile_x_begin && x + 7 < fetcher.tile_x_begin + 8
+            {
+                fetcher.fetched_objects.push(*obj);
+                if fetcher.fetched_objects.len() >= 3 {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+impl PPU {
+    pub(super) fn fetcher_oam_scan(&mut self) {
+        self.fetcher.objects.clear();
+        let height = self.lcdc.obj_height();
+        for obj in self.oam.as_objs() {
+            if self.fetcher.objects.len() >= 10 {
+                break;
+            }
+            // len < 10
+            if obj.y <= self.ly + 16 && obj.y + height > self.ly + 16 {
+                let pos = self
+                    .fetcher
+                    .objects
+                    .iter()
+                    .enumerate()
+                    .find(|(_, other)| other.x > obj.x)
+                    .map(|(idx, _)| idx)
+                    .unwrap_or(self.fetcher.objects.len());
+                self.fetcher.objects.insert(pos, obj.clone());
+            }
+        }
     }
 }

@@ -5,7 +5,6 @@ use crate::{
     log,
     types::ClockCycle,
 };
-use ::log::info;
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -106,15 +105,16 @@ impl Emulator {
         Some(err.as_ref().msg())
     }
 
-    fn tick_devices(&mut self, cycles: ClockCycle) {
+    fn tick_devices(&mut self, cycles: ClockCycle) -> EmuResult {
         for _ in 0..cycles {
-            self.bus.tick();
+            self.bus.tick()?;
         }
+        Ok(())
     }
 
     fn tick(&mut self) -> EmuResult<ClockCycle> {
         let cycles = self.cpu.tick(&mut self.bus)?;
-        self.tick_devices(cycles);
+        self.tick_devices(cycles)?;
         self.cycles += cycles;
         Ok(cycles)
     }

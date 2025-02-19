@@ -41,7 +41,7 @@ impl LCDControl {
         unsafe { std::mem::transmute(self.at(WINDOW_MAP_AREA_POS)) }
     }
 
-    pub fn window_enable(&self) -> bool {
+    pub fn window_enabled(&self) -> bool {
         self.test(WINDOW_ENABLE_POS)
     }
 
@@ -53,14 +53,18 @@ impl LCDControl {
         unsafe { std::mem::transmute(self.at(BG_MAP_AREA_POS)) }
     }
 
-    pub fn obj_size(&self) -> (Word, Word) {
+    pub fn obj_height(&self) -> Word {
         match self.at(OBJ_SIZE_POS) {
-            0 => (8, 8),
-            _ => (8, 16),
+            0 => 8,
+            _ => 16,
         }
     }
 
-    pub fn window_bg_enable(&self) -> bool {
+    pub fn obj_enabled(&self) -> bool {
+        self.test(OBJ_ENABLE_POS)
+    }
+
+    pub fn window_bg_enabled(&self) -> bool {
         self.test(WINDOW_BG_ENABLE_POS)
     }
 }

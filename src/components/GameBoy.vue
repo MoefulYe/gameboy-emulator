@@ -198,16 +198,13 @@ const LIGHT_COLORS = [
   z-index: 2;
   width: 147px;
   height: 134px;
-  border-top: 1px solid #394b21;
-  border-right: 1px solid #36472f;
-  background: #3f5531;
-  box-shadow: inset -2px 5px 10px #2a421a;
+  background: rgba(153, 161, 120, 255);
+  box-shadow: inset -2px 5px 10px #4c663b;
   opacity: 0.5;
-}
-
-#screen:fullscreen {
-  background: black;
-  box-shadow: none;
+  &:fullscreen {
+    background: black;
+    box-shadow: none;
+  }
 }
 
 .diod {

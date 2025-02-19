@@ -8,7 +8,7 @@ pub const SCREEN_HEIGHT: usize = 144;
 pub type RGBA = u32;
 pub type Pixel = RGBA;
 
-pub type Palette = [RGBA; 4];
+pub type RGBAPalette = [RGBA; 4];
 
 pub type RawPxiel = Word;
 pub type RawTile = [[u8; 2]; 8];
@@ -43,7 +43,7 @@ const fn rgba(r: u8, g: u8, b: u8, a: u8) -> RGBA {
     r | g << 8 | b << 16 | a << 24
 }
 
-pub fn decode_tiles(tiles: &RawTiles, palette: &Palette, buffer: &mut TilesBitmap) {
+pub fn decode_tiles(tiles: &RawTiles, palette: &RGBAPalette, buffer: &mut TilesBitmap) {
     // 块间行号
     for (i, tiles) in tiles.iter().enumerate() {
         // 块内行号
@@ -74,4 +74,4 @@ const BLACK: RGBA = rgba(10, 10, 2, 255);
 // const DEEP_GRAY: RGBA = rgba(0xaa, 0xaa, 0xaa, 0xff);
 // const GRAY: RGBA = rgba(0x44, 0x44, 0x44, 0xff);
 // const BLACK: RGBA = rgba(0, 0, 0, 0);
-pub const PALETTE: Palette = [WHITE, GRAY, DEEP_GRAY, BLACK];
+pub const PALETTE: RGBAPalette = [WHITE, GRAY, DEEP_GRAY, BLACK];

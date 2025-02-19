@@ -1,19 +1,18 @@
-use bgp::BGP;
+use bgp::Palette;
+use dma::DMA;
 use fetcher::{FetchState, FetchType, Fetcher};
 use graphic::{
-    decode_tiles, Palette, RawPxiel, ScreenBitmap, TilesBitmap, NO_COLOR, PALETTE,
+    decode_tiles, RGBAPalette, RawPxiel, ScreenBitmap, TilesBitmap, NO_COLOR, PALETTE,
     PPU_CYCLES_PER_LINE, PPU_LINES_PER_FRAME, PPU_XRES, PPU_YRES, SCREEN_HEIGHT, SCREEN_WIDTH,
     TILES_HEIGHT, TILES_WIDTH,
 };
-use js_sys::{Uint8Array, Uint8ClampedArray};
+use js_sys::Uint8ClampedArray;
 use lcd::LCDDriver;
 use lcdc::{LCDControl, PPU_ENABLE_POS};
 use lcds::{LCDStat, WorkMode};
-use log::{debug, error, info, log, warn};
-use std::{
-    borrow::BorrowMut, collections::VecDeque, convert::TryInto, mem::size_of,
-    ptr::slice_from_raw_parts,
-};
+use oam::{ObjectPixel, OAM};
+use std::collections::VecDeque;
+use vram::VRAM;
 use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
 
 use crate::{
@@ -23,16 +22,18 @@ use crate::{
 
 use super::{
     int_regs::{IRQ, IRQ_LCD_STAT, IRQ_NONE, IRQ_VBLANK},
-    rams::{OAM, VRAM},
     BusDevice, Reset, Tick,
 };
 
 mod bgp;
+mod dma;
 mod fetcher;
 pub mod graphic;
 mod lcd;
 mod lcdc;
 mod lcds;
+mod oam;
+mod vram;
 
 const LCDC_REG_ADDR: Addr = 0xFF40;
 const LCDS_REG_ADDR: Addr = 0xFF41;
@@ -76,6 +77,26 @@ pub enum MapAreaType {
 pub type TileAreaIdx = u8;
 pub type MapArea = [TileAreaIdx; 1024];
 
+pub struct BGWPixel {
+    color: Word,
+    palette: Palette,
+}
+
+impl BGWPixel {
+    pub fn final_color(&self) -> Word {
+        self.palette.apply(self.color)
+    }
+}
+
+impl Default for BGWPixel {
+    fn default() -> Self {
+        Self {
+            color: 0,
+            palette: Palette(0),
+        }
+    }
+}
+
 pub struct PPU {
     // regs
     /// 0xFF40
@@ -91,13 +112,13 @@ pub struct PPU {
     /// 0xFF45
     lyc: Word,
     /// 0xFF46
-    dma: Word,
+    pub dma: DMA,
     /// 0xFF47
-    bgp: BGP,
+    bgp: Palette,
     /// 0xFF48
-    obp0: Word,
+    obp0: Palette,
     /// 0xFF49
-    obp1: Word,
+    obp1: Palette,
     /// 0xFF4A
     wx: Word,
     /// 0xFF4B
@@ -108,10 +129,12 @@ pub struct PPU {
     pub oam: OAM,
     pub vram: VRAM,
 
-    bgw_queue: VecDeque<RawPxiel>,
+    bgw_queue: VecDeque<BGWPixel>,
+    obj_queue: VecDeque<ObjectPixel>,
+
     fetcher: Fetcher,
     lcd_driver: LCDDriver,
-    palette: Palette,
+    palette: RGBAPalette,
 
     tiles_canvas: Option<OffscreenCanvasRenderingContext2d>,
     tiles_buffer: Box<TilesBitmap>,
@@ -123,31 +146,32 @@ impl PPU {
     pub fn new() -> Self {
         let tiles_buffer: Box<TilesBitmap> = Box::new([[NO_COLOR; 128]; 192]);
         let screen_buffer: Box<ScreenBitmap> = Box::new([[NO_COLOR; 160]; 144]);
-        Self {
-            lcdc: LCDControl(0b10010001),
-            lcds: LCDStat(0x2),
-            scy: 0,
-            scx: 0,
-            ly: 0,
-            lyc: 0,
-            dma: 0,
-            bgp: BGP(0xFC),
-            obp0: 0xFF,
-            obp1: 0xFF,
-            wx: 0,
-            wy: 0,
-            line_cycles: 0,
-            oam: OAM::new(),
-            vram: VRAM::new(),
-            tiles_canvas: None,
-            palette: PALETTE,
-            tiles_buffer,
-            bgw_queue: VecDeque::new(),
-            fetcher: Fetcher::new(),
-            lcd_driver: LCDDriver::new(),
-            screen_canvas: None,
-            screen_buffer,
-        }
+        // Self {
+        //     lcdc: LCDControl(0b10010001),
+        //     lcds: LCDStat(0x2),
+        //     scy: 0,
+        //     scx: 0,
+        //     ly: 0,
+        //     lyc: 0,
+        //     dma: DMA::new(),
+        //     bgp: BGP(0xFC),
+        //     obp0: BGP(0xFF),
+        //     obp1: BGP(0xFF),
+        //     wx: 0,
+        //     wy: 0,
+        //     line_cycles: 0,
+        //     oam: OAM::new(),
+        //     vram: VRAM::new(),
+        //     tiles_canvas: None,
+        //     palette: PALETTE,
+        //     tiles_buffer,
+        //     bgw_queue: VecDeque::new(),
+        //     fetcher: Fetcher::new(),
+        //     lcd_driver: LCDDriver::new(),
+        //     screen_canvas: None,
+        //     screen_buffer,
+        // }
+        todo!()
     }
 
     fn enabled(&self) -> bool {
@@ -218,10 +242,10 @@ impl BusDevice for PPU {
             SCX_REG_ADDR => self.scx,
             LY_REG_ADDR => self.ly,
             LYC_REG_ADDR => self.lyc,
-            DMA_REG_ADDR => self.dma,
-            BGP_REG_ADDR => self.bgp.0,
-            OBP0_REG_ADDR => self.obp0,
-            OBP1_REG_ADDR => self.obp1,
+            DMA_REG_ADDR => self.dma.read(),
+            BGP_REG_ADDR => self.bgp.read(),
+            OBP0_REG_ADDR => self.obp0.read(),
+            OBP1_REG_ADDR => self.obp1.read(),
             WX_REG_ADDR => self.wx,
             WY_REG_ADDR => self.wy,
             _ => 0xFF,
@@ -244,10 +268,10 @@ impl BusDevice for PPU {
             // readonly
             LY_REG_ADDR => {}
             LYC_REG_ADDR => self.lyc = data,
-            DMA_REG_ADDR => self.dma = data,
-            BGP_REG_ADDR => self.bgp.0 = data,
-            OBP0_REG_ADDR => self.obp0 = data,
-            OBP1_REG_ADDR => self.obp1 = data,
+            DMA_REG_ADDR => self.dma.write(data),
+            BGP_REG_ADDR => self.bgp.write(data),
+            OBP0_REG_ADDR => self.obp0.write(data),
+            OBP1_REG_ADDR => self.obp1.write(data),
             WX_REG_ADDR => self.wx = data,
             WY_REG_ADDR => self.wy = data,
             _ => {}
@@ -287,6 +311,8 @@ impl PPU {
             self.fetcher.push_x = 0;
             self.lcd_driver.draw_x = 0;
             self.bgw_queue.clear();
+        } else if self.line_cycles == 1 {
+            self.fetcher_oam_scan();
         }
         IRQ_NONE
     }
@@ -367,6 +393,6 @@ impl PPU {
     }
 
     fn window_visible(&self) -> bool {
-        self.lcdc.window_enable() && self.wx <= 166 && self.wy < PPU_YRES
+        self.lcdc.window_enabled() && self.wx <= 166 && self.wy < PPU_YRES
     }
 }
