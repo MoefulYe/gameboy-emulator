@@ -10,10 +10,9 @@ pub type Pixel = RGBA;
 
 pub type RGBAPalette = [RGBA; 4];
 
-pub type RawPxiel = Word;
 pub type RawTile = [[u8; 2]; 8];
-pub type RawTiles = [[RawTile; 16]; 24];
-pub type FlattenRawTiles = [RawTile; 16 * 24];
+pub type RawTileMatrix = [[RawTile; 16]; 24];
+pub type RawTiles = [RawTile; 16 * 24];
 pub type TilesBitmap = [[Pixel; TILES_WIDTH]; TILES_HEIGHT];
 pub type ScreenBitmap = [[Pixel; SCREEN_WIDTH]; SCREEN_HEIGHT];
 pub const PPU_LINES_PER_FRAME: u8 = 154;
@@ -43,7 +42,7 @@ const fn rgba(r: u8, g: u8, b: u8, a: u8) -> RGBA {
     r | g << 8 | b << 16 | a << 24
 }
 
-pub fn decode_tiles(tiles: &RawTiles, palette: &RGBAPalette, buffer: &mut TilesBitmap) {
+pub fn decode_tiles(tiles: &RawTileMatrix, palette: &RGBAPalette, buffer: &mut TilesBitmap) {
     // 块间行号
     for (i, tiles) in tiles.iter().enumerate() {
         // 块内行号

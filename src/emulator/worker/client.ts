@@ -2,7 +2,7 @@ import { Listener, type EventCallback } from '@/utils/event/server_side_event'
 import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
 import { AudioReceiver } from '../output/audio'
 import type { ClientSideEvent, ServerSideEvent } from './event'
-import { useStat } from '../stat'
+import { Stat, useStat } from '../stat'
 import { Err, LogLevel, Ok } from '../constants'
 import type { DB } from '../persistance/indexeddb'
 import type { Config } from '../config'
@@ -28,7 +28,7 @@ export class Client {
   private readonly server: Worker
   private readonly db: DB
   public readonly config: Config
-  public readonly stat = useStat()
+  public readonly stat: Stat
   public readonly gamepad: EmuGamepad
   private canvasEl: HTMLCanvasElement | null = null
 
@@ -40,6 +40,7 @@ export class Client {
     this.audioReceiver = new AudioReceiver(audioPort)
     this.server = server
     this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
+    this.stat = useStat(config)
     this.init()
   }
 
@@ -151,7 +152,7 @@ export class Client {
     })
   }
 
-  public btnAction(buttons: Readonly<GameboyLayoutButtons>) {
+  public btnAction(buttons: GameboyLayoutButtons) {
     return this.request('btn-action', buttons)
   }
 

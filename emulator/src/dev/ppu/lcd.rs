@@ -6,9 +6,15 @@ pub(super) struct LCDDriver {
     pub draw_x: Word,
 }
 
+impl Default for LCDDriver {
+    fn default() -> Self {
+        Self { draw_x: 0 }
+    }
+}
+
 impl LCDDriver {
     pub(super) fn new() -> Self {
-        Self { draw_x: 0 }
+        Default::default()
     }
 }
 
@@ -30,7 +36,12 @@ impl PPU {
         let &rgba = unsafe { self.palette.get_unchecked(final_color as usize) };
         let x = self.lcd_driver.draw_x;
         let y = self.ly;
-        self.screen_buffer[y as usize][x as usize] = rgba;
+        unsafe {
+            *self
+                .current_buffer_mut()
+                .get_unchecked_mut(y as usize)
+                .get_unchecked_mut(x as usize) = rgba
+        };
         self.lcd_driver.draw_x += 1;
     }
 }

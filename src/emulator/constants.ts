@@ -43,6 +43,7 @@ export const LOG_STR = ['Off', 'Error', 'Warn', 'Info', 'Debug'] as const satisf
 export const BASE_FREQ_HZ = 4_194_304
 export const VISUAL_FREQ_HZ = 59.7
 export const MS_PER_FRAME = 1000 / VISUAL_FREQ_HZ
+export const CYCLES_PER_FRAME = BASE_FREQ_HZ / VISUAL_FREQ_HZ
 export const DEFAULT_VOLUME = 50
 
 export const Ok = Status.Ok

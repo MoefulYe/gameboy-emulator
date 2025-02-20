@@ -34,9 +34,15 @@ pub const INTERRUPT_MASK_REGISTER_ADDR: Addr = 0xFFFF;
 #[derive(Clone, Copy)]
 pub struct InterruptMaskRegsiter(Word);
 
+impl Default for InterruptMaskRegsiter {
+    fn default() -> Self {
+        Self(0x00)
+    }
+}
+
 impl InterruptMaskRegsiter {
     pub fn new() -> Self {
-        InterruptMaskRegsiter(0x00)
+        Self::default()
     }
 
     pub fn read(self) -> Word {
@@ -56,9 +62,15 @@ impl InterruptMaskRegsiter {
 #[derive(Clone, Copy)]
 pub struct InterruptFlagRegister(Word);
 
+impl Default for InterruptFlagRegister {
+    fn default() -> Self {
+        Self(0x00)
+    }
+}
+
 impl InterruptFlagRegister {
     pub fn new() -> Self {
-        Self(0x00)
+        Default::default()
     }
 
     pub fn read(self) -> Word {

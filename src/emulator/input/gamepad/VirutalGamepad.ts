@@ -2,19 +2,19 @@ import { Config } from '@/emulator/config'
 import type { GameboyLayoutButtons, GameboyLayoutButton, Callback } from './constants'
 
 export class VirtualGamepad {
-  private buttons: GameboyLayoutButtons = [false, false, false, false, false, false, false, false]
+  private buttons: GameboyLayoutButtons = 0
 
   public constructor(
     config: Config,
     private callback: Callback
   ) {}
   public down(button: GameboyLayoutButton) {
-    this.buttons[button] = true
+    this.buttons = (this.buttons & ~(1 << button)) | (1 << button)
     this.callback(this.buttons)
   }
 
   public up(button: GameboyLayoutButton) {
-    this.buttons[button] = false
+    this.buttons = this.buttons & ~(1 << button)
     this.callback(this.buttons)
   }
 }

@@ -1,19 +1,10 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
-import {
-  State,
-  LogLevel,
-  BASE_FREQ_HZ,
-  VISUAL_FREQ_HZ,
-  MS_PER_FRAME,
-  TILE_BITMAP_WIDTH as TILES_BITMAP_WIDTH,
-  TILE_BITMAP_HEIGHT as TILES_BITMAP_HEIGHT
-} from '../constants'
+import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
 import { NONE, Responser, Right, Throw } from '@/utils/event/client_side_event'
 import { Emitter, type EventData } from '@/utils/event/server_side_event'
 import type { ClientSideEvent, ServerSideEvent } from './event'
-import type { GameboyLayoutButton } from '../input/gamepad/constants'
 import { AudioSender } from '../output/audio'
 
 export type CreateOption = {
@@ -35,6 +26,9 @@ export class Server {
     return BASE_FREQ_HZ * this.freqScale
   }
   mode = 1
+  updateInput = {
+    btns: 0
+  }
 
   private constructor(
     private core: WasmEmulator,
@@ -95,7 +89,10 @@ export class Server {
   }
 
   private update(cyclesToExec: number) {
-    const { err, cpu, cycles } = this.core.update(cyclesToExec)
+    const { err, cpu, cycles } = this.core.update({
+      ...this.updateInput,
+      cycles: cyclesToExec
+    })
     if (err === null) {
       this.emit('update', { cpu, cycles })
     } else {
@@ -162,12 +159,7 @@ export class Server {
 
   private handleBtnAction(): Handler<'btn-action'> {
     return (btns) => {
-      let u8 = 0
-      for (let i = 0; i < 8; i++) {
-        const pressed = btns[i as GameboyLayoutButton] ? 1 : 0
-        u8 |= pressed << i
-      }
-      this.core.setButtons(u8)
+      this.updateInput.btns = btns
       return NONE
     }
   }

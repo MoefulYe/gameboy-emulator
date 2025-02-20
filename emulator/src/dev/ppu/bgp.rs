@@ -20,16 +20,6 @@ impl DerefMut for Palette {
 }
 
 impl Palette {
-    pub fn apply(&self, color: Word) -> Word {
-        match color {
-            0b00 => self.0 & 0b11,
-            0b01 => (self.0 >> 2) & 0b11,
-            0b10 => (self.0 >> 4) & 0b11,
-            0b11 => (self.0 >> 6) & 0b11,
-            _ => unreachable!(),
-        }
-    }
-
     pub fn read(&self) -> Word {
         self.0
     }

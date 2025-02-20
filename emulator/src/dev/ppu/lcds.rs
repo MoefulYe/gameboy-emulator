@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
+    dev::Reset,
     types::Word,
     utils::bits::{BitMap, BitProxy},
 };
@@ -17,6 +18,12 @@ pub enum WorkMode {
 /// https://gbdev.io/pandocs/STAT.html
 pub struct LCDStat(pub Word);
 
+impl Default for LCDStat {
+    fn default() -> Self {
+        Self(0x2)
+    }
+}
+
 impl Deref for LCDStat {
     type Target = Word;
 
@@ -32,8 +39,8 @@ impl DerefMut for LCDStat {
 }
 
 impl LCDStat {
-    pub fn new(data: Word) -> Self {
-        Self(data)
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn write(&mut self, data: Word) {

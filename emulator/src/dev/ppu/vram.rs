@@ -3,17 +3,23 @@ use std::ops::{Deref, DerefMut};
 use crate::{
     dev::{
         bus::{VRAM_LOW_BOUND, VRAM_SIZE},
-        BusDevice,
+        BusDevice, Reset,
     },
     types::{Addr, Word},
 };
 
 use super::{
-    graphic::{FlattenRawTiles, RawTiles},
+    graphic::{RawTileMatrix, RawTiles},
     MapArea, MapAreaType,
 };
 
 pub struct VRAM(Box<[Word; VRAM_SIZE]>);
+
+impl Reset for VRAM {
+    fn reset(&mut self) {
+        self.fill(0)
+    }
+}
 
 impl Deref for VRAM {
     type Target = Box<[Word; VRAM_SIZE]>;
@@ -25,12 +31,6 @@ impl Deref for VRAM {
 impl DerefMut for VRAM {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    }
-}
-
-impl Default for VRAM {
-    fn default() -> Self {
-        Self(Box::new([0; VRAM_SIZE]))
     }
 }
 
@@ -46,15 +46,7 @@ impl BusDevice for VRAM {
 
 impl VRAM {
     pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn flatten_tiles_area(&self) -> &FlattenRawTiles {
-        unsafe { &*(self.0.as_ptr() as *const _) }
-    }
-
-    pub fn flatten_tiles_area_mut(&mut self) -> &mut FlattenRawTiles {
-        unsafe { &mut *(self.0.as_mut_ptr() as *mut _) }
+        Self(Box::new([0; VRAM_SIZE]))
     }
 
     pub fn tiles_area(&self) -> &RawTiles {
@@ -62,6 +54,14 @@ impl VRAM {
     }
 
     pub fn tiles_area_mut(&mut self) -> &mut RawTiles {
+        unsafe { &mut *(self.0.as_mut_ptr() as *mut _) }
+    }
+
+    pub fn tiles_matrix(&self) -> &RawTileMatrix {
+        unsafe { &*(self.0.as_ptr() as *const _) }
+    }
+
+    pub fn tiles_matrix_mut(&mut self) -> &mut RawTileMatrix {
         unsafe { &mut *(self.0.as_mut_ptr() as *mut _) }
     }
 

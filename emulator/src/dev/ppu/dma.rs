@@ -5,20 +5,26 @@ pub struct DMA {
     base: Word,
     offset: Word,
     start_delay: Word,
-    ticks: u32,
+    ticks: u8,
+}
+
+impl Default for DMA {
+    fn default() -> Self {
+        Self {
+            active: false,
+            base: 0,
+            offset: 0,
+            start_delay: 0,
+            ticks: u8::MAX,
+        }
+    }
 }
 
 const OFFSET_END: Word = 0xA0;
 
 impl DMA {
     pub fn new() -> Self {
-        Self {
-            active: false,
-            base: 0,
-            offset: 0,
-            start_delay: 0,
-            ticks: u32::MAX,
-        }
+        Self::default()
     }
 
     pub fn read(&self) -> Word {

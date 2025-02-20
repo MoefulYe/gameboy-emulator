@@ -1,5 +1,6 @@
 use super::{
     cartridge::{Cartridge, PluginCartResult},
+    gamepad::{Buttons, BUTTON_ADDR},
     int_regs::{
         InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
         INTERRUPT_MASK_REGISTER_ADDR, INT_JOYPAD_ENTRY, INT_LCD_STAT_ENTRY, INT_LCD_STAT_MASK,
@@ -10,7 +11,7 @@ use super::{
     rams::{HighRam, WRAM},
     serial::{Serial, SERIAL_ADDR_HIGH_BOUND_INCLUDED, SERIAL_ADDR_LOW_BOUND},
     timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
-    BusDevice, Tick,
+    BusDevice, Reset, Tick,
 };
 use crate::{
     error::{EmuErr, EmuResult, NoCartridge},
@@ -37,6 +38,7 @@ pub struct Bus {
     pub serial: Serial,
     pub ppu: PPU,
     pub timer: Timer,
+    pub btns: Buttons,
     pub hram: HighRam,
     pub int_flag_reg: InterruptFlagRegister,
     pub int_mask_reg: InterruptMaskRegsiter,
@@ -53,7 +55,20 @@ impl Bus {
             int_flag_reg: InterruptFlagRegister::new(),
             hram: HighRam::new(),
             int_mask_reg: InterruptMaskRegsiter::new(),
+            btns: Default::default(),
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.cartridge = None;
+        self.wram.reset();
+        self.serial.reset();
+        self.ppu.reset();
+        self.timer.reset();
+        self.btns.reset();
+        self.hram.reset();
+        self.int_flag_reg.reset();
+        self.int_mask_reg.reset();
     }
 
     pub fn read(&self, addr: Addr) -> EmuResult<Word> {
@@ -70,9 +85,10 @@ impl Bus {
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram.read(addr),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.read(addr),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam.read(addr),
+            BUTTON_ADDR => self.btns.read(),
             SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => self.serial.read(addr),
-            PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.read(addr),
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.read(addr),
+            PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.read(addr),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.read(),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
             INTERRUPT_MASK_REGISTER_ADDR => self.int_mask_reg.read(),
@@ -98,21 +114,18 @@ impl Bus {
             VRAM_LOW_BOUND..=VRAM_HIGH_BOUND_INCLUDED => self.ppu.vram.write(addr, data),
             WRAM_LOW_BOUND..=WRAM_HIGH_BOUND_INCLUDED => self.wram.write(addr, data),
             OAM_LOW_BOUND..=OAM_HIGH_BOUND_INCLUDED => self.ppu.oam.write(addr, data),
+            BUTTON_ADDR => self.btns.write(data),
             SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => {
                 self.serial.write(addr, data)
             }
-            PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.write(addr, data),
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.write(addr, data),
+            PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.write(addr, data),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.write(data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),
             INTERRUPT_MASK_REGISTER_ADDR => self.int_mask_reg.write(data),
             _ => warn!("illegal write at address: 0x{addr:04X}"),
         };
         Ok(())
-    }
-
-    pub fn reset(&mut self) {
-        todo!()
     }
 
     fn tick_dma(&mut self) -> EmuResult {

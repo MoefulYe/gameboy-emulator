@@ -201,9 +201,11 @@ const LIGHT_COLORS = [
   background: rgba(153, 161, 120, 255);
   box-shadow: inset -2px 5px 10px #4c663b;
   opacity: 0.5;
+  border-radius: 0.125rem;
   &:fullscreen {
     background: black;
     box-shadow: none;
+    border-radius: none;
   }
 }
 

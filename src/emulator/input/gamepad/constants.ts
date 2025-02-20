@@ -6,12 +6,11 @@ export const enum GameboyLayoutButton {
   A = 4,
   B = 5,
   Start = 6,
-  Select = 7
+  Select = 7,
+  None = 8
 }
 
-export type GameboyLayoutButtons = {
-  [Button in GameboyLayoutButton]: boolean
-}
+export type GameboyLayoutButtons = number
 export type Callback = (buttons: GameboyLayoutButtons) => void
 export const enum GamepadMode {
   Virtual,

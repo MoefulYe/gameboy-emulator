@@ -14,6 +14,13 @@ pub const OBJ_ENABLE_POS: Word = 1;
 pub const WINDOW_BG_ENABLE_POS: Word = 0;
 ///https://gbdev.io/pandocs/LCDC.html
 pub struct LCDControl(pub Word);
+
+impl Default for LCDControl {
+    fn default() -> Self {
+        Self(0b10010001)
+    }
+}
+
 impl Deref for LCDControl {
     type Target = Word;
 
@@ -29,8 +36,8 @@ impl DerefMut for LCDControl {
 }
 
 impl LCDControl {
-    pub fn new(data: Word) -> Self {
-        Self(data)
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn enabled(&self) -> bool {

@@ -1,6 +1,7 @@
 import { type CPUStateDump, type CartridgeInfo } from 'emulator/pkg/emulator'
-import { reactive, ref, shallowRef } from 'vue'
-import { State } from './constants'
+import { computed, shallowReactive, shallowRef, watch, type ComputedRef, type Ref } from 'vue'
+import { CYCLES_PER_FRAME, State, VISUAL_FREQ_HZ } from './constants'
+import type { Config } from './config'
 
 const CPU_STATE_INIT = {
   ime: false,
@@ -29,10 +30,30 @@ const CPU_STATE_INIT = {
 
 export class Stat {
   public readonly rom = shallowRef<CartridgeInfo>()
-  public readonly cycles = ref(0)
-  public readonly state = ref(State.Shutdown)
-  public readonly serialBytes = reactive([] as number[])
+  public readonly cycles = shallowRef(0)
+  public readonly state = shallowRef(State.Shutdown)
+  public readonly serialBytes = shallowReactive([] as number[])
   public readonly cpu = shallowRef<CPUStateDump>(CPU_STATE_INIT)
+  public readonly frameRate: ComputedRef<number>
+  public readonly actualRate = useActualRate(this.cycles)
+
+  public constructor(config: Config) {
+    this.frameRate = computed(() => VISUAL_FREQ_HZ * config.freqScale.value)
+  }
 }
 
-export const useStat = () => new Stat()
+export const useStat = (config: Config) => new Stat(config)
+
+const useActualRate = (cycles: Ref<number>) => {
+  const ret = shallowRef(0)
+  let last = performance.now()
+  watch(cycles, (newVal, oldVal) => {
+    const updated = newVal - oldVal
+    const now = performance.now()
+    const elapsed = now - last
+    last = now
+    const actual = (updated * 1000) / CYCLES_PER_FRAME / elapsed
+    ret.value = actual
+  })
+  return ret
+}

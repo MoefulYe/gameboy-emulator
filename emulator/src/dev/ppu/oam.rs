@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use crate::{
     dev::{
         bus::{OAM_LOW_BOUND, OAM_SIZE},
-        BusDevice,
+        BusDevice, Reset,
     },
     types::{Addr, Word},
     utils::{
@@ -16,9 +16,9 @@ use super::bgp::Palette;
 
 pub struct OAM(Box<[Word; OAM_SIZE]>);
 
-impl Default for OAM {
-    fn default() -> Self {
-        Self(Box::new([0; OAM_SIZE]))
+impl Reset for OAM {
+    fn reset(&mut self) {
+        self.fill(0)
     }
 }
 
@@ -48,7 +48,7 @@ impl BusDevice for OAM {
 
 impl OAM {
     pub fn new() -> Self {
-        Default::default()
+        Self(Box::new([0; OAM_SIZE]))
     }
 
     pub fn as_objs(&self) -> &Objects {
@@ -69,8 +69,8 @@ pub enum ObjectPaletteSelect {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Object {
-    pub x: Word,
     pub y: Word,
+    pub x: Word,
     pub tile_idx: Word,
     pub flags: Word,
 }
@@ -103,7 +103,14 @@ pub struct ObjectPixel {
 
 impl ObjectPixel {
     pub fn final_color(&self) -> Word {
-        self.palette.apply(self.color)
+        let palette = self.palette.0 & 0xFC;
+        match self.color {
+            0b00 => palette & 0b11,
+            0b01 => (palette >> 2) & 0b11,
+            0b10 => (palette >> 4) & 0b11,
+            0b11 => (palette >> 6) & 0b11,
+            _ => unreachable!(),
+        }
     }
 }
 

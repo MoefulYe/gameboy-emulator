@@ -14,6 +14,7 @@ mod ime;
 mod inst;
 mod regs;
 
+#[derive(Default)]
 pub struct CPU {
     regs: Regs,
     halted: bool,
@@ -36,11 +37,7 @@ impl Deref for CPU {
 
 impl CPU {
     pub fn new() -> Self {
-        Self {
-            regs: Regs::new(),
-            halted: false,
-            ime: InterruptMasterEnableRegsiter::new(),
-        }
+        Default::default()
     }
 
     /// 返回花费的时钟周期
@@ -104,7 +101,7 @@ impl CPU {
     }
 
     pub fn reset(&mut self) {
-        todo!()
+        *self = Default::default()
     }
 
     fn handle_int(&mut self, bus: &mut Bus, entry: Addr) -> EmuResult<ClockCycle> {

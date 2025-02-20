@@ -18,7 +18,7 @@
     <div v-for="(m, i) of mapping" :key="i" class="flex gap-2 items-center">
       <label>button{{ i }}: </label>
       <MyDropdown
-        :model-value="m === null ? NONE : m"
+        :model-value="m"
         :items="DROPDOWN_ITEMS"
         :btn-class="DROPDOWN_BTN_CLASS"
         :list-class="DROPDOWN_LIST_CLASS"
@@ -53,16 +53,14 @@ const toggleMode = () => {
       break
   }
 }
-const updateMapping = (idx: StandardButton, to: GameboyLayoutButton | None) => {
-  const ret = [...(mapping.value as any as (GameboyLayoutButton | null)[])]
-  ret[idx] = to === NONE ? null : to
+const updateMapping = (idx: StandardButton, to: GameboyLayoutButton) => {
+  const ret = [...(mapping.value as any as GameboyLayoutButton[])]
+  ret[idx] = to
   mapping.value = ret as any
 }
 </script>
 
 <script lang="ts">
-const NONE = 8
-type None = typeof NONE
 const DROPDOWN_ITEMS = [
   { label: 'right', key: GameboyLayoutButton.Right },
   { label: 'left', key: GameboyLayoutButton.Left },
@@ -72,7 +70,7 @@ const DROPDOWN_ITEMS = [
   { label: 'b', key: GameboyLayoutButton.B },
   { label: 'start', key: GameboyLayoutButton.Start },
   { label: 'select', key: GameboyLayoutButton.Select },
-  { label: 'none', key: NONE }
+  { label: 'none', key: GameboyLayoutButton.None }
 ] as const
 const DROPDOWN_BTN_CLASS = 'hover:bg-coolgray-2 b-1 b-coolgray-2'
 const DROPDOWN_LIST_CLASS = 'b-(1 coolgray-2) bg-coolgray-50'

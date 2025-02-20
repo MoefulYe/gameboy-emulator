@@ -1,4 +1,7 @@
-use super::bus::{HRAM_LOW_BOUND, HRAM_SIZE, WRAM_LOW_BOUND, WRAM_SIZE};
+use super::{
+    bus::{HRAM_LOW_BOUND, HRAM_SIZE, WRAM_LOW_BOUND, WRAM_SIZE},
+    Reset,
+};
 use crate::{
     dev::BusDevice,
     types::{Addr, Word},
@@ -6,9 +9,9 @@ use crate::{
 
 pub struct WRAM(pub Box<[Word; WRAM_SIZE]>);
 
-impl Default for WRAM {
-    fn default() -> Self {
-        Self(Box::new([0; WRAM_SIZE]))
+impl Reset for WRAM {
+    fn reset(&mut self) {
+        self.0.fill(0)
     }
 }
 
@@ -24,17 +27,11 @@ impl BusDevice for WRAM {
 
 impl WRAM {
     pub fn new() -> Self {
-        Default::default()
+        Self(Box::new([0; WRAM_SIZE]))
     }
 }
 
 pub struct HighRam(pub Box<[Word; HRAM_SIZE]>);
-
-impl Default for HighRam {
-    fn default() -> Self {
-        Self(Box::new([0; HRAM_SIZE]))
-    }
-}
 
 impl BusDevice for HighRam {
     fn read(&self, addr: Addr) -> Word {
@@ -48,6 +45,12 @@ impl BusDevice for HighRam {
 
 impl HighRam {
     pub fn new() -> Self {
-        Default::default()
+        Self(Box::new([0; HRAM_SIZE]))
+    }
+}
+
+impl Reset for HighRam {
+    fn reset(&mut self) {
+        self.0.fill(0)
     }
 }

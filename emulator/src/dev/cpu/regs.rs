@@ -29,8 +29,13 @@ pub const CARRY: Word = 4;
 /// 低位4位总是0。
 /// | Z | N | H | C |  |  |  |  |
 /// 8个8位寄存器(可以组成4个16位寄存器) 2个16位寄存器
-#[derive(Default)]
 pub struct Regs([DWord; 6]);
+
+impl Default for Regs {
+    fn default() -> Self {
+        Self([0x0001, 0x13FF, 0xC100, 0x0384, 0xFFFE, 0x0100])
+    }
+}
 
 impl Regs {
     /// F（flags）寄存器用于存储CPU在运行过程中产生的各种位，其只有高位的4个比特有效，低位的4个比特永远是0
@@ -62,7 +67,7 @@ impl Regs {
     #[inline]
     /// DMG初版的初始状态
     pub fn new() -> Self {
-        Self([0x0001, 0x13FF, 0xC100, 0x0384, 0xFFFE, 0x0100])
+        Default::default()
     }
 
     #[inline]
@@ -263,10 +268,5 @@ impl Regs {
     #[inline]
     pub fn carry_flag_mut<'a>(&'a mut self) -> BitProxy<'a> {
         BitProxy::new(self.f_mut(), Self::CARRY_FLAG)
-    }
-
-    #[inline]
-    pub fn reset(&mut self) {
-        self.0 = [0; 6];
     }
 }

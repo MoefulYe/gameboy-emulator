@@ -3,12 +3,18 @@ pub struct InterruptMasterEnableRegsiter {
     enabling_countdown: u8,
 }
 
-impl InterruptMasterEnableRegsiter {
-    pub fn new() -> Self {
+impl Default for InterruptMasterEnableRegsiter {
+    fn default() -> Self {
         Self {
             enabled: false,
             enabling_countdown: 0,
         }
+    }
+}
+
+impl InterruptMasterEnableRegsiter {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn enable(&mut self) {

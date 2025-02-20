@@ -25,32 +25,32 @@ export type StandardButton =
   | 16
 
 export type GamepadMapping = {
-  readonly [Button in StandardButton]: GameboyLayoutButton | null
+  readonly [Button in StandardButton]: GameboyLayoutButton
 }
 
 export const DEFAULT_BUTTON_MAPPINGS = [
   GameboyLayoutButton.B, // 0
   GameboyLayoutButton.A, // 1
-  null, // 2
-  null, // 3
-  null, // 4
-  null, // 5
-  null, // 6
-  null, // 7
+  GameboyLayoutButton.None, // 2
+  GameboyLayoutButton.None, // 3
+  GameboyLayoutButton.None, // 4
+  GameboyLayoutButton.None, // 5
+  GameboyLayoutButton.None, // 6
+  GameboyLayoutButton.None, // 7
   GameboyLayoutButton.Select, // 8
   GameboyLayoutButton.Start, // 9
-  null, // 10
-  null, // 11
+  GameboyLayoutButton.None, // 10
+  GameboyLayoutButton.None, // 11
   GameboyLayoutButton.Up, // 12
   GameboyLayoutButton.Down, // 13
   GameboyLayoutButton.Left, // 14
   GameboyLayoutButton.Right, // 15
-  null // 16
+  GameboyLayoutButton.None // 16
 ] as const satisfies GamepadMapping
 
 export class PhysicalGamepad {
   private static readonly POLL_INTERVAL = 1000 / 60
-  private buttons: GameboyLayoutButtons = [false, false, false, false, false, false, false, false]
+  private buttons: GameboyLayoutButtons = 0
   private gamepad?: Gamepad
   public readonly mapping: ShallowRef<GamepadMapping>
   public readonly gamepadId = shallowRef('none')
@@ -70,28 +70,24 @@ export class PhysicalGamepad {
 
   private newButtons(): GameboyLayoutButtons {
     const mapping = this.mapping.value
-    const buttons = [false, false, false, false, false, false, false, false]
+    let btns = 0
     if (this.gamepad === undefined || !this.gamepad.connected) {
-      return buttons as any
+      return btns
     }
-    const _buttons = this.gamepad.buttons
+    const buttons = this.gamepad.buttons
     for (let i = 0; i < 17; i++) {
-      const { pressed } = _buttons[i]
-      const gbBtn = mapping[i as StandardButton]
-      if (gbBtn === null) {
+      const pos = mapping[i as StandardButton]
+      if (pos === GameboyLayoutButton.None) {
         continue
       }
-      buttons[gbBtn] ||= pressed
+      const pressed = buttons[i].pressed ? 1 : 0
+      btns = (btns & ~(1 << pos)) | (pressed << pos)
     }
-    return buttons as any
+    return btns
   }
 
-  private hasChanged(oldButtons: GameboyLayoutButtons): boolean {
-    for (let i = 0; i < 8; i++) {
-      if (this.buttons[i as GameboyLayoutButton] !== oldButtons[i as GameboyLayoutButton])
-        return true
-    }
-    return false
+  private hasChanged(newButtons: GameboyLayoutButtons): boolean {
+    return (newButtons ^ this.buttons) !== 0
   }
 
   private poll() {

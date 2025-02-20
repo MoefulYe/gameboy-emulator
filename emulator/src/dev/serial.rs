@@ -1,6 +1,6 @@
 use super::{
     int_regs::{IRQ, IRQ_NONE, IRQ_SERIAL},
-    BusDevice, Tick,
+    BusDevice, Reset, Tick,
 };
 use crate::{
     external::emulator_serial_callback,

@@ -1,5 +1,5 @@
 use crate::{
-    dev::{Bus, PluginCartResult, CPU},
+    dev::{Bus, PluginCartResult, Reset, CPU},
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
     log,
@@ -7,6 +7,7 @@ use crate::{
 };
 use serde::Serialize;
 use tsify::Tsify;
+use tsify_derive::EmulatorUpdateInput;
 use wasm_bindgen::prelude::*;
 use web_sys::OffscreenCanvasRenderingContext2d;
 
@@ -21,6 +22,8 @@ pub struct Emulator {
 // Function `__wbg_instanceof_JsType_24d65669860e1289` should have snake_case name, e.g. `__wbg_instanceof_js_type_24d65669860e1289`
 #[allow(non_snake_case)]
 mod tsify_derive {
+    use serde::Deserialize;
+
     use super::*;
     #[derive(Serialize, Tsify)]
     #[tsify(into_wasm_abi)]
@@ -28,6 +31,13 @@ mod tsify_derive {
         pub cycles: ClockCycle,
         pub cpu: CPUStateDump,
         pub err: Option<String>,
+    }
+
+    #[derive(Deserialize, Tsify)]
+    #[tsify(from_wasm_abi)]
+    pub struct EmulatorUpdateInput {
+        pub btns: u8,
+        pub cycles: ClockCycle,
     }
 }
 
@@ -51,11 +61,13 @@ impl Emulator {
     }
 
     #[wasm_bindgen(js_name = update)]
-    pub fn update(&mut self, cycles: ClockCycle) -> EmulatorUpdateResult {
-        let err = self._update(cycles);
+    pub fn update(&mut self, input: EmulatorUpdateInput) -> EmulatorUpdateResult {
+        self.bus.btns.update(input.btns);
+        let err = self._update(input.cycles);
         let cpu = self.cpu.dump(&self.bus);
         let cycles = self.cycles;
         self.bus.ppu.update_tiles();
+        self.bus.ppu.update_screen();
         EmulatorUpdateResult { cycles, cpu, err }
     }
     pub fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
@@ -80,6 +92,13 @@ impl Emulator {
     #[wasm_bindgen(js_name = pluginCart)]
     pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
         self.bus.plugin_cart(cart)
+    }
+    #[wasm_bindgen(js_name = reset)]
+    pub fn reset(&mut self) {
+        self.cycles = 0;
+        self.aborted = false;
+        self.cpu.reset();
+        self.bus.reset();
     }
 
     #[wasm_bindgen(js_name = setCanvas)]
