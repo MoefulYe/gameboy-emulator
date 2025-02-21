@@ -96,7 +96,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn a_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn a_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::A]
     }
 
@@ -106,7 +106,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn b_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn b_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::B]
     }
 
@@ -116,7 +116,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn c_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn c_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::C]
     }
 
@@ -126,7 +126,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn d_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn d_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::D]
     }
 
@@ -136,7 +136,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn e_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn e_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::E]
     }
 
@@ -146,7 +146,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn f_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn f_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::F]
     }
 
@@ -156,7 +156,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn h_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn h_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::H]
     }
 
@@ -166,7 +166,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn l_mut<'a>(&'a mut self) -> &'a mut Word {
+    pub fn l_mut(&mut self) -> &mut Word {
         &mut self.as_single_word_registers_mut()[Self::L]
     }
 
@@ -176,7 +176,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn af_mut<'a>(&'a mut self) -> &'a mut DWord {
+    pub fn af_mut(&mut self) -> &mut DWord {
         &mut self.as_double_word_registers_mut()[Self::AF]
     }
 
@@ -186,7 +186,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn bc_mut<'a>(&'a mut self) -> &'a mut DWord {
+    pub fn bc_mut(&mut self) -> &mut DWord {
         &mut self.as_double_word_registers_mut()[Self::BC]
     }
 
@@ -196,7 +196,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn de_mut<'a>(&'a mut self) -> &'a mut DWord {
+    pub fn de_mut(&mut self) -> &mut DWord {
         &mut self.as_double_word_registers_mut()[Self::DE]
     }
 
@@ -206,7 +206,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn hl_mut<'a>(&'a mut self) -> &'a mut DWord {
+    pub fn hl_mut(&mut self) -> &mut DWord {
         &mut self.as_double_word_registers_mut()[Self::HL]
     }
 
@@ -216,7 +216,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn sp_mut<'a>(&'a mut self) -> &'a mut Addr {
+    pub fn sp_mut(&mut self) -> &mut Addr {
         &mut self.as_double_word_registers_mut()[Self::SP]
     }
 
@@ -226,7 +226,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn pc_mut<'a>(&'a mut self) -> &'a mut Addr {
+    pub fn pc_mut(&mut self) -> &mut Addr {
         &mut self.as_double_word_registers_mut()[Self::PC]
     }
 
@@ -236,7 +236,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn zero_flag_mut<'a>(&'a mut self) -> BitProxy<'a> {
+    pub fn zero_flag_mut(&mut self) -> BitProxy {
         BitProxy::new(self.f_mut(), Self::ZERO_FLAG)
     }
 
@@ -246,7 +246,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn negative_flag_mut<'a>(&'a mut self) -> BitProxy<'a> {
+    pub fn negative_flag_mut(&mut self) -> BitProxy {
         BitProxy::new(self.f_mut(), Self::NEGATIVE_FLAG)
     }
 
@@ -256,7 +256,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn half_carry_flag_mut<'a>(&'a mut self) -> BitProxy<'a> {
+    pub fn half_carry_flag_mut(&mut self) -> BitProxy {
         BitProxy::new(self.f_mut(), Self::HALF_CARRY_FLAG)
     }
 
@@ -266,7 +266,7 @@ impl Regs {
     }
 
     #[inline]
-    pub fn carry_flag_mut<'a>(&'a mut self) -> BitProxy<'a> {
+    pub fn carry_flag_mut(&mut self) -> BitProxy {
         BitProxy::new(self.f_mut(), Self::CARRY_FLAG)
     }
 }

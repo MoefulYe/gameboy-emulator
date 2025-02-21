@@ -25,7 +25,6 @@ export class Server {
   get freqHz() {
     return BASE_FREQ_HZ * this.freqScale
   }
-  mode = 1
   updateInput = {
     btns: 0
   }
@@ -36,7 +35,7 @@ export class Server {
     private emitter: Emitter<ServerSideEvent>,
     responsePort: MessagePort
   ) {
-    const handlers = this.clientSideEventHandlers()
+    const handlers = this.handlers()
     this.responser = new Responser(responsePort, handlers)
     this.poll()
   }
@@ -102,7 +101,7 @@ export class Server {
     }
   }
 
-  private clientSideEventHandlers(): Handlers {
+  private handlers(): Handlers {
     return {
       'load-rom': this.handleLoadRom(),
       ping: this.handlePing(),
@@ -112,7 +111,8 @@ export class Server {
       'set-fscale': this.handleSetFScale(),
       start: this.handleStart(),
       pause: this.handlePause(),
-      step: this.handleStep()
+      step: this.handleStep(),
+      shutdown: this.handleReset()
     }
   }
 
@@ -212,6 +212,23 @@ export class Server {
         this.state = State.Paused
         this.emit('update', { state: State.Paused })
       }
+      return NONE
+    }
+  }
+
+  private handleReset(): Handler<'shutdown'> {
+    return () => {
+      this.core.reset()
+      this.state = State.Shutdown
+      this.emit('update', {
+        state: State.Shutdown,
+        cycles: 0,
+        rom: null
+      })
+      this.emit('log', {
+        level: LogLevel.Info,
+        msg: 'emu has been reset'
+      })
       return NONE
     }
   }

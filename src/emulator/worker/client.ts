@@ -45,10 +45,10 @@ export class Client {
   }
 
   private init() {
-    const { cpu, cycles, state, serialBytes: bytes } = this.stat
+    const { cpu, cycles, state, serialBytes: bytes, rom } = this.stat
     const { freqScale } = this.config
     this.on('log', ({ level, msg }) => log(level, msg))
-    this.on('update', ({ state: $state, cycles: $cycles, cpu: $cpu, byte: $byte }) => {
+    this.on('update', ({ state: $state, cycles: $cycles, cpu: $cpu, byte: $byte, rom: $rom }) => {
       if ($cycles !== undefined) {
         cycles.value = $cycles
       }
@@ -60,6 +60,9 @@ export class Client {
       }
       if ($cpu !== undefined) {
         cpu.value = $cpu
+      }
+      if ($rom !== undefined) {
+        rom.value = $rom
       }
     })
     watch(
@@ -166,6 +169,10 @@ export class Client {
 
   public step() {
     this.request('step', {})
+  }
+
+  public shutdown() {
+    this.request('shutdown', {})
   }
 
   public fullscreen() {

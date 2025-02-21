@@ -1,5 +1,5 @@
 use crate::{
-    dev::{Bus, PluginCartResult, Reset, CPU},
+    dev::{Bus, Cartridge, LoadRomResult, Reset, CPU},
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
     log,
@@ -54,6 +54,10 @@ impl Emulator {
             cycles: 0,
         }
     }
+    #[wasm_bindgen(js_name = romParse)]
+    pub fn rom_parse(rom: Box<[u8]>) -> LoadRomResult {
+        Cartridge::validate_header(&rom).into()
+    }
 
     #[wasm_bindgen(js_name = initLogger)]
     pub fn init_logger() {
@@ -64,7 +68,7 @@ impl Emulator {
     pub fn update(&mut self, input: EmulatorUpdateInput) -> EmulatorUpdateResult {
         self.bus.btns.update(input.btns);
         let err = self._update(input.cycles);
-        let cpu = self.cpu.dump(&self.bus);
+        let cpu = self.cpu.dump(&mut self.bus);
         let cycles = self.cycles;
         self.bus.ppu.update_tiles();
         self.bus.ppu.update_screen();
@@ -89,10 +93,17 @@ impl Emulator {
         None
     }
 
-    #[wasm_bindgen(js_name = pluginCart)]
-    pub fn plugin_cart(&mut self, cart: Box<[u8]>) -> PluginCartResult {
-        self.bus.plugin_cart(cart)
+    #[wasm_bindgen(js_name = loadRom)]
+    pub fn load_rom(&mut self, rom: Box<[u8]>, ram: Option<Box<[u8]>>) -> LoadRomResult {
+        if self.bus.cartridge.is_some() {
+            self.reset()
+        }
+        self.bus.load_rom(rom).into()
     }
+
+    #[wasm_bindgen(js_name = save)]
+    pub fn save(&self) {}
+
     #[wasm_bindgen(js_name = reset)]
     pub fn reset(&mut self) {
         self.cycles = 0;
@@ -109,11 +120,6 @@ impl Emulator {
     #[wasm_bindgen(js_name = setTilesCanvas)]
     pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
         self.bus.ppu.set_tiles_canvas(canvas)
-    }
-
-    #[wasm_bindgen(js_name = plugoutCart)]
-    pub fn plugout_cart(&mut self) {
-        self.bus.plugout_cart()
     }
 
     #[wasm_bindgen(js_name = setButtons)]

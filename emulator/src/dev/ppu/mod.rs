@@ -182,6 +182,7 @@ impl Reset for PPU {
             as_bytes_mut::<ScreenBitmap>(&mut self.screen_buffers[0]).fill(0);
             as_bytes_mut::<ScreenBitmap>(&mut self.screen_buffers[1]).fill(0);
         }
+        self.update_screen();
     }
 }
 
@@ -280,7 +281,7 @@ impl PPU {
             canvas.put_image_data(&image_data, 0.0, 0.0).unwrap();
         }
     }
-    pub fn update_screen(&mut self) {
+    pub fn update_screen(&self) {
         if let Some(canvas) = &self.screen_canvas {
             let buffer = as_bytes::<ScreenBitmap>(self.pred_buffer());
             let u8s = unsafe { Uint8ClampedArray::view(buffer) };

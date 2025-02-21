@@ -1,5 +1,5 @@
 use super::{
-    cartridge::{Cartridge, PluginCartResult},
+    cartridge::{Cartridge, CartridgeInfo, LoadRomResult},
     gamepad::{Buttons, BUTTON_ADDR},
     int_regs::{
         InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
@@ -44,6 +44,20 @@ pub struct Bus {
     pub int_mask_reg: InterruptMaskRegsiter,
 }
 
+impl Reset for Bus {
+    fn reset(&mut self) {
+        self.cartridge = None;
+        self.wram.reset();
+        self.serial.reset();
+        self.ppu.reset();
+        self.timer.reset();
+        self.btns.reset();
+        self.hram.reset();
+        self.int_flag_reg.reset();
+        self.int_mask_reg.reset();
+    }
+}
+
 impl Bus {
     pub fn new() -> Self {
         Bus {
@@ -59,19 +73,7 @@ impl Bus {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.cartridge = None;
-        self.wram.reset();
-        self.serial.reset();
-        self.ppu.reset();
-        self.timer.reset();
-        self.btns.reset();
-        self.hram.reset();
-        self.int_flag_reg.reset();
-        self.int_mask_reg.reset();
-    }
-
-    pub fn read(&self, addr: Addr) -> EmuResult<Word> {
+    pub fn read(&mut self, addr: Addr) -> EmuResult<Word> {
         let word = match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
@@ -176,14 +178,11 @@ impl Bus {
         }
     }
 
-    pub fn plugin_cart(&mut self, cartridge: Box<[u8]>) -> PluginCartResult {
-        let cartridge = Cartridge::new(cartridge);
-        let res = cartridge.check_and_get_info();
-        self.cartridge = Some(cartridge);
-        res
-    }
-    pub fn plugout_cart(&mut self) {
-        self.cartridge = None
+    pub fn load_rom(&mut self, cartridge: Box<[u8]>) -> Result<CartridgeInfo, String> {
+        let rom = Cartridge::new(cartridge).ok_or_else(|| "illegal rom size")?;
+        let res = rom.validate()?;
+        self.cartridge = Some(rom);
+        Ok(res)
     }
 }
 

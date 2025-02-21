@@ -29,14 +29,13 @@ const CPU_STATE_INIT = {
 } as const satisfies CPUStateDump
 
 export class Stat {
-  public readonly rom = shallowRef<CartridgeInfo>()
+  public readonly rom = shallowRef<CartridgeInfo | null>(null)
   public readonly cycles = shallowRef(0)
   public readonly state = shallowRef(State.Shutdown)
   public readonly serialBytes = shallowReactive([] as number[])
   public readonly cpu = shallowRef<CPUStateDump>(CPU_STATE_INIT)
-  public readonly frameRate: ComputedRef<number>
   public readonly actualRate = useActualRate(this.cycles)
-
+  public readonly frameRate: ComputedRef<number>
   public constructor(config: Config) {
     this.frameRate = computed(() => VISUAL_FREQ_HZ * config.freqScale.value)
   }
@@ -53,7 +52,9 @@ const useActualRate = (cycles: Ref<number>) => {
     const elapsed = now - last
     last = now
     const actual = (updated * 1000) / CYCLES_PER_FRAME / elapsed
-    ret.value = actual
+    if (newVal !== 0) {
+      ret.value = actual
+    }
   })
   return ret
 }

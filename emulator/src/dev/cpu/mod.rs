@@ -63,7 +63,7 @@ impl CPU {
         }
     }
 
-    pub fn dump(&self, bus: &Bus) -> CPUStateDump {
+    pub fn dump(&self, bus: &mut Bus) -> CPUStateDump {
         let pc = self.pc();
         let inst = bus
             .read(pc)
@@ -100,10 +100,6 @@ impl CPU {
         }
     }
 
-    pub fn reset(&mut self) {
-        *self = Default::default()
-    }
-
     fn handle_int(&mut self, bus: &mut Bus, entry: Addr) -> EmuResult<ClockCycle> {
         self.ime.disable();
         self.push_dword(bus, self.pc())?;
@@ -111,7 +107,7 @@ impl CPU {
         Ok(20)
     }
 
-    fn fetch_opcode(&self, bus: &Bus) -> EmuResult<OpCode> {
+    fn fetch_opcode(&self, bus: &mut Bus) -> EmuResult<OpCode> {
         bus.read(self.pc())
     }
 

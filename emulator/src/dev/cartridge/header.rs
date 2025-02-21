@@ -36,8 +36,21 @@ pub struct Header {
     global_checksum: [u8; 2],
 }
 
+pub enum MBCType {
+    NoMBC,
+    MBC1,
+    MBC2,
+    MBC3,
+}
+
 impl Header {
-    pub fn from_rom<'a>(rom: &'a Rom) -> &'a Self {
+    pub fn validate(&self) -> Option<String> {
+        self.check_logo()
+            .or_else(|| self.checksum())
+            .map(|e| e.msg())
+    }
+
+    pub unsafe fn from_rom<'a>(rom: &'a Rom) -> &'a Self {
         unsafe {
             let base = rom.as_ptr().add(ROM_OFFSET) as *const Self;
             &*base
@@ -149,6 +162,31 @@ impl Header {
             0xFE => "HuC3",
             0xFF => "HuC1+RAM+BATTERY",
             _ => "UNKNOWN",
+        }
+    }
+
+    pub fn mbc_type(&self) -> Option<MBCType> {
+        use MBCType::*;
+        match self.cart_type {
+            0x00 => Some(NoMBC),
+            0x01 | 0x02 | 0x03 => Some(MBC1),
+            0x05 | 0x06 => Some(MBC2),
+            0x0F | 0x10 | 0x11 | 0x12 | 0x13 => Some(MBC3),
+            _ => None,
+        }
+    }
+
+    pub fn has_rtc(&self) -> bool {
+        match self.cart_type {
+            0x0F | 0x10 => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_battery(&self) -> bool {
+        match self.cart_type {
+            3 | 6 | 9 | 13 | 15 | 16 | 19 | 27 | 30 | 34 => true,
+            _ => false,
         }
     }
 
@@ -428,7 +466,7 @@ mod test {
         let roms = read_roms();
         for (i, rom) in roms.iter().enumerate() {
             println!("testing rom {}", i + 1);
-            let header = Header::from_rom(&rom);
+            let header = unsafe { Header::from_rom(&rom) };
             let title = header.title();
             let ty = header.cart_typename();
             let rom_size = header.rom_size();

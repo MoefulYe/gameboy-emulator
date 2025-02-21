@@ -56,6 +56,11 @@ export type ClientSideEvent = {
     ret: undefined
     err: undefined
   }
+  shutdown: {
+    args: {}
+    ret: undefined
+    err: undefined
+  }
 }
 
 export type ServerSideEvent = {
@@ -68,5 +73,6 @@ export type ServerSideEvent = {
     cycles?: number
     cpu?: CPUStateDump
     byte?: number
+    rom?: CartridgeInfo | null
   }
 }

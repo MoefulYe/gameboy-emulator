@@ -22,8 +22,12 @@
         :disabled="disableNext"
         @click="emu.step()"
       />
-      <button class="i-pixelarticons:reload" v-tooltip="'reset'" />
-      <button class="i-pixelarticons:close" v-tooltip="'shutdown'" :disabled="disableShutdown" />
+      <button
+        class="i-pixelarticons:close"
+        v-tooltip="'shutdown'"
+        :disabled="disableShutdown"
+        @click="emu.shutdown()"
+      />
       <span class="divider" />
       <Menu class="size-7.5 sm:size-12 relative">
         <button :class="[speedIcon, 'size-full absolute inset-block-0']" @dblclick="resetSpeed" />

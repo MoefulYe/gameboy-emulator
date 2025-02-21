@@ -4,73 +4,72 @@ use crate::{
     types::{Addr, Word},
 };
 use log::warn;
+use mbc::{mbc1::MBC1, mbc2::MBC2, mbc3::MBC3, no_mbc::NoMBC, MBC};
+use std::mem::size_of;
 
 mod header;
+mod mbc;
+
+const ROM0_ADDR_LOW_BOUND: Addr = 0x0000;
+const ROM0_ADDR_HIGH_BOUND: Addr = 0x3FFF;
+const ROM1_ADDR_LOW_BOUND: Addr = 0x4000;
+const ROM1_ADDR_HIGH_BOUND: Addr = 0x7FFF;
+const RAM_ADDR_LOW_BOUND: Addr = 0xA000;
+const RAM_ADDR_HIGH_BOUND: Addr = 0xBFFF;
 
 pub type Rom = [u8];
-pub type Ram = [u8];
-pub struct Cartridge {
-    rom: Box<Rom>,
-    ram: Option<Box<Ram>>,
+pub enum Cartridge {
+    NoMBC(NoMBC),
+    MBC1(MBC1),
+    MBC2(MBC2),
+    MBC3(MBC3),
 }
 
 impl Cartridge {
-    pub fn new(rom: Box<Rom>) -> Self {
-        let ram = Header::from_rom(&rom).ram_size().and_then(|s| {
-            if s == 0 {
-                None
-            } else {
-                Some(vec![0; s].into_boxed_slice())
-            }
-        });
-        Cartridge { rom, ram }
+    pub fn new(rom: Box<Rom>) -> Option<Self> {
+        todo!()
     }
 
-    pub fn header<'a>(&'a self) -> &'a Header {
-        Header::from_rom(&self.rom)
+    fn header<'a>(&'a self) -> &'a Header {
+        unsafe { Header::from_rom(&self.rom) }
     }
 
-    pub fn check_and_get_info(&self) -> PluginCartResult {
+    pub fn validate(&self) -> Result<CartridgeInfo, String> {
         let header = self.header();
-        if let Some(msg) = header
-            .check_logo()
-            .or_else(|| header.checksum())
-            .map(|e| e.msg())
-        {
-            PluginCartResult::Err { msg }
-        } else {
-            let info = header.info();
-            PluginCartResult::Ok { info }
+        match header.validate() {
+            Some(msg) => Err(msg),
+            None => Ok(header.info()),
+        }
+    }
+
+    pub fn validate_header(rom: &Rom) -> Result<CartridgeInfo, String> {
+        if rom.len() < size_of::<Header>() {
+            return Err("illegal size".to_owned());
+        }
+        let header = unsafe { Header::from_rom(rom) };
+        match header.validate() {
+            Some(msg) => Err(msg),
+            None => Ok(header.info()),
         }
     }
 }
 
 impl BusDevice for Cartridge {
     fn read(&self, addr: Addr) -> Word {
-        // https://gbdev.io/pandocs/Memory_Map.html
-        match addr {
-            0x0000..=0x7FFF => unsafe { *self.rom.get_unchecked(addr as usize) },
-            // 0x4000..=0x7FFF => {
-            //     warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
-            //     todo!()
-            // }
-            0xA000..=0xBFFF => {
-                warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
-                0xFF
-            }
-            _ => {
-                warn!("unimplemented read from cartridge at address: 0x{addr:04X}");
-                0xFF
-            }
+        match self {
+            Cartridge::NoMBC(c) => c.read(addr),
+            Cartridge::MBC1(c) => c.read(addr),
+            Cartridge::MBC2(c) => c.read(addr),
+            Cartridge::MBC3(c) => c.read(addr),
         }
     }
 
     fn write(&mut self, addr: Addr, data: Word) {
-        match addr {
-            0xA000..=0xBFFF => {
-                warn!("unimplemented write from cartridge at address: 0x{addr:04X}");
-            }
-            _ => warn!("illegal write to cartridge at address: 0x{addr:04X}"),
+        match self {
+            Cartridge::NoMBC(c) => c.write(addr, data),
+            Cartridge::MBC1(c) => c.write(addr, data),
+            Cartridge::MBC2(c) => c.write(addr, data),
+            Cartridge::MBC3(c) => c.write(addr, data),
         }
     }
 }
@@ -96,12 +95,21 @@ mod tsify_derive {
     #[derive(Serialize, Tsify)]
     #[tsify(into_wasm_abi)]
     #[serde(tag = "status")]
-    pub enum PluginCartResult {
+    pub enum LoadRomResult {
         #[serde(rename = "ok")]
         Ok { info: CartridgeInfo },
         #[serde(rename = "error")]
         Err { msg: String },
     }
+
+    impl From<Result<CartridgeInfo, String>> for LoadRomResult {
+        fn from(value: Result<CartridgeInfo, String>) -> Self {
+            match value {
+                Ok(info) => Self::Ok { info },
+                Err(msg) => Self::Err { msg },
+            }
+        }
+    }
 }
 
-pub use tsify_derive::{CartridgeInfo, PluginCartResult};
+pub use tsify_derive::{CartridgeInfo, LoadRomResult};
