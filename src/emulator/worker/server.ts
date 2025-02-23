@@ -88,9 +88,11 @@ export class Server {
   }
 
   private update(cyclesToExec: number) {
+    const now = Date.now()
     const { err, cpu, cycles } = this.core.update({
       ...this.updateInput,
-      cycles: cyclesToExec
+      cycles: cyclesToExec,
+      timestamp: now
     })
     if (err === null) {
       this.emit('update', { cpu, cycles })
@@ -112,13 +114,16 @@ export class Server {
       start: this.handleStart(),
       pause: this.handlePause(),
       step: this.handleStep(),
-      shutdown: this.handleReset()
+      shutdown: this.handleShutdown(),
+      save: this.handleSave(),
+      load: this.handleLoad()
     }
   }
 
   private handleLoadRom(): Handler<'load-rom'> {
     return ({ rom }) => {
-      const res = this.core.pluginCart(rom)
+      const now = Date.now()
+      const res = this.core.loadCart(rom, now)
       if (res.status === 'ok') {
         const { info } = res
         return Right(info)
@@ -141,7 +146,7 @@ export class Server {
       if (ctx === null) {
         return Throw('set canvas failed! fail to get context')
       }
-      this.core.setCanvas(ctx)
+      this.core.setScreenCanvas(ctx)
       return NONE
     }
   }
@@ -216,7 +221,7 @@ export class Server {
     }
   }
 
-  private handleReset(): Handler<'shutdown'> {
+  private handleShutdown(): Handler<'shutdown'> {
     return () => {
       this.core.reset()
       this.state = State.Shutdown
@@ -230,6 +235,42 @@ export class Server {
         msg: 'emu has been reset'
       })
       return NONE
+    }
+  }
+
+  private handleSave(): Handler<'save'> {
+    return () => {
+      const data = this.core.save()
+      if (data !== undefined) {
+        return Right(
+          {
+            data,
+            state: this.state
+          },
+          [data.buffer]
+        )
+      } else {
+        return Throw(undefined)
+      }
+    }
+  }
+
+  private handleLoad(): Handler<'load'> {
+    return ({ data, state }) => {
+      const ok = this.core.load(data)
+      if (ok) {
+        this.state = state
+        this.emit('update', {
+          state
+        })
+        return Right(undefined)
+      } else {
+        this.state = State.Aborted
+        this.emit('update', {
+          state: State.Aborted
+        })
+        return Throw(undefined)
+      }
     }
   }
 }

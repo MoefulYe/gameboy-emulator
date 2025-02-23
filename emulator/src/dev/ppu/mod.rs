@@ -11,6 +11,8 @@ use lcd::LCDDriver;
 use lcdc::{LCDControl, PPU_ENABLE_POS};
 use lcds::{LCDStat, WorkMode};
 use oam::{ObjectPixel, OAM};
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use std::collections::VecDeque;
 use vram::VRAM;
 use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
@@ -82,6 +84,7 @@ pub enum MapAreaType {
 pub type TileAreaIdx = u8;
 pub type MapArea = [TileAreaIdx; 1024];
 
+#[derive(Serialize, Deserialize)]
 pub struct BGWPixel {
     color: Word,
     palette: Palette,
@@ -109,6 +112,8 @@ impl Default for BGWPixel {
     }
 }
 
+#[serde_as]
+#[derive(Serialize, Deserialize)]
 pub struct PPU {
     // regs
     /// 0xFF40
@@ -148,9 +153,13 @@ pub struct PPU {
     lcd_driver: LCDDriver,
     palette: RGBAPalette,
 
-    tiles_canvas: Option<OffscreenCanvasRenderingContext2d>,
+    #[serde(skip, default)]
+    pub tiles_canvas: Option<OffscreenCanvasRenderingContext2d>,
+    #[serde_as(as = "Box<[[_; TILES_WIDTH];TILES_HEIGHT]>")]
     tiles_buffer: Box<TilesBitmap>,
-    screen_canvas: Option<OffscreenCanvasRenderingContext2d>,
+    #[serde(skip, default)]
+    pub screen_canvas: Option<OffscreenCanvasRenderingContext2d>,
+    #[serde_as(as = "[Box<[[_; SCREEN_WIDTH];SCREEN_HEIGHT]>; 2]")]
     screen_buffers: [Box<ScreenBitmap>; 2],
     cur_buf: u8,
 }
@@ -255,7 +264,7 @@ impl PPU {
 }
 
 impl PPU {
-    pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+    pub fn set_screen_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
         self.screen_canvas = Some(canvas)
     }
 

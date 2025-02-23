@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::types::Word;
 
+#[derive(Serialize, Deserialize)]
 pub struct DMA {
     active: bool,
     base: Word,

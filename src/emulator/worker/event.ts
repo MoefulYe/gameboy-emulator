@@ -1,4 +1,4 @@
-import type { CPUStateDump, CartridgeInfo } from 'emulator/pkg/emulator'
+import type { CPUStateDump, CartInfo } from 'emulator/pkg/emulator'
 import type { LogLevel, State } from '../constants'
 import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 
@@ -7,7 +7,7 @@ export type ClientSideEvent = {
     args: {
       rom: Uint8Array
     }
-    ret: CartridgeInfo
+    ret: CartInfo
     err: string
   }
   ping: {
@@ -61,6 +61,22 @@ export type ClientSideEvent = {
     ret: undefined
     err: undefined
   }
+  save: {
+    args: {}
+    ret: {
+      data: Uint8Array
+      state: State
+    }
+    err: undefined
+  }
+  load: {
+    args: {
+      data: Uint8Array
+      state: State
+    }
+    ret: undefined
+    err: undefined
+  }
 }
 
 export type ServerSideEvent = {
@@ -73,6 +89,6 @@ export type ServerSideEvent = {
     cycles?: number
     cpu?: CPUStateDump
     byte?: number
-    rom?: CartridgeInfo | null
+    rom?: CartInfo | null
   }
 }

@@ -1,5 +1,5 @@
 use super::{
-    cartridge::{Cartridge, CartridgeInfo, LoadRomResult},
+    cart::{Cart, CartInfo},
     gamepad::{Buttons, BUTTON_ADDR},
     int_regs::{
         InterruptFlagRegister, InterruptMaskRegsiter, INTERRUPT_FLAG_REGISTER_ADDR,
@@ -18,6 +18,7 @@ use crate::{
     types::{Addr, Word},
 };
 use log::warn;
+use serde::{Deserialize, Serialize};
 
 /// ref https://gbdev.io/pandocs/Memory_Map.html
 /// 0x0000 - 0x7FFF: 32KB CART ROM
@@ -32,8 +33,9 @@ use log::warn;
 /// 0xFFFF - 0xFFFF: Interrupt Enable Register
 /// 读取非法地址返回0xFF
 /// 写操作非法地址不做任何操作
+#[derive(Serialize, Deserialize)]
 pub struct Bus {
-    pub cartridge: Option<Cartridge>,
+    pub cart: Option<Cart>,
     pub wram: WRAM,
     pub serial: Serial,
     pub ppu: PPU,
@@ -46,7 +48,7 @@ pub struct Bus {
 
 impl Reset for Bus {
     fn reset(&mut self) {
-        self.cartridge = None;
+        self.cart = None;
         self.wram.reset();
         self.serial.reset();
         self.ppu.reset();
@@ -61,7 +63,7 @@ impl Reset for Bus {
 impl Bus {
     pub fn new() -> Self {
         Bus {
-            cartridge: None,
+            cart: None,
             wram: WRAM::new(),
             serial: Serial::new(),
             ppu: PPU::new(),
@@ -77,7 +79,7 @@ impl Bus {
         let word = match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
-                if let Some(ref c) = self.cartridge {
+                if let Some(ref c) = self.cart {
                     c.read(addr)
                 } else {
                     warn!("no cartridge is plugged in! illegal read at address: 0x:{addr:04X}");
@@ -106,7 +108,7 @@ impl Bus {
         match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {
-                if let Some(ref mut c) = self.cartridge {
+                if let Some(ref mut c) = self.cart {
                     c.write(addr, data)
                 } else {
                     warn!("no cartridge is plugged in! illegal write at address: 0x:{addr:04X}");
@@ -178,11 +180,11 @@ impl Bus {
         }
     }
 
-    pub fn load_rom(&mut self, cartridge: Box<[u8]>) -> Result<CartridgeInfo, String> {
-        let rom = Cartridge::new(cartridge).ok_or_else(|| "illegal rom size")?;
-        let res = rom.validate()?;
-        self.cartridge = Some(rom);
-        Ok(res)
+    pub fn load_cart(&mut self, rom: Box<[u8]>, timestamp: i64) -> EmuResult<CartInfo> {
+        let cart = Cart::new(rom, timestamp)?;
+        let info = cart.header().info();
+        self.cart = Some(cart);
+        Ok(info)
     }
 }
 

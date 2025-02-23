@@ -51,3 +51,21 @@ export const Err = Status.Err
 
 export const TILE_BITMAP_WIDTH = 128
 export const TILE_BITMAP_HEIGHT = 192
+
+export type SaveMetadata = {
+  readonly createdAt?: Date
+  readonly lastAccessed?: Date
+  readonly cartTitle: string
+}
+
+export type Save = {
+  readonly data: Uint8Array
+  readonly state: State
+  readonly metadata: SaveMetadata
+  readonly id: number
+}
+
+export const enum SaveMode {
+  Create,
+  Overwrite
+}

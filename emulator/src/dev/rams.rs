@@ -1,3 +1,8 @@
+use std::ops::{Deref, DerefMut};
+
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+
 use super::{
     bus::{HRAM_LOW_BOUND, HRAM_SIZE, WRAM_LOW_BOUND, WRAM_SIZE},
     Reset,
@@ -7,7 +12,9 @@ use crate::{
     types::{Addr, Word},
 };
 
-pub struct WRAM(pub Box<[Word; WRAM_SIZE]>);
+#[serde_with::serde_as]
+#[derive(Serialize, Deserialize)]
+pub struct WRAM(#[serde_as(as = "Box<[_; WRAM_SIZE]>")] Box<[Word; WRAM_SIZE]>);
 
 impl Reset for WRAM {
     fn reset(&mut self) {
@@ -25,13 +32,29 @@ impl BusDevice for WRAM {
     }
 }
 
+impl Deref for WRAM {
+    type Target = [Word; WRAM_SIZE];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for WRAM {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 impl WRAM {
     pub fn new() -> Self {
         Self(Box::new([0; WRAM_SIZE]))
     }
 }
 
-pub struct HighRam(pub Box<[Word; HRAM_SIZE]>);
+#[serde_with::serde_as]
+#[derive(Serialize, Deserialize)]
+pub struct HighRam(#[serde_as(as = "Box<[_; HRAM_SIZE]>")] Box<[Word; HRAM_SIZE]>);
 
 impl BusDevice for HighRam {
     fn read(&self, addr: Addr) -> Word {
@@ -46,6 +69,20 @@ impl BusDevice for HighRam {
 impl HighRam {
     pub fn new() -> Self {
         Self(Box::new([0; HRAM_SIZE]))
+    }
+}
+
+impl Deref for HighRam {
+    type Target = [Word; HRAM_SIZE];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for HighRam {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="p-1">
-    <div v-if="rom === null">no rom inserted</div>
+    <div v-if="rom === null">load rom first</div>
     <ul v-else>
       <li>
         <label>title: </label> <span>{{ rom.title }}</span>

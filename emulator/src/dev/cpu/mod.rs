@@ -7,6 +7,7 @@ use crate::{
     error::EmuResult,
     types::{Addr, ClockCycle, OpCode, Word},
 };
+use serde::{Deserialize, Serialize};
 use std::ops::{Deref, DerefMut};
 
 mod cb;
@@ -14,7 +15,7 @@ mod ime;
 mod inst;
 mod regs;
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct CPU {
     regs: Regs,
     halted: bool,

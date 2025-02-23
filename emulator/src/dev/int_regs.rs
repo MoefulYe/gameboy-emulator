@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::types::{Addr, Word};
 use crate::utils::bits::BitMap;
 
@@ -31,7 +33,7 @@ pub const INT_VBLANK_ENTRY: Addr = 0x40;
 pub const INTERRUPT_FLAG_REGISTER_ADDR: Addr = 0xFF0F;
 pub const INTERRUPT_MASK_REGISTER_ADDR: Addr = 0xFFFF;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct InterruptMaskRegsiter(Word);
 
 impl Default for InterruptMaskRegsiter {
@@ -59,7 +61,7 @@ impl InterruptMaskRegsiter {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct InterruptFlagRegister(Word);
 
 impl Default for InterruptFlagRegister {

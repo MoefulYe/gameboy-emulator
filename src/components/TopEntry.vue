@@ -14,7 +14,7 @@
     </div>
     <Teleport to="body">
       <Transition name="popup">
-        <Popup v-show="popupShow" @close="popupShow = false" />
+        <Popup v-show="popupShow" @close="popupShow = false" ref="popup" />
       </Transition>
     </Teleport>
   </div>
@@ -22,7 +22,7 @@
 
 <script setup lang="ts">
 import 'vue-resizables/style'
-import { provide, ref } from 'vue'
+import { provide, ref, useTemplateRef, watch } from 'vue'
 import { createEmulator, emuKey } from '@/emulator'
 import { vResizable, type ResizableConfig } from 'vue-resizables'
 import HeaderBar from './HeaderBar.vue'
@@ -31,10 +31,20 @@ import SideBar, { sideBarShowKey } from './SideBar'
 import Popup, { popupShowKey } from './Popup'
 import { useDocumentListener } from '@/utils/hooks'
 
+const popup = useTemplateRef('popup')
+const emu = await createEmulator()
+provide(emuKey, emu)
 const sidebarShow = ref(false)
 const popupShow = ref(false)
 provide(sideBarShowKey, sidebarShow)
 provide(popupShowKey, popupShow)
+
+watch(popupShow, (show) => {
+  if (show) {
+    popup.value?.update()
+  }
+})
+
 useDocumentListener('keyup', (e) => {
   e.stopImmediatePropagation()
   switch (e.key) {
@@ -46,8 +56,6 @@ useDocumentListener('keyup', (e) => {
       break
   }
 })
-const emu = await createEmulator()
-provide(emuKey, emu)
 </script>
 
 <script lang="ts">

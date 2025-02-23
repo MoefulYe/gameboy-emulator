@@ -2,7 +2,19 @@
   <header id="header-bar" class="bg-blue-3 text-white shadow-sm border-b-1 p-2 overflow-y-auto">
     <span class="flex gap-2 justify-center w-fit mx-auto text-3xl sm:text-5xl">
       <button class="i-pixelarticons:folder" v-tooltip="'Open'" @click="openRom" />
-      <button class="i-pixelarticons:save" v-tooltip="'save'" />
+      <button
+        class="i-pixelarticons:edit"
+        v-tooltip="'overwrite'"
+        :disabled="disableSave"
+        @click="emu.save(SaveMode.Overwrite)"
+      />
+      <button
+        class="i-pixelarticons:add-box-multiple"
+        v-tooltip="'save'"
+        :disabled="disableSave"
+        @click="emu.save(SaveMode.Create)"
+      />
+      <button class="i-pixelarticons:article" v-tooltip="'saves'" @click.stop="popupShow = true" />
       <span class="divider" />
       <button
         class="i-pixelarticons:play"
@@ -57,18 +69,13 @@
         v-tooltip="'Debug'"
         @click="toggleSideBar"
       />
-      <button
-        class="i-pixelarticons:more-horizontal"
-        v-tooltip="'More'"
-        @click.stop="popupShow = true"
-      />
     </span>
   </header>
 </template>
 
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
-import { State } from '@/emulator/constants'
+import { SaveMode, State } from '@/emulator/constants'
 import { computed } from 'vue'
 import { Menu } from 'floating-vue'
 import MySlider from './common/MySlider.vue'
@@ -79,7 +86,7 @@ const emu = useEmulator()
 const sideBarShow = useShowSideBar()
 const popupShow = useShowPopup()
 const { freqScale, volume } = emu.config
-const { state } = emu.stat
+const { state, saveMetaData } = emu.stat
 
 const tooltipPlay = computed(() => (state.value === State.Paused ? 'resume' : 'start'))
 
@@ -126,6 +133,8 @@ const openRom = async () => {
   const rom = new Uint8Array(buf)
   emu.openRom(rom)
 }
+
+const disableSave = computed(() => saveMetaData.value === undefined)
 </script>
 
 <script lang="ts">

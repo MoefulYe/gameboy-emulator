@@ -4,13 +4,12 @@ use log::warn;
 use std::default::Default;
 
 mod bus;
-mod cartridge;
+mod cart;
 mod cpu;
 mod gamepad;
 mod int_regs;
 mod ppu;
 mod rams;
-mod rtc;
 mod serial;
 mod timer;
 
@@ -45,6 +44,5 @@ pub trait Tick: BusDevice {
 }
 
 pub use bus::Bus;
-pub use cartridge::{Cartridge, LoadRomResult};
+pub use cart::{Cart, LoadCartResult};
 pub use cpu::CPU;
-pub use rtc::RTC;

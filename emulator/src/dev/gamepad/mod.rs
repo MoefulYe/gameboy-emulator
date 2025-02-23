@@ -1,7 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
     types::{Addr, Word},
     utils::bits::BitMap,
 };
+
+#[derive(Serialize, Deserialize)]
 enum BtnCtl {
     UseDirection,
     UseFunction,
@@ -11,6 +15,7 @@ pub const BUTTON_ADDR: Addr = 0xFF00;
 /// 7 6 5 4 3 2 1 0
 /// - - 1 0 u d l r
 /// - - 0 1 s s b a
+#[derive(Serialize, Deserialize)]
 pub struct Buttons {
     btns: Word,
     ctl: BtnCtl,

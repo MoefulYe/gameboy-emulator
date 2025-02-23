@@ -1,8 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
+use serde::{Deserialize, Serialize};
+
 use crate::types::Word;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct Palette(pub Word);
 
 impl Deref for Palette {

@@ -1,5 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{types::Word, utils::bits::BitMap};
 
 use super::{MapAreaType, TileAreaType};
@@ -13,6 +15,7 @@ pub const OBJ_SIZE_POS: Word = 2;
 pub const OBJ_ENABLE_POS: Word = 1;
 pub const WINDOW_BG_ENABLE_POS: Word = 0;
 ///https://gbdev.io/pandocs/LCDC.html
+#[derive(Serialize, Deserialize)]
 pub struct LCDControl(pub Word);
 
 impl Default for LCDControl {

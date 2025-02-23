@@ -3,8 +3,8 @@ import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
 import { AudioReceiver } from '../output/audio'
 import type { ClientSideEvent, ServerSideEvent } from './event'
 import { Stat, useStat } from '../stat'
-import { Err, LogLevel, Ok } from '../constants'
-import type { DB } from '../persistance/indexeddb'
+import { Err, LogLevel, Ok, SaveMode, type Save, type SaveMetadata } from '../constants'
+import type { EmuDB } from '../persistance/db'
 import type { Config } from '../config'
 import { EmuGamepad, useGamepad } from '../input/gamepad'
 import type { GameboyLayoutButtons } from '../input/gamepad/constants'
@@ -14,7 +14,7 @@ import { debounce } from '@/utils/debounce'
 
 type CreateOption = {
   config: Config
-  db: DB
+  db: EmuDB
   listenPort: MessagePort
   requestPort: MessagePort
   audioPort: MessagePort
@@ -26,11 +26,12 @@ export class Client {
   private readonly listener: Listener<ServerSideEvent>
   private readonly audioReceiver: AudioReceiver
   private readonly server: Worker
-  private readonly db: DB
+  public readonly db: EmuDB
   public readonly config: Config
   public readonly stat: Stat
   public readonly gamepad: EmuGamepad
-  private canvasEl: HTMLCanvasElement | null = null
+  private saveId?: number = undefined
+  private screenEl: HTMLCanvasElement | null = null
 
   constructor({ listenPort, requestPort, audioPort, server, config, db }: CreateOption) {
     this.config = config
@@ -114,6 +115,10 @@ export class Client {
       const info = res.ret
       log(LogLevel.Info, `insert rom \`${info.title}\``)
       this.stat.rom.value = info
+      this.stat.saveMetaData.value = {
+        cartTitle: info.title,
+        createdAt: new Date()
+      }
     } else {
       const msg = res.err
       log(LogLevel.Error, msg)
@@ -126,7 +131,7 @@ export class Client {
       if (el === null) {
         return
       }
-      this.canvasEl = el
+      this.screenEl = el
       const canvas = el.transferControlToOffscreen()
       const res = await this.request('set-canvas', { canvas }, [canvas])
       if (res.status === Err) {
@@ -176,6 +181,55 @@ export class Client {
   }
 
   public fullscreen() {
-    this.canvasEl?.requestFullscreen()
+    this.screenEl?.requestFullscreen()
+  }
+
+  public async save(mode: SaveMode) {
+    const metadata = this.stat.saveMetaData.value
+    if (metadata === undefined) {
+      log(LogLevel.Warn, 'no cart')
+      return
+    }
+    const res = await this.request('save', {})
+    if (res.status === Err) {
+      return
+    }
+    const { data, state } = res.ret
+    const metadata1: SaveMetadata = {
+      ...metadata,
+      lastAccessed: new Date()
+    }
+    const save =
+      mode === SaveMode.Create || this.saveId === undefined
+        ? {
+            data,
+            state,
+            metadata: metadata1
+          }
+        : {
+            data,
+            state,
+            metadata: metadata1,
+            id: this.saveId
+          }
+    this.saveId = await this.db.put('saves', save as any)
+    this.stat.saveMetaData.value = metadata1
+  }
+
+  public async load(save: Save) {
+    const { data, state, metadata, id } = save
+    const res = await this.request(
+      'load',
+      {
+        data,
+        state
+      },
+      [data.buffer]
+    )
+    if (res.status === Err) {
+      return
+    }
+    this.saveId = id
+    this.stat.saveMetaData.value = metadata
   }
 }

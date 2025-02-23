@@ -3,7 +3,7 @@ import { type InjectionKey, inject } from 'vue'
 import Server from './worker/worker?worker'
 import { Err, LogLevel } from './constants'
 import { useConfig } from './config'
-import { useIndexedDB } from './persistance/indexeddb'
+import { createDB } from './persistance/db'
 import log from './logger'
 
 export const emuKey = Symbol() as InjectionKey<Client>
@@ -16,7 +16,7 @@ export const createEmulator = async () => {
   const audioChan = new MessageChannel()
   const clientEventChan = new MessageChannel()
   const serverEventChan = new MessageChannel()
-  const db = await useIndexedDB()
+  const db = await createDB()
   const client = new Client({
     db,
     config,

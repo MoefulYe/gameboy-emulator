@@ -1,7 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use crate::types::Word;
 
 use super::{graphic::PPU_XRES, PPU};
 
+#[derive(Serialize, Deserialize)]
 pub(super) struct LCDDriver {
     pub draw_x: Word,
 }

@@ -8,6 +8,7 @@ import SerialDisplay from './SerialDisplay.vue'
 import CPUStateDisplay from './CPUStateDisplay.vue'
 import { useLocalStorage } from '@/utils/localstorage'
 import TilesDisplay from './TilesDisplay.vue'
+import SaveDisplay from './SaveDisplay.vue'
 
 const basicOpen = useLocalStorage<boolean>('sidebar-basic', true)
 const cpuOpen = useLocalStorage<boolean>('sidebar-cpu', true)
@@ -16,6 +17,7 @@ const gamepadOpen = useLocalStorage<boolean>('sidebar-gamepad', false)
 const serialOpen = useLocalStorage<boolean>('sidebar-serial', false)
 const logOpen = useLocalStorage<boolean>('sidebar-log', true)
 const tilesOpen = useLocalStorage<boolean>('sidebar-tiles', false)
+const saveOpen = useLocalStorage<boolean>('sidebar-save', false)
 </script>
 
 <template>
@@ -30,6 +32,9 @@ const tilesOpen = useLocalStorage<boolean>('sidebar-tiles', false)
     </MyCollapse>
     <MyCollapse title="Rom" v-model:open="romOpen">
       <RomDisplay />
+    </MyCollapse>
+    <MyCollapse title="Save" v-model:open="saveOpen">
+      <SaveDisplay />
     </MyCollapse>
     <MyCollapse title="Gamepad" v-model:open="gamepadOpen">
       <GamepadDisplay />

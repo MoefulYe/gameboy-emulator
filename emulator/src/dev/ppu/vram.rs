@@ -1,5 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+
 use crate::{
     dev::{
         bus::{VRAM_LOW_BOUND, VRAM_SIZE},
@@ -13,7 +16,9 @@ use super::{
     MapArea, MapAreaType,
 };
 
-pub struct VRAM(Box<[Word; VRAM_SIZE]>);
+#[serde_as]
+#[derive(Serialize, Deserialize)]
+pub struct VRAM(#[serde_as(as = "Box<[_; VRAM_SIZE]>")] Box<[Word; VRAM_SIZE]>);
 
 impl Reset for VRAM {
     fn reset(&mut self) {

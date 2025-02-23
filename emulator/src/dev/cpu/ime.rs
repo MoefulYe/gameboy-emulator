@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
 pub struct InterruptMasterEnableRegsiter {
     enabled: bool,
     enabling_countdown: u8,

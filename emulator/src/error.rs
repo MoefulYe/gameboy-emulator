@@ -20,10 +20,12 @@ pub enum EmulatorError {
     RunWhenAborting,
     #[error("invalid checksum: expected 0x{expected:02X}, found 0x{actual:02X}")]
     InvalidChecksum { expected: u8, actual: u8 },
-    #[error("invalid bank id: rom bank{bank_idx:02X} no existed")]
-    RomBankNoExisted { bank_idx: u8 },
-    #[error("invalid bank id: ram bank{bank_idx:02X} no existed")]
-    RamBankNoExisted { bank_idx: u8 },
+    #[error("invalid size: {size}")]
+    InvalidRomSize { size: usize },
+    #[error("unknown mbc type")]
+    UnknownMBCType,
+    #[error("{msg}")]
+    AnyError { msg: String },
 }
 
 pub use EmulatorError::*;
@@ -49,6 +51,15 @@ impl AsRef<EmulatorError> for EmulatorError {
 
 pub type BoxedEmulatorError = Box<EmulatorError>;
 pub type EmuResult<T = (), E = BoxedEmulatorError> = std::result::Result<T, E>;
+
+#[macro_export]
+macro_rules! anyerror {
+    ($($arg:tt)*) => {{
+        let msg = format!($($arg)*);
+        crate::error::EmuErr(crate::error::EmulatorError::AnyError { msg })
+    }};
+}
+
 pub use ignore_upper_camel_case_func::EmuErr;
 
 #[allow(non_snake_case)]

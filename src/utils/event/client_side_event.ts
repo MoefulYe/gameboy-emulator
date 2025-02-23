@@ -1,4 +1,3 @@
-import { type DeepReadonly } from './../types'
 import { withResolver } from '@/utils/promise'
 
 export const enum Status {
@@ -33,11 +32,11 @@ type ClientEventRespErr<
 type RespData<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> =
   | {
       readonly status: Status.Ok
-      readonly ret: DeepReadonly<RespRet<Events, Event>>
+      readonly ret: RespRet<Events, Event>
     }
   | {
       readonly status: Status.Err
-      readonly err: DeepReadonly<ClientEventRespErr<Events, Event>>
+      readonly err: ClientEventRespErr<Events, Event>
     }
 type RespPacket<Events extends Record<EventTypes, _EventDef>, Event extends keyof Events> = {
   id: number
@@ -110,20 +109,23 @@ export class Responser<Events extends Record<EventTypes, _EventDef>> {
   }
 }
 
-export const NONE = [{ status: Status.Ok, ret: undefined }, []] as const
+export const NONE: [{ status: Status.Ok; ret: undefined }, []] = [
+  { status: Status.Ok, ret: undefined },
+  []
+]
 
 export const Right = <T>(
-  ret: DeepReadonly<T>,
+  ret: T,
   transfers: readonly Transferable[] = []
-): readonly [
-  { readonly status: Status.Ok; readonly ret: DeepReadonly<T> },
-  readonly Transferable[]
-] => [{ status: Status.Ok, ret }, transfers]
+): readonly [{ readonly status: Status.Ok; readonly ret: T }, readonly Transferable[]] => [
+  { status: Status.Ok, ret },
+  transfers
+]
 
 export const Throw = <T>(
-  err: DeepReadonly<T>,
+  err: T,
   transfers: readonly Transferable[] = []
-): readonly [
-  { readonly status: Status.Err; readonly err: DeepReadonly<T> },
-  readonly Transferable[]
-] => [{ status: Status.Err, err }, transfers]
+): readonly [{ readonly status: Status.Err; readonly err: T }, readonly Transferable[]] => [
+  { status: Status.Err, err },
+  transfers
+]

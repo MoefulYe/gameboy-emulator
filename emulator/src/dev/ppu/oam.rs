@@ -1,5 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
+
 use crate::{
     dev::{
         bus::{OAM_LOW_BOUND, OAM_SIZE},
@@ -14,7 +17,9 @@ use crate::{
 
 use super::bgp::Palette;
 
-pub struct OAM(Box<[Word; OAM_SIZE]>);
+#[serde_as]
+#[derive(Serialize, Deserialize)]
+pub struct OAM(#[serde_as(as = "Box<[_; OAM_SIZE]>")] Box<[Word; OAM_SIZE]>);
 
 impl Reset for OAM {
     fn reset(&mut self) {
@@ -67,7 +72,7 @@ pub enum ObjectPaletteSelect {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Object {
     pub y: Word,
     pub x: Word,
@@ -95,6 +100,7 @@ impl Object {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct ObjectPixel {
     pub color: Word,
     pub palette: Palette,

@@ -1,4 +1,5 @@
 use log::warn;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     types::{Addr, DWord, Word},
@@ -18,6 +19,7 @@ const TIMER_TAC_REG_ADDR: Addr = 0xFF07;
 pub const TIMER_ADDR_LOW_BOUND: Addr = TIMER_DIV_REG_ADDR;
 pub const TIMER_ADDR_HIGH_BOUND_INCLUDED: Addr = TIMER_TAC_REG_ADDR;
 /// ref https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff04--div-divider-register
+#[derive(Serialize, Deserialize)]
 pub struct Timer {
     // Divider
     div: DWord,

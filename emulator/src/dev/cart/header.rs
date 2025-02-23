@@ -1,6 +1,9 @@
-use super::{CartridgeInfo, Rom};
-use crate::error::{EmulatorError, InvalidChecksum, InvalidLogo};
+use super::{CartInfo, Rom};
+use crate::error::{
+    EmuErr, EmuResult, EmulatorError, InvalidChecksum, InvalidLogo, InvalidRomSize,
+};
 use core::mem::offset_of;
+use std::mem::size_of;
 
 const KB: usize = 1024;
 const ENTRY_SIZE: usize = 0x04;
@@ -44,16 +47,24 @@ pub enum MBCType {
 }
 
 impl Header {
-    pub fn validate(&self) -> Option<String> {
-        self.check_logo()
-            .or_else(|| self.checksum())
-            .map(|e| e.msg())
-    }
-
-    pub unsafe fn from_rom<'a>(rom: &'a Rom) -> &'a Self {
+    pub unsafe fn from_rom_unchecked<'a>(rom: &'a Rom) -> &'a Self {
         unsafe {
             let base = rom.as_ptr().add(ROM_OFFSET) as *const Self;
             &*base
+        }
+    }
+
+    pub fn from_rom(rom: &Rom) -> EmuResult<&Self> {
+        if rom.len() < size_of::<Header>() + ROM_OFFSET {
+            return EmuErr(InvalidRomSize { size: rom.len() });
+        }
+        let header = unsafe { Self::from_rom_unchecked(rom) };
+        if let Some(err) = header.check_logo() {
+            EmuErr(err)
+        } else if let Some(err) = header.checksum() {
+            EmuErr(err)
+        } else {
+            Ok(header)
         }
     }
 
@@ -90,14 +101,14 @@ impl Header {
         ROM_BASE_SIZE << self.rom_size
     }
 
-    pub fn ram_size(&self) -> Option<usize> {
+    pub fn ram_size(&self) -> usize {
         match self.ram_size {
-            0x00 => Some(0),
-            0x02 => Some(8 * KB),
-            0x03 => Some(32 * KB),
-            0x04 => Some(128 * KB),
-            0x05 => Some(64 * KB),
-            _ => None,
+            0x00 => 0,
+            0x02 => 8 * KB,
+            0x03 => 32 * KB,
+            0x04 => 128 * KB,
+            0x05 => 64 * KB,
+            _ => 0,
         }
     }
 
@@ -168,7 +179,7 @@ impl Header {
     pub fn mbc_type(&self) -> Option<MBCType> {
         use MBCType::*;
         match self.cart_type {
-            0x00 => Some(NoMBC),
+            0x00 | 0x08 | 0x09 => Some(NoMBC),
             0x01 | 0x02 | 0x03 => Some(MBC1),
             0x05 | 0x06 => Some(MBC2),
             0x0F | 0x10 | 0x11 | 0x12 | 0x13 => Some(MBC3),
@@ -204,7 +215,7 @@ impl Header {
         self.version
     }
 
-    pub fn info(&self) -> CartridgeInfo {
+    pub fn info(&self) -> CartInfo {
         let title = self.title().to_string();
         let cart_type = self.cart_typename();
         let rom_size = self.rom_size();
@@ -212,7 +223,7 @@ impl Header {
         let dest = self.dest();
         let publisher = self.publisher();
         let version = self.version();
-        CartridgeInfo {
+        CartInfo {
             title,
             cart_type,
             rom_size,
@@ -466,13 +477,11 @@ mod test {
         let roms = read_roms();
         for (i, rom) in roms.iter().enumerate() {
             println!("testing rom {}", i + 1);
-            let header = unsafe { Header::from_rom(&rom) };
+            let header = unsafe { Header::from_rom_unchecked(&rom) };
             let title = header.title();
             let ty = header.cart_typename();
             let rom_size = header.rom_size();
-            let ram_size = header
-                .ram_size()
-                .map_or("None".to_string(), |s| s.to_string());
+            let ram_size = header.ram_size();
             let publisher = header.publisher();
             let version = header.version();
             let dest = header.dest();

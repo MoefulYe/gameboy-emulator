@@ -1,6 +1,6 @@
-import { type CPUStateDump, type CartridgeInfo } from 'emulator/pkg/emulator'
+import { type CPUStateDump, type CartInfo } from 'emulator/pkg/emulator'
 import { computed, shallowReactive, shallowRef, watch, type ComputedRef, type Ref } from 'vue'
-import { CYCLES_PER_FRAME, State, VISUAL_FREQ_HZ } from './constants'
+import { CYCLES_PER_FRAME, State, VISUAL_FREQ_HZ, type SaveMetadata } from './constants'
 import type { Config } from './config'
 
 const CPU_STATE_INIT = {
@@ -29,13 +29,14 @@ const CPU_STATE_INIT = {
 } as const satisfies CPUStateDump
 
 export class Stat {
-  public readonly rom = shallowRef<CartridgeInfo | null>(null)
+  public readonly rom = shallowRef<CartInfo | null>(null)
   public readonly cycles = shallowRef(0)
   public readonly state = shallowRef(State.Shutdown)
   public readonly serialBytes = shallowReactive([] as number[])
   public readonly cpu = shallowRef<CPUStateDump>(CPU_STATE_INIT)
   public readonly actualRate = useActualRate(this.cycles)
   public readonly frameRate: ComputedRef<number>
+  public readonly saveMetaData = shallowRef<SaveMetadata>()
   public constructor(config: Config) {
     this.frameRate = computed(() => VISUAL_FREQ_HZ * config.freqScale.value)
   }

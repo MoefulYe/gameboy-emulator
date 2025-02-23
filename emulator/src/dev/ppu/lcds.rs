@@ -1,5 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     dev::Reset,
     types::Word,
@@ -16,6 +18,7 @@ pub enum WorkMode {
 }
 
 /// https://gbdev.io/pandocs/STAT.html
+#[derive(Serialize, Deserialize)]
 pub struct LCDStat(pub Word);
 
 impl Default for LCDStat {

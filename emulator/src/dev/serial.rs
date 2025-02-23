@@ -8,6 +8,7 @@ use crate::{
     utils::bits::BitMap,
 };
 use log::warn;
+use serde::{Deserialize, Serialize};
 
 const SERIAL_CONTROL_ENABLE: Word = 7;
 #[allow(unused)]
@@ -19,6 +20,7 @@ pub const SERIAL_CONTROL_REG_ADDR: Addr = 0xFF02;
 pub const SERIAL_ADDR_LOW_BOUND: Addr = SERIAL_DATA_REG_ADDR;
 pub const SERIAL_ADDR_HIGH_BOUND_INCLUDED: Addr = SERIAL_CONTROL_REG_ADDR;
 /// ref https://gbdev.io/pandocs/Serial_Data_Transfer_(Link_Cable).html#ff02--sc-serial-transfer-control
+#[derive(Serialize, Deserialize)]
 pub struct Serial {
     sb: Word,
     out: Word,

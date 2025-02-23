@@ -2,6 +2,7 @@ use crate::{
     types::{Addr, DWord, Word},
     utils::bits::BitProxy,
 };
+use serde::{Deserialize, Serialize};
 use std::default::Default;
 
 pub const ZERO: Word = 7;
@@ -29,6 +30,7 @@ pub const CARRY: Word = 4;
 /// 低位4位总是0。
 /// | Z | N | H | C |  |  |  |  |
 /// 8个8位寄存器(可以组成4个16位寄存器) 2个16位寄存器
+#[derive(Serialize, Deserialize)]
 pub struct Regs([DWord; 6]);
 
 impl Default for Regs {

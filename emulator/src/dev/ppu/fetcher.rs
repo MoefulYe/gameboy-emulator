@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use smallvec::SmallVec;
 
 use crate::{
@@ -15,6 +17,7 @@ use super::{
     },
     BGWPixel, PPU,
 };
+#[derive(Serialize, Deserialize)]
 pub(super) enum FetchState {
     Tile,
     Data0,
@@ -23,12 +26,13 @@ pub(super) enum FetchState {
     Push,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Serialize, Deserialize)]
 pub(super) enum FetchType {
     FetchWindow,
     FetchBackground,
 }
 
+#[derive(Serialize, Deserialize)]
 pub(super) struct Fetcher {
     pub fetch_type: FetchType,
     pub window_line: Word,

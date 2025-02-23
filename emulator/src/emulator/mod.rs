@@ -1,17 +1,22 @@
+use std::io::Cursor;
+
 use crate::{
-    dev::{Bus, Cartridge, LoadRomResult, Reset, CPU},
+    dev::{Bus, Cart, LoadCartResult, Reset, CPU},
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
     log,
     types::ClockCycle,
 };
-use serde::Serialize;
+use ::log::error;
+// use brotli::{enc::BrotliEncoderParams, CompressorReader, CompressorWriter};
+use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use tsify_derive::EmulatorUpdateInput;
 use wasm_bindgen::prelude::*;
 use web_sys::OffscreenCanvasRenderingContext2d;
 
 #[wasm_bindgen(js_name = WasmEmulator)]
+#[derive(Serialize, Deserialize)]
 pub struct Emulator {
     cpu: CPU,
     bus: Bus,
@@ -38,6 +43,7 @@ mod tsify_derive {
     pub struct EmulatorUpdateInput {
         pub btns: u8,
         pub cycles: ClockCycle,
+        pub timestamp: f64,
     }
 }
 
@@ -54,27 +60,91 @@ impl Emulator {
             cycles: 0,
         }
     }
-    #[wasm_bindgen(js_name = romParse)]
-    pub fn rom_parse(rom: Box<[u8]>) -> LoadRomResult {
-        Cartridge::validate_header(&rom).into()
-    }
-
     #[wasm_bindgen(js_name = initLogger)]
     pub fn init_logger() {
         log::init_logger();
     }
 
     #[wasm_bindgen(js_name = update)]
-    pub fn update(&mut self, input: EmulatorUpdateInput) -> EmulatorUpdateResult {
-        self.bus.btns.update(input.btns);
-        let err = self._update(input.cycles);
+    pub fn update(
+        &mut self,
+        EmulatorUpdateInput {
+            btns,
+            cycles,
+            timestamp,
+        }: EmulatorUpdateInput,
+    ) -> EmulatorUpdateResult {
+        if let Some(cart) = &mut self.bus.cart {
+            cart.update_rtc(timestamp as _)
+        }
+        self.bus.btns.update(btns);
+        let err = self._update(cycles);
         let cpu = self.cpu.dump(&mut self.bus);
         let cycles = self.cycles;
         self.bus.ppu.update_tiles();
         self.bus.ppu.update_screen();
         EmulatorUpdateResult { cycles, cpu, err }
     }
-    pub fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
+
+    #[wasm_bindgen(js_name = loadCart)]
+    pub fn load_cart(&mut self, rom: Box<[u8]>, timestamp: f64) -> LoadCartResult {
+        if self.bus.cart.is_some() {
+            self.reset()
+        }
+        self.bus.load_cart(rom, timestamp as _).into()
+    }
+
+    #[wasm_bindgen(js_name = save)]
+    pub fn save(&self) -> Option<Box<[u8]>> {
+        let mut output = Vec::new();
+        // let writer = CompressorWriter::new(&mut output, 4096, 9, 21);
+        if let Err(err) = bincode::serialize_into(&mut output, self) {
+            error!("{err}");
+            None
+        } else {
+            Some(output.into_boxed_slice())
+        }
+    }
+
+    #[wasm_bindgen(js_name = load)]
+    pub fn load(&mut self, save: Box<[u8]>) -> bool {
+        let tile_canvas = self.bus.ppu.tiles_canvas.take();
+        let screen_canvas = self.bus.ppu.screen_canvas.take();
+        let cursor = Cursor::new(save);
+        // let reader = CompressorReader::new(cursor, 4096, 9, 21);
+        match bincode::deserialize_from(cursor) {
+            Ok(emu) => {
+                *self = emu;
+                self.bus.ppu.tiles_canvas = tile_canvas;
+                self.bus.ppu.screen_canvas = screen_canvas;
+                true
+            }
+            Err(err) => {
+                error!("{err}");
+                false
+            }
+        }
+    }
+
+    #[wasm_bindgen(js_name = reset)]
+    pub fn reset(&mut self) {
+        self.cycles = 0;
+        self.aborted = false;
+        self.cpu.reset();
+        self.bus.reset();
+    }
+
+    #[wasm_bindgen(js_name = setScreenCanvas)]
+    pub fn set_screen_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+        self.bus.ppu.set_screen_canvas(canvas)
+    }
+
+    #[wasm_bindgen(js_name = setTilesCanvas)]
+    pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
+        self.bus.ppu.set_tiles_canvas(canvas)
+    }
+
+    fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
         if self.aborted {
             return self.handle_err(RunWhenAborting);
         }
@@ -92,38 +162,6 @@ impl Emulator {
         }
         None
     }
-
-    #[wasm_bindgen(js_name = loadRom)]
-    pub fn load_rom(&mut self, rom: Box<[u8]>, ram: Option<Box<[u8]>>) -> LoadRomResult {
-        if self.bus.cartridge.is_some() {
-            self.reset()
-        }
-        self.bus.load_rom(rom).into()
-    }
-
-    #[wasm_bindgen(js_name = save)]
-    pub fn save(&self) {}
-
-    #[wasm_bindgen(js_name = reset)]
-    pub fn reset(&mut self) {
-        self.cycles = 0;
-        self.aborted = false;
-        self.cpu.reset();
-        self.bus.reset();
-    }
-
-    #[wasm_bindgen(js_name = setCanvas)]
-    pub fn set_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.bus.ppu.set_canvas(canvas)
-    }
-
-    #[wasm_bindgen(js_name = setTilesCanvas)]
-    pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.bus.ppu.set_tiles_canvas(canvas)
-    }
-
-    #[wasm_bindgen(js_name = setButtons)]
-    pub fn set_buttons(&mut self, btns: u8) {}
 
     fn handle_err(&mut self, err: impl AsRef<EmulatorError>) -> Option<String> {
         self.aborted = true;
