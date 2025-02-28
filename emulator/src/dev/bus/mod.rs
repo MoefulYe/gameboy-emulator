@@ -11,7 +11,7 @@ use super::{
     rams::{HighRam, WRAM},
     serial::{Serial, SERIAL_ADDR_HIGH_BOUND_INCLUDED, SERIAL_ADDR_LOW_BOUND},
     timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
-    BusDevice, Reset, Tick,
+    BusDevice, Reset, 
 };
 use crate::{
     error::{EmuErr, EmuResult, NoCartridge},
@@ -132,7 +132,7 @@ impl Bus {
         Ok(())
     }
 
-    fn tick_dma(&mut self) -> EmuResult {
+    pub fn tick_dma(&mut self) -> EmuResult {
         if let Some((hi, lo)) = self.ppu.dma.tick() {
             let addr = (hi as Addr) << 8 | (lo as Addr);
             let data = self.read(addr)?;
@@ -141,15 +141,6 @@ impl Bus {
         Ok(())
     }
 
-    pub fn tick(&mut self) -> EmuResult {
-        let irq0 = self.timer.tick();
-        let irq1 = self.serial.tick();
-        self.tick_dma()?;
-        let irq2 = self.ppu.tick();
-        let irq = irq0 | irq1 | irq2;
-        self.int_flag_reg.add(irq);
-        Ok(())
-    }
     /// 是否有中断事件等待处理
     pub fn has_int(&self) -> bool {
         self.int_flag_reg.val() & self.int_mask_reg.val() != 0

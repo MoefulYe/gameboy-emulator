@@ -3,15 +3,16 @@ use int_regs::IRQ;
 use log::warn;
 use std::default::Default;
 
-mod bus;
-mod cart;
-mod cpu;
-mod gamepad;
-mod int_regs;
-mod ppu;
-mod rams;
-mod serial;
-mod timer;
+pub mod apu;
+pub mod bus;
+pub mod cart;
+pub mod cpu;
+pub mod gamepad;
+pub mod int_regs;
+pub mod ppu;
+pub mod rams;
+pub mod serial;
+pub mod timer;
 
 pub trait Reset {
     fn reset(&mut self);
@@ -37,10 +38,6 @@ pub trait BusDevice {
     fn write(&mut self, addr: Addr, data: Word) {
         warn!("illegal write at address: 0x{addr:04X}");
     }
-}
-
-pub trait Tick: BusDevice {
-    fn tick(&mut self) -> IRQ;
 }
 
 pub use bus::Bus;

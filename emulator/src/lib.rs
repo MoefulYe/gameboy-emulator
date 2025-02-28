@@ -7,5 +7,6 @@ pub mod emulator;
 pub mod error;
 pub mod external;
 pub mod log;
+pub mod output;
 pub mod types;
 pub mod utils;

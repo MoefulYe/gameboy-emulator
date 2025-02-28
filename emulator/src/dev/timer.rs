@@ -8,7 +8,7 @@ use crate::{
 
 use super::{
     int_regs::{IRQ, IRQ_NONE, IRQ_TIMER},
-    BusDevice, Tick,
+    BusDevice,
 };
 
 const TIMER_DIV_REG_ADDR: Addr = 0xFF04;
@@ -61,35 +61,7 @@ impl Timer {
     fn clock_select(&self) -> Word {
         self.tac & 0x03
     }
-}
-
-impl BusDevice for Timer {
-    fn read(&self, addr: Addr) -> Word {
-        match addr {
-            TIMER_DIV_REG_ADDR => self.read_div(),
-            TIMER_TIMA_REG_ADDR => self.tima,
-            TIMER_TMA_REG_ADDR => self.tma,
-            TIMER_TAC_REG_ADDR => self.tac | 0xF8,
-            _ => {
-                warn!("illegal read from timer at address: 0x{addr:04X}");
-                0xFF
-            }
-        }
-    }
-
-    fn write(&mut self, addr: Addr, data: Word) {
-        match addr {
-            TIMER_DIV_REG_ADDR => self.div = 0,
-            TIMER_TIMA_REG_ADDR => self.tima = data,
-            TIMER_TMA_REG_ADDR => self.tma = data,
-            TIMER_TAC_REG_ADDR => self.tac = data,
-            _ => warn!("illegal write to timer at address: 0x{addr:04X}"),
-        }
-    }
-}
-
-impl Tick for Timer {
-    fn tick(&mut self) -> IRQ {
+    pub fn tick(&mut self) -> IRQ {
         let prev = self.div;
         let cur = prev.wrapping_add(1);
         self.div = cur;
@@ -114,6 +86,31 @@ impl Tick for Timer {
         } else {
             self.tima += 1;
             IRQ_NONE
+        }
+    }
+}
+
+impl BusDevice for Timer {
+    fn read(&self, addr: Addr) -> Word {
+        match addr {
+            TIMER_DIV_REG_ADDR => self.read_div(),
+            TIMER_TIMA_REG_ADDR => self.tima,
+            TIMER_TMA_REG_ADDR => self.tma,
+            TIMER_TAC_REG_ADDR => self.tac | 0xF8,
+            _ => {
+                warn!("illegal read from timer at address: 0x{addr:04X}");
+                0xFF
+            }
+        }
+    }
+
+    fn write(&mut self, addr: Addr, data: Word) {
+        match addr {
+            TIMER_DIV_REG_ADDR => self.div = 0,
+            TIMER_TIMA_REG_ADDR => self.tima = data,
+            TIMER_TMA_REG_ADDR => self.tma = data,
+            TIMER_TAC_REG_ADDR => self.tac = data,
+            _ => warn!("illegal write to timer at address: 0x{addr:04X}"),
         }
     }
 }

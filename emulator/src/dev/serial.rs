@@ -1,9 +1,10 @@
 use super::{
     int_regs::{IRQ, IRQ_NONE, IRQ_SERIAL},
-    BusDevice, Reset, Tick,
+    BusDevice, Reset,
 };
 use crate::{
     external::emulator_serial_callback,
+    output::serial::SerialOutput,
     types::{Addr, Word},
     utils::bits::BitMap,
 };
@@ -83,26 +84,24 @@ impl Serial {
         self.out = self.sb;
     }
 
-    fn transfer(&mut self) -> IRQ {
+    fn transfer(&mut self, output: &mut impl SerialOutput) -> IRQ {
         self.sb = (self.sb << 1) | 1;
         self.has_transfered += 1;
         if self.has_transfered >= 8 {
-            self.end_transfer();
+            self.end_transfer(output);
             IRQ_SERIAL
         } else {
             IRQ_NONE
         }
     }
 
-    fn end_transfer(&mut self) {
+    fn end_transfer(&mut self, output: &mut impl SerialOutput) {
         self.sc = self.sc.clear_at(SERIAL_CONTROL_ENABLE);
         self.inprogress = false;
-        emulator_serial_callback(self.out);
+        output.put_serial(self.out);
     }
-}
 
-impl Tick for Serial {
-    fn tick(&mut self) -> IRQ {
+    pub fn tick(&mut self, output: &mut impl SerialOutput) -> IRQ {
         self.ticks = self.ticks.wrapping_add(1);
         if self.ticks % 512 != 0 {
             // 当 ticks不是512的倍数时， 串口设备不进行工作,
@@ -114,7 +113,7 @@ impl Tick for Serial {
             IRQ_NONE
         } else if self.inprogress {
             // 当串口设备处于传输状态时，继续传输
-            self.transfer()
+            self.transfer(output)
         } else {
             // 其他情况，串口设备不进行工作
             IRQ_NONE

@@ -18,6 +18,7 @@ use vram::VRAM;
 use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
 
 use crate::{
+    output::screen::{ScreenOutput, TileOutput},
     types::{Addr, Word},
     utils::{
         bits::BitMap,
@@ -27,18 +28,18 @@ use crate::{
 
 use super::{
     int_regs::{IRQ, IRQ_LCD_STAT, IRQ_NONE, IRQ_VBLANK},
-    BusDevice, Reset, Tick,
+    BusDevice, Reset,
 };
 
-mod bgp;
-mod dma;
-mod fetcher;
+pub mod bgp;
+pub mod dma;
+pub mod fetcher;
 pub mod graphic;
-mod lcd;
-mod lcdc;
-mod lcds;
-mod oam;
-mod vram;
+pub mod lcd;
+pub mod lcdc;
+pub mod lcds;
+pub mod oam;
+pub mod vram;
 
 const LCDC_REG_ADDR: Addr = 0xFF40;
 const LCDS_REG_ADDR: Addr = 0xFF41;
@@ -153,12 +154,8 @@ pub struct PPU {
     lcd_driver: LCDDriver,
     palette: RGBAPalette,
 
-    #[serde(skip, default)]
-    pub tiles_canvas: Option<OffscreenCanvasRenderingContext2d>,
     #[serde_as(as = "Box<[[_; TILES_WIDTH];TILES_HEIGHT]>")]
     tiles_buffer: Box<TilesBitmap>,
-    #[serde(skip, default)]
-    pub screen_canvas: Option<OffscreenCanvasRenderingContext2d>,
     #[serde_as(as = "[Box<[[_; SCREEN_WIDTH];SCREEN_HEIGHT]>; 2]")]
     screen_buffers: [Box<ScreenBitmap>; 2],
     cur_buf: u8,
@@ -191,7 +188,6 @@ impl Reset for PPU {
             as_bytes_mut::<ScreenBitmap>(&mut self.screen_buffers[0]).fill(0);
             as_bytes_mut::<ScreenBitmap>(&mut self.screen_buffers[1]).fill(0);
         }
-        self.update_screen();
     }
 }
 
@@ -218,14 +214,12 @@ impl PPU {
             line_cycles: 0,
             oam: OAM::new(),
             vram: VRAM::new(),
-            tiles_canvas: None,
             palette: PALETTE,
             tiles_buffer,
             bgw_queue: VecDeque::new(),
             obj_queue: VecDeque::new(),
             fetcher: Fetcher::new(),
             lcd_driver: LCDDriver::new(),
-            screen_canvas: None,
             screen_buffers,
             cur_buf: 0,
         }
@@ -264,43 +258,29 @@ impl PPU {
 }
 
 impl PPU {
-    pub fn set_screen_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.screen_canvas = Some(canvas)
+    pub fn update_tiles(&mut self, output: &mut impl TileOutput) {
+        decode_tiles(
+            self.vram.tiles_matrix(),
+            &self.palette,
+            self.tiles_buffer.as_mut(),
+        );
+        let buffer = as_bytes::<TilesBitmap>(self.tiles_buffer.as_ref());
+        output.put_tile(buffer);
     }
-
-    pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.tiles_canvas = Some(canvas)
+    pub fn update_screen(&self, output: &mut impl ScreenOutput) {
+        let buffer = as_bytes::<ScreenBitmap>(self.pred_buffer());
+        output.put_screen(buffer);
     }
-
-    pub fn update_tiles(&mut self) {
-        if let Some(canvas) = &self.tiles_canvas {
-            decode_tiles(
-                self.vram.tiles_matrix(),
-                &self.palette,
-                self.tiles_buffer.as_mut(),
-            );
-            let buffer = as_bytes::<TilesBitmap>(self.tiles_buffer.as_ref());
-            let u8s = unsafe { Uint8ClampedArray::view(buffer) };
-            let image_data = ImageData::new_with_js_u8_clamped_array_and_sh(
-                &u8s,
-                TILES_WIDTH as _,
-                TILES_HEIGHT as _,
-            )
-            .unwrap();
-            canvas.put_image_data(&image_data, 0.0, 0.0).unwrap();
+    pub fn tick(&mut self) -> IRQ {
+        if self.disabled() {
+            return IRQ_NONE;
         }
-    }
-    pub fn update_screen(&self) {
-        if let Some(canvas) = &self.screen_canvas {
-            let buffer = as_bytes::<ScreenBitmap>(self.pred_buffer());
-            let u8s = unsafe { Uint8ClampedArray::view(buffer) };
-            let image_data = ImageData::new_with_js_u8_clamped_array_and_sh(
-                &u8s,
-                SCREEN_WIDTH as _,
-                SCREEN_HEIGHT as _,
-            )
-            .unwrap();
-            canvas.put_image_data(&image_data, 0.0, 0.0).unwrap()
+        self.line_cycles += 1;
+        match self.mode() {
+            WorkMode::HBlank => self.tick_hblank(),
+            WorkMode::VBlank => self.tick_vblank(),
+            WorkMode::OAMScan => self.tick_oam_scan(),
+            WorkMode::Drawing => self.tick_drawing(),
         }
     }
 }
@@ -347,21 +327,6 @@ impl BusDevice for PPU {
             WX_REG_ADDR => self.wx = data,
             WY_REG_ADDR => self.wy = data,
             _ => {}
-        }
-    }
-}
-
-impl Tick for PPU {
-    fn tick(&mut self) -> IRQ {
-        if self.disabled() {
-            return IRQ_NONE;
-        }
-        self.line_cycles += 1;
-        match self.mode() {
-            WorkMode::HBlank => self.tick_hblank(),
-            WorkMode::VBlank => self.tick_vblank(),
-            WorkMode::OAMScan => self.tick_oam_scan(),
-            WorkMode::Drawing => self.tick_drawing(),
         }
     }
 }

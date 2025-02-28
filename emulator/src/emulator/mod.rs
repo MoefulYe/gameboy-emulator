@@ -5,6 +5,11 @@ use crate::{
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
     log,
+    output::{
+        audio::WebAudioOutput,
+        screen::{WebScreenOutput, WebTileOutput},
+        serial::WebSerialOutput,
+    },
     types::ClockCycle,
 };
 use ::log::error;
@@ -16,8 +21,16 @@ use wasm_bindgen::prelude::*;
 use web_sys::OffscreenCanvasRenderingContext2d;
 
 #[wasm_bindgen(js_name = WasmEmulator)]
-#[derive(Serialize, Deserialize)]
 pub struct Emulator {
+    core: Core,
+    serial_output: WebSerialOutput,
+    screen_output: WebScreenOutput,
+    tile_output: WebTileOutput,
+    audio_output: WebAudioOutput,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Core {
     cpu: CPU,
     bus: Bus,
     aborted: bool,
@@ -54,10 +67,16 @@ impl Emulator {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Emulator {
         Self {
-            cpu: CPU::new(),
-            bus: Bus::new(),
-            aborted: false,
-            cycles: 0,
+            core: Core {
+                cpu: CPU::new(),
+                bus: Bus::new(),
+                aborted: false,
+                cycles: 0,
+            },
+            serial_output: WebSerialOutput::new(),
+            screen_output: WebScreenOutput::new(),
+            tile_output: WebTileOutput::new(),
+            audio_output: WebAudioOutput::new(),
         }
     }
     #[wasm_bindgen(js_name = initLogger)]
@@ -74,31 +93,31 @@ impl Emulator {
             timestamp,
         }: EmulatorUpdateInput,
     ) -> EmulatorUpdateResult {
-        if let Some(cart) = &mut self.bus.cart {
+        if let Some(cart) = &mut self.core.bus.cart {
             cart.update_rtc(timestamp as _)
         }
-        self.bus.btns.update(btns);
+        self.core.bus.btns.update(btns);
         let err = self._update(cycles);
-        let cpu = self.cpu.dump(&mut self.bus);
-        let cycles = self.cycles;
-        self.bus.ppu.update_tiles();
-        self.bus.ppu.update_screen();
+        let cpu = self.core.cpu.dump(&mut self.core.bus);
+        let cycles = self.core.cycles;
+        self.core.bus.ppu.update_tiles(&mut self.tile_output);
+        self.core.bus.ppu.update_screen(&mut self.screen_output);
         EmulatorUpdateResult { cycles, cpu, err }
     }
 
     #[wasm_bindgen(js_name = loadCart)]
     pub fn load_cart(&mut self, rom: Box<[u8]>, timestamp: f64) -> LoadCartResult {
-        if self.bus.cart.is_some() {
+        if self.core.bus.cart.is_some() {
             self.reset()
         }
-        self.bus.load_cart(rom, timestamp as _).into()
+        self.core.bus.load_cart(rom, timestamp as _).into()
     }
 
     #[wasm_bindgen(js_name = save)]
     pub fn save(&self) -> Option<Box<[u8]>> {
         let mut output = Vec::new();
         // let writer = CompressorWriter::new(&mut output, 4096, 9, 21);
-        if let Err(err) = bincode::serialize_into(&mut output, self) {
+        if let Err(err) = bincode::serialize_into(&mut output, &self.core) {
             error!("{err}");
             None
         } else {
@@ -108,15 +127,11 @@ impl Emulator {
 
     #[wasm_bindgen(js_name = load)]
     pub fn load(&mut self, save: Box<[u8]>) -> bool {
-        let tile_canvas = self.bus.ppu.tiles_canvas.take();
-        let screen_canvas = self.bus.ppu.screen_canvas.take();
         let cursor = Cursor::new(save);
         // let reader = CompressorReader::new(cursor, 4096, 9, 21);
         match bincode::deserialize_from(cursor) {
-            Ok(emu) => {
-                *self = emu;
-                self.bus.ppu.tiles_canvas = tile_canvas;
-                self.bus.ppu.screen_canvas = screen_canvas;
+            Ok(state) => {
+                self.core = state;
                 true
             }
             Err(err) => {
@@ -128,24 +143,29 @@ impl Emulator {
 
     #[wasm_bindgen(js_name = reset)]
     pub fn reset(&mut self) {
-        self.cycles = 0;
-        self.aborted = false;
-        self.cpu.reset();
-        self.bus.reset();
+        self.core.cycles = 0;
+        self.core.aborted = false;
+        self.core.cpu.reset();
+        self.core.bus.reset();
     }
 
     #[wasm_bindgen(js_name = setScreenCanvas)]
     pub fn set_screen_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.bus.ppu.set_screen_canvas(canvas)
+        self.screen_output.set_canvas(canvas);
     }
 
     #[wasm_bindgen(js_name = setTilesCanvas)]
     pub fn set_tiles_canvas(&mut self, canvas: OffscreenCanvasRenderingContext2d) {
-        self.bus.ppu.set_tiles_canvas(canvas)
+        self.tile_output.set_canvas(canvas);
+    }
+
+    #[wasm_bindgen(js_name = setVolume)]
+    pub fn set_volume(&mut self, volume: f32) {
+        self.audio_output.set_volume(volume);
     }
 
     fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
-        if self.aborted {
+        if self.core.aborted {
             return self.handle_err(RunWhenAborting);
         }
         let mut clocks = 0;
@@ -164,21 +184,26 @@ impl Emulator {
     }
 
     fn handle_err(&mut self, err: impl AsRef<EmulatorError>) -> Option<String> {
-        self.aborted = true;
+        self.core.aborted = true;
         Some(err.as_ref().msg())
     }
 
     fn tick_devices(&mut self, cycles: ClockCycle) -> EmuResult {
         for _ in 0..cycles {
-            self.bus.tick()?;
+            let irq0 = self.core.bus.timer.tick();
+            let irq1 = self.core.bus.serial.tick(&mut self.serial_output);
+            self.core.bus.tick_dma()?;
+            let irq2 = self.core.bus.ppu.tick();
+            let irq = irq0 | irq1 | irq2;
+            self.core.bus.int_flag_reg.add(irq);
         }
         Ok(())
     }
 
     fn tick(&mut self) -> EmuResult<ClockCycle> {
-        let cycles = self.cpu.tick(&mut self.bus)?;
+        let cycles = self.core.cpu.tick(&mut self.core.bus)?;
         self.tick_devices(cycles)?;
-        self.cycles += cycles;
+        self.core.cycles += cycles;
         Ok(cycles)
     }
 }

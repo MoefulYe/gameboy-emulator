@@ -59,7 +59,7 @@
             <label class="me-2 md:me-4 text-(xs coolgray-6) whitespace-pre">
               {{ volumeStr }}
             </label>
-            <MySlider v-model="volume" :min="0" :max="150" />
+            <MySlider v-model="volume" :min="0" :max="100" />
           </div>
         </template>
       </Menu>
@@ -82,6 +82,7 @@ import MySlider from './common/MySlider.vue'
 import { openFile } from '@/utils/fs'
 import { useShowSideBar } from './SideBar'
 import { useShowPopup } from './Popup'
+import { debounce } from '@/utils/debounce'
 const emu = useEmulator()
 const sideBarShow = useShowSideBar()
 const popupShow = useShowPopup()
@@ -116,13 +117,13 @@ const volumeIcon = computed(() => {
   const val = _val > 3 ? 3 : _val
   return volumeIcons[val]
 })
-const resetVolume = () => {
+const resetVolume = debounce(() => {
   if (volume.value !== 0) {
     volume.value = 0
   } else {
     volume.value = 50
   }
-}
+})
 const volumeStr = computed(() => `${volume.value.toString().padStart(3)}%`)
 
 const toggleSideBar = () => (sideBarShow.value = !sideBarShow.value)
