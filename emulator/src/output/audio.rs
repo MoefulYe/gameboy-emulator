@@ -1,103 +1,26 @@
-use std::cmp;
-use std::sync::{Arc, Mutex};
-
-use cpal;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use log::error;
-pub const AUDIO_SAMPLE_RATE: u32 = 48000; // Hz
 pub trait AudioOutput {
     fn set_samples(&mut self, left: f32, right: f32);
 }
 
-fn play_frame(outbuffer: &mut [f32], sample_buf: &Arc<Mutex<Vec<f32>>>) {
-    let mut sample_buf = sample_buf.lock().unwrap();
-    let min_len = cmp::min(outbuffer.len(), sample_buf.len());
-
-    for (i, s) in sample_buf.drain(..min_len).enumerate() {
-        outbuffer[i] = s;
-    }
-}
-
-fn create_stream(sample_buf: &Arc<Mutex<Vec<f32>>>) -> Result<cpal::Stream, AudioError> {
-    let host = cpal::default_host();
-    let device = host
-        .default_output_device()
-        .ok_or(AudioError::DeviceUnavailable)?;
-    let sample_rate = cpal::SampleRate(AUDIO_SAMPLE_RATE);
-    let mut supported_configs = device.supported_output_configs()?;
-    // Find a config that supports:
-    // - stereo
-    // - float 32
-    // - sample rate = 48kHz
-    let supported_config = supported_configs
-        .find(|cnf| {
-            cnf.channels() == 2
-                && sample_rate >= cnf.min_sample_rate()
-                && sample_rate <= cnf.max_sample_rate()
-                && cnf.sample_format() == cpal::SampleFormat::F32
-        })
-        .unwrap();
-    let supported_config = supported_config.with_sample_rate(sample_rate);
-    let sample_buf = sample_buf.clone();
-    let stream = device
-        .build_output_stream(
-            &supported_config.config(),
-            move |data: &mut [f32], _: &cpal::OutputCallbackInfo| play_frame(data, &sample_buf),
-            |err| error!("error while playing audio: {}", err),
-            None,
-        )
-        .unwrap();
-
-    stream.play().unwrap();
-
-    Ok(stream)
-}
-
-enum AudioError {
-    DeviceUnavailable,
-    StreamConfig(cpal::SupportedStreamConfigsError),
-}
-
-impl From<cpal::SupportedStreamConfigsError> for AudioError {
-    fn from(error: cpal::SupportedStreamConfigsError) -> Self {
-        AudioError::StreamConfig(error)
-    }
-}
-
 pub struct WebAudioOutput {
-    /// Store all samples
-    sample_buf: Arc<Mutex<Vec<f32>>>,
-    /// Keep the stream player alive
-    stream: Option<cpal::Stream>,
-    /// Status paused or running
-    paused: bool,
-    /// Volume from 0.0 to 1.0
+    left_buffer: Vec<f32>,
+    right_buffer: Vec<f32>,
+    last_left: f32,
+    last_right: f32,
     volume: f32,
+    freq_scale: f32,
 }
 
 impl WebAudioOutput {
-    pub fn new() -> Self {
-        let sample_buf = Arc::new(Mutex::new(Vec::new()));
-        let stream = create_stream(&sample_buf).ok();
-        let paused = stream.is_none();
-
+    pub fn new(volume: f32, freq_scale: f32) -> Self {
         Self {
-            sample_buf,
-            stream,
-            paused,
-            volume: 0.5,
+            left_buffer: Vec::with_capacity(1024),
+            right_buffer: Vec::with_capacity(1024),
+            volume,
+            last_left: 0.0,
+            last_right: 0.0,
+            freq_scale: freq_scale.max(0.0),
         }
-    }
-
-    pub fn pause(&mut self) {
-        self.paused = true;
-        // this forces the stream to drop and stop playing
-        self.stream = None;
-    }
-
-    pub fn play(&mut self) {
-        self.stream = create_stream(&self.sample_buf).ok();
-        self.paused = false;
     }
 
     pub fn set_volume(&mut self, volume: f32) {
@@ -107,16 +30,45 @@ impl WebAudioOutput {
             _ => volume,
         }
     }
+
+    pub fn set_freq_scale(&mut self, freq_scale: f32) {
+        self.freq_scale = freq_scale.max(0.0)
+    }
+
+    pub fn clear_buffer(&mut self) {
+        self.left_buffer.clear();
+        self.right_buffer.clear();
+    }
+
+    pub fn reset(&mut self) {
+        self.left_buffer.clear();
+        self.right_buffer.clear();
+        self.last_left = 0.0;
+        self.last_right = 0.0;
+    }
+
+    pub unsafe fn buffer(&self) -> (js_sys::Float32Array, js_sys::Float32Array) {
+        let left = js_sys::Float32Array::view(&self.left_buffer);
+        let right = js_sys::Float32Array::view(&self.right_buffer);
+        (left, right)
+    }
 }
 
 impl AudioOutput for WebAudioOutput {
     fn set_samples(&mut self, left: f32, right: f32) {
-        let mut sample_buf = self.sample_buf.lock().unwrap();
-        let max_len = ((AUDIO_SAMPLE_RATE * 300) / 1000) as usize;
-        // stop if the buffer has more than 300ms of samples
-        if !self.paused && sample_buf.len() < max_len {
-            sample_buf.push(left * self.volume);
-            sample_buf.push(right * self.volume);
+        let right = right * self.volume;
+        let left = left * self.volume;
+        let step = 1.0 / self.freq_scale;
+        let mut t = 0.0;
+        while t < 1.0 {
+            let alpha = t;
+            let interpolated_left = self.last_left * (1.0 - alpha) + left * alpha;
+            let interpolated_right = self.last_right * (1.0 - alpha) + right * alpha;
+            self.left_buffer.push(interpolated_left);
+            self.right_buffer.push(interpolated_right);
+            t += step;
         }
+        self.last_left = left;
+        self.last_right = right;
     }
 }

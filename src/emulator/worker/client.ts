@@ -1,7 +1,7 @@
 import { Listener, type EventCallback } from '@/utils/event/server_side_event'
 import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
-import { AudioReceiver } from '../output/audio'
 import type { ClientSideEvent, ServerSideEvent } from './event'
+import AUDIO_WORKER_URL from './audio.worker?url'
 import { Stat, useStat } from '../stat'
 import { Err, LogLevel, Ok, SaveMode, type Save, type SaveMetadata } from '../constants'
 import type { EmuDB } from '../persistance/db'
@@ -24,25 +24,46 @@ type CreateOption = {
 export class Client {
   private readonly requester: Requester<ClientSideEvent>
   private readonly listener: Listener<ServerSideEvent>
-  private readonly audioReceiver: AudioReceiver
   private readonly server: Worker
+  private readonly audioWorkletNode: AudioWorkletNode
   public readonly db: EmuDB
   public readonly config: Config
   public readonly stat: Stat
   public readonly gamepad: EmuGamepad
   private saveId?: number = undefined
   private screenEl: HTMLCanvasElement | null = null
+  private audioCtx: AudioContext
 
-  constructor({ listenPort, requestPort, audioPort, server, config, db }: CreateOption) {
+  constructor({
+    listenPort,
+    requestPort,
+    audioPort,
+    server,
+    config,
+    db,
+    audioCtx,
+    audioWorkletNode
+  }: CreateOption & {
+    audioCtx: AudioContext
+    audioWorkletNode: AudioWorkletNode
+  }) {
     this.config = config
     this.db = db
     this.requester = new Requester(requestPort)
     this.listener = new Listener(listenPort)
-    this.audioReceiver = new AudioReceiver(audioPort)
     this.server = server
     this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
     this.stat = useStat(config)
+    this.audioCtx = audioCtx
+    this.audioWorkletNode = audioWorkletNode
+    audioWorkletNode.port.postMessage({ port: audioPort }, [audioPort])
     this.init()
+  }
+
+  static async create(option: CreateOption) {
+    const audioCtx = new AudioContext()
+    const audioWorkletNode = await createAudioWorker(audioCtx)
+    return new Client({ ...option, audioCtx, audioWorkletNode })
   }
 
   private init() {
@@ -232,4 +253,13 @@ export class Client {
     this.saveId = id
     this.stat.saveMetaData.value = metadata
   }
+
+  public setVolume(volume: number) {
+    this.request('set-volume', volume)
+  }
+}
+
+const createAudioWorker = async (ctx: AudioContext) => {
+  await ctx.audioWorklet.addModule(AUDIO_WORKER_URL)
+  return new AudioWorkletNode(ctx, 'audio-processor')
 }

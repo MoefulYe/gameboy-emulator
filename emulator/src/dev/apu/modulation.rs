@@ -1,3 +1,5 @@
+use crate::utils::bits::BitMap;
+
 //
 // All wave duty patterns
 //
@@ -35,11 +37,11 @@ pub trait Sample {
     fn sample(&self) -> u8;
 }
 
-pub trait Step {
-    fn step(&mut self);
+pub trait Tick {
+    fn tick(&mut self);
 }
 
-pub trait Channel: DigitalAmplitude + Clock + Sample + Step {
+pub trait Channel: DigitalAmplitude + Clock + Sample + Tick {
     fn is_enabled(&self) -> bool;
 
     fn set_enabled(&mut self, enabled: bool);
@@ -72,7 +74,8 @@ pub trait EnvelopeModulation {
     }
 
     fn is_envelope_increasing(&self) -> bool {
-        is_set!(self.envelope_register(), 0b0000_1000)
+        //is_set!(self.envelope_register(), 0b0000_1000)
+        self.envelope_register().test(3)
     }
 
     fn envelope_period(&self) -> u8 {
@@ -152,7 +155,8 @@ pub trait SweepModulation: Channel + WaveModulation {
 
     #[inline]
     fn is_sweep_decreasing(&self) -> bool {
-        is_set!(self.sweep_register(), 0b0000_1000)
+        //is_set!(self.sweep_register(), 0b0000_1000)
+        self.sweep_register().test(3)
     }
 
     #[inline]
@@ -255,8 +259,8 @@ impl<T: Sample + EnvelopeModulation> DigitalAmplitude for T {
     }
 }
 
-impl<T: WaveModulation + Channel> Step for T {
-    fn step(&mut self) {
+impl<T: WaveModulation + Channel> Tick for T {
+    fn tick(&mut self) {
         let timer = self.frequency_timer() - 1;
 
         self.set_frequency_timer(timer);

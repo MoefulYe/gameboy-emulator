@@ -1,4 +1,5 @@
 use super::{
+    apu::{APU, APU_ADDR_HIGH_BOUND_INCLUDED, APU_ADDR_LOW_BOUND},
     cart::{Cart, CartInfo},
     gamepad::{Buttons, BUTTON_ADDR},
     int_regs::{
@@ -11,7 +12,7 @@ use super::{
     rams::{HighRam, WRAM},
     serial::{Serial, SERIAL_ADDR_HIGH_BOUND_INCLUDED, SERIAL_ADDR_LOW_BOUND},
     timer::{Timer, TIMER_ADDR_HIGH_BOUND_INCLUDED, TIMER_ADDR_LOW_BOUND},
-    BusDevice, Reset, 
+    MemoryRegion, Reset,
 };
 use crate::{
     error::{EmuErr, EmuResult, NoCartridge},
@@ -39,6 +40,7 @@ pub struct Bus {
     pub wram: WRAM,
     pub serial: Serial,
     pub ppu: PPU,
+    pub apu: APU,
     pub timer: Timer,
     pub btns: Buttons,
     pub hram: HighRam,
@@ -57,6 +59,7 @@ impl Reset for Bus {
         self.hram.reset();
         self.int_flag_reg.reset();
         self.int_mask_reg.reset();
+        self.apu.reset();
     }
 }
 
@@ -67,6 +70,7 @@ impl Bus {
             wram: WRAM::new(),
             serial: Serial::new(),
             ppu: PPU::new(),
+            apu: APU::new(),
             timer: Timer::new(),
             int_flag_reg: InterruptFlagRegister::new(),
             hram: HighRam::new(),
@@ -92,6 +96,7 @@ impl Bus {
             BUTTON_ADDR => self.btns.read(),
             SERIAL_ADDR_LOW_BOUND..=SERIAL_ADDR_HIGH_BOUND_INCLUDED => self.serial.read(addr),
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.read(addr),
+            APU_ADDR_LOW_BOUND..=APU_ADDR_HIGH_BOUND_INCLUDED => self.apu.read(addr),
             PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.read(addr),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.read(),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.read(addr),
@@ -123,6 +128,7 @@ impl Bus {
                 self.serial.write(addr, data)
             }
             TIMER_ADDR_LOW_BOUND..=TIMER_ADDR_HIGH_BOUND_INCLUDED => self.timer.write(addr, data),
+            APU_ADDR_LOW_BOUND..=APU_ADDR_HIGH_BOUND_INCLUDED => self.apu.write(addr, data),
             PPU_ADDR_LOW_BOUND..=PPU_ADDR_HIGH_BOUND_INCLUDED => self.ppu.write(addr, data),
             INTERRUPT_FLAG_REGISTER_ADDR => self.int_flag_reg.write(data),
             HRAM_LOW_BOUND..=HRAM_HIGH_BOUND_INCLUDED => self.hram.write(addr, data),

@@ -8,7 +8,7 @@ use super::{
     Reset,
 };
 use crate::{
-    dev::BusDevice,
+    dev::MemoryRegion,
     types::{Addr, Word},
 };
 
@@ -22,7 +22,7 @@ impl Reset for WRAM {
     }
 }
 
-impl BusDevice for WRAM {
+impl MemoryRegion for WRAM {
     fn read(&self, addr: Addr) -> Word {
         *unsafe { self.0.get_unchecked((addr - WRAM_LOW_BOUND) as usize) }
     }
@@ -56,7 +56,7 @@ impl WRAM {
 #[derive(Serialize, Deserialize)]
 pub struct HighRam(#[serde_as(as = "Box<[_; HRAM_SIZE]>")] Box<[Word; HRAM_SIZE]>);
 
-impl BusDevice for HighRam {
+impl MemoryRegion for HighRam {
     fn read(&self, addr: Addr) -> Word {
         *unsafe { self.0.get_unchecked((addr - HRAM_LOW_BOUND) as usize) }
     }

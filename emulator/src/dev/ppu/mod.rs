@@ -28,7 +28,7 @@ use crate::{
 
 use super::{
     int_regs::{IRQ, IRQ_LCD_STAT, IRQ_NONE, IRQ_VBLANK},
-    BusDevice, Reset,
+    MemoryRegion, Reset,
 };
 
 pub mod bgp;
@@ -285,7 +285,7 @@ impl PPU {
     }
 }
 
-impl BusDevice for PPU {
+impl MemoryRegion for PPU {
     fn read(&self, addr: Addr) -> Word {
         match addr {
             LCDC_REG_ADDR => *self.lcdc,

@@ -6,7 +6,7 @@ use serde_with::serde_as;
 use crate::{
     dev::{
         bus::{VRAM_LOW_BOUND, VRAM_SIZE},
-        BusDevice, Reset,
+        MemoryRegion, Reset,
     },
     types::{Addr, Word},
 };
@@ -39,7 +39,7 @@ impl DerefMut for VRAM {
     }
 }
 
-impl BusDevice for VRAM {
+impl MemoryRegion for VRAM {
     fn read(&self, addr: Addr) -> Word {
         *unsafe { self.0.get_unchecked((addr - VRAM_LOW_BOUND) as usize) }
     }

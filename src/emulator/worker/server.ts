@@ -12,6 +12,7 @@ export type CreateOption = {
   responsePort: MessagePort
   emitPort: MessagePort
   freqScale: number
+  volume: number
 }
 
 type Handler<Event extends keyof ClientSideEvent> =
@@ -31,7 +32,7 @@ export class Server {
 
   private constructor(
     private core: WasmEmulator,
-    private audio: AudioSender,
+    public audioSender: AudioSender,
     private emitter: Emitter<ServerSideEvent>,
     responsePort: MessagePort
   ) {
@@ -48,15 +49,22 @@ export class Server {
     this.emitter.emit(event, data, transfers)
   }
 
-  public static async create({ audioPort, emitPort, responsePort, freqScale }: CreateOption) {
-    const audio = new AudioSender(audioPort)
+  public static async create({
+    audioPort,
+    emitPort,
+    responsePort,
+    freqScale,
+    volume
+  }: CreateOption) {
+    const audioSender = new AudioSender(audioPort)
     const emitter = new Emitter<ServerSideEvent>(emitPort)
     self.emulatorLogCallback = (level, msg) => emitter.emit('log', { level: level as any, msg })
     self.emulatorSerialCallback = (byte) => emitter.emit('update', { byte })
+    self.emulatorAudioCallback = (left, right) => audioSender.send(left, right)
     await wasmInit()
     WasmEmulator.initLogger()
-    const core = new WasmEmulator()
-    const server = new Server(core, audio, emitter, responsePort)
+    const core = new WasmEmulator(freqScale, volume)
+    const server = new Server(core, audioSender, emitter, responsePort)
     server.freqScale = freqScale
     return server
   }
@@ -103,6 +111,21 @@ export class Server {
     }
   }
 
+  private _step() {
+    const now = Date.now()
+    const { err, cpu, cycles } = this.core.step({
+      ...this.updateInput,
+      timestamp: now
+    })
+    if (err === null) {
+      this.emit('update', { cpu, cycles })
+    } else {
+      this.state = State.Aborted
+      this.emit('update', { state: State.Aborted, cycles, cpu })
+      this.emit('log', { level: LogLevel.Error, msg: err })
+    }
+  }
+
   private handlers(): Handlers {
     return {
       'load-rom': this.handleLoadRom(),
@@ -116,7 +139,8 @@ export class Server {
       step: this.handleStep(),
       shutdown: this.handleShutdown(),
       save: this.handleSave(),
-      load: this.handleLoad()
+      load: this.handleLoad(),
+      'set-volume': this.handleSetVolume()
     }
   }
 
@@ -172,6 +196,7 @@ export class Server {
   private handleSetFScale(): Handler<'set-fscale'> {
     return (scale) => {
       this.freqScale = scale
+      this.core.setFreqScale(scale)
       return NONE
     }
   }
@@ -271,6 +296,13 @@ export class Server {
         })
         return Throw(undefined)
       }
+    }
+  }
+
+  private handleSetVolume(): Handler<'set-volume'> {
+    return (volume) => {
+      this.core.setVolume(volume * 0.01)
+      return NONE
     }
   }
 }

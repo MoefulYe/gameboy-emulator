@@ -1,9 +1,10 @@
 use std::io::Cursor;
 
 use crate::{
-    dev::{Bus, Cart, LoadCartResult, Reset, CPU},
+    dev::{Bus, LoadCartResult, Reset, CPU},
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
+    external::emulator_audio_callback,
     log,
     output::{
         audio::WebAudioOutput,
@@ -16,9 +17,11 @@ use ::log::error;
 // use brotli::{enc::BrotliEncoderParams, CompressorReader, CompressorWriter};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
-use tsify_derive::EmulatorUpdateInput;
+use tsify_derive::{EmulatorStepInput, EmulatorUpdateInput};
 use wasm_bindgen::prelude::*;
 use web_sys::OffscreenCanvasRenderingContext2d;
+
+pub const BASE_CLOCK: u32 = 4_194_304;
 
 #[wasm_bindgen(js_name = WasmEmulator)]
 pub struct Emulator {
@@ -58,6 +61,13 @@ mod tsify_derive {
         pub cycles: ClockCycle,
         pub timestamp: f64,
     }
+
+    #[derive(Deserialize, Tsify)]
+    #[tsify(from_wasm_abi)]
+    pub struct EmulatorStepInput {
+        pub btns: u8,
+        pub timestamp: f64,
+    }
 }
 
 pub use tsify_derive::EmulatorUpdateResult;
@@ -65,7 +75,7 @@ pub use tsify_derive::EmulatorUpdateResult;
 #[wasm_bindgen(js_class = WasmEmulator)]
 impl Emulator {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Emulator {
+    pub fn new(freq_scale: f32, volume: f32) -> Emulator {
         Self {
             core: Core {
                 cpu: CPU::new(),
@@ -76,7 +86,7 @@ impl Emulator {
             serial_output: WebSerialOutput::new(),
             screen_output: WebScreenOutput::new(),
             tile_output: WebTileOutput::new(),
-            audio_output: WebAudioOutput::new(),
+            audio_output: WebAudioOutput::new(volume, freq_scale),
         }
     }
     #[wasm_bindgen(js_name = initLogger)]
@@ -102,6 +112,25 @@ impl Emulator {
         let cycles = self.core.cycles;
         self.core.bus.ppu.update_tiles(&mut self.tile_output);
         self.core.bus.ppu.update_screen(&mut self.screen_output);
+        self.update_audio();
+        EmulatorUpdateResult { cycles, cpu, err }
+    }
+
+    #[wasm_bindgen(js_name = step)]
+    pub fn step(
+        &mut self,
+        EmulatorStepInput { btns, timestamp }: EmulatorStepInput,
+    ) -> EmulatorUpdateResult {
+        if let Some(cart) = &mut self.core.bus.cart {
+            cart.update_rtc(timestamp as _)
+        }
+        self.core.bus.btns.update(btns);
+        let err = self._update(1);
+        let cpu = self.core.cpu.dump(&mut self.core.bus);
+        let cycles = self.core.cycles;
+        self.core.bus.ppu.update_tiles(&mut self.tile_output);
+        self.core.bus.ppu.update_screen(&mut self.screen_output);
+        self.audio_output.clear_buffer();
         EmulatorUpdateResult { cycles, cpu, err }
     }
 
@@ -147,6 +176,7 @@ impl Emulator {
         self.core.aborted = false;
         self.core.cpu.reset();
         self.core.bus.reset();
+        self.audio_output.reset();
     }
 
     #[wasm_bindgen(js_name = setScreenCanvas)]
@@ -162,6 +192,11 @@ impl Emulator {
     #[wasm_bindgen(js_name = setVolume)]
     pub fn set_volume(&mut self, volume: f32) {
         self.audio_output.set_volume(volume);
+    }
+
+    #[wasm_bindgen(js_name = setFreqScale)]
+    pub fn set_freq_scale(&mut self, freq_scale: f32) {
+        self.audio_output.set_freq_scale(freq_scale);
     }
 
     fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
@@ -190,6 +225,7 @@ impl Emulator {
 
     fn tick_devices(&mut self, cycles: ClockCycle) -> EmuResult {
         for _ in 0..cycles {
+            self.core.bus.apu.tick(&mut self.audio_output);
             let irq0 = self.core.bus.timer.tick();
             let irq1 = self.core.bus.serial.tick(&mut self.serial_output);
             self.core.bus.tick_dma()?;
@@ -205,5 +241,13 @@ impl Emulator {
         self.tick_devices(cycles)?;
         self.core.cycles += cycles;
         Ok(cycles)
+    }
+
+    fn update_audio(&mut self) {
+        unsafe {
+            let (left, right) = self.audio_output.buffer();
+            emulator_audio_callback(left, right);
+            self.audio_output.clear_buffer();
+        }
     }
 }

@@ -11,9 +11,7 @@ import UnoCSS from 'unocss/vite'
 export default defineConfig({
   esbuild: {
     tsconfigRaw: {
-      compilerOptions: {
-        experimentalDecorators: true
-      }
+      compilerOptions: {}
     }
   },
   plugins: [vue(), VueDevTools(), UnoCSS(), wasm(), VueI18nPlugin({})],

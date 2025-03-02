@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
 import { SaveMode, State } from '@/emulator/constants'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { Menu } from 'floating-vue'
 import MySlider from './common/MySlider.vue'
 import { openFile } from '@/utils/fs'
@@ -117,14 +117,18 @@ const volumeIcon = computed(() => {
   const val = _val > 3 ? 3 : _val
   return volumeIcons[val]
 })
-const resetVolume = debounce(() => {
+const resetVolume = () => {
   if (volume.value !== 0) {
     volume.value = 0
   } else {
     volume.value = 50
   }
-})
+}
 const volumeStr = computed(() => `${volume.value.toString().padStart(3)}%`)
+watch(
+  volume,
+  debounce((vol: number) => emu.setVolume(vol), 300)
+)
 
 const toggleSideBar = () => (sideBarShow.value = !sideBarShow.value)
 

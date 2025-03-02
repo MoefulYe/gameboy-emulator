@@ -6,7 +6,7 @@ use serde_with::serde_as;
 use crate::{
     dev::{
         bus::{OAM_LOW_BOUND, OAM_SIZE},
-        BusDevice, Reset,
+        MemoryRegion, Reset,
     },
     types::{Addr, Word},
     utils::{
@@ -41,7 +41,7 @@ impl DerefMut for OAM {
     }
 }
 
-impl BusDevice for OAM {
+impl MemoryRegion for OAM {
     fn read(&self, addr: Addr) -> Word {
         *unsafe { self.0.get_unchecked((addr - OAM_LOW_BOUND) as usize) }
     }

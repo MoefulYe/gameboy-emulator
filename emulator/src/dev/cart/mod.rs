@@ -1,6 +1,6 @@
 use self::header::Header;
 use crate::{
-    dev::BusDevice,
+    dev::MemoryRegion,
     error::{EmuErr, EmuResult, EmulatorError::UnknownMBCType},
     types::{Addr, Word},
 };
@@ -66,7 +66,7 @@ impl Cart {
     }
 }
 
-impl BusDevice for Cart {
+impl MemoryRegion for Cart {
     fn read(&self, addr: Addr) -> Word {
         match self {
             Cart::NoMBC(c) => c.read(addr),

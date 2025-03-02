@@ -27,7 +27,7 @@ where
     }
 }
 
-pub trait BusDevice {
+pub trait MemoryRegion {
     /// 默认返回0xFF
     fn read(&self, addr: Addr) -> Word {
         warn!("illegal read at address: 0x{addr:04X}");

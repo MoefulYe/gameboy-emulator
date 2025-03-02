@@ -8,7 +8,7 @@ use crate::{
 
 use super::{
     int_regs::{IRQ, IRQ_NONE, IRQ_TIMER},
-    BusDevice,
+    MemoryRegion,
 };
 
 const TIMER_DIV_REG_ADDR: Addr = 0xFF04;
@@ -90,7 +90,7 @@ impl Timer {
     }
 }
 
-impl BusDevice for Timer {
+impl MemoryRegion for Timer {
     fn read(&self, addr: Addr) -> Word {
         match addr {
             TIMER_DIV_REG_ADDR => self.read_div(),

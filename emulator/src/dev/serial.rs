@@ -1,6 +1,6 @@
 use super::{
     int_regs::{IRQ, IRQ_NONE, IRQ_SERIAL},
-    BusDevice, Reset,
+    MemoryRegion, Reset,
 };
 use crate::{
     external::emulator_serial_callback,
@@ -44,7 +44,7 @@ impl Default for Serial {
     }
 }
 
-impl BusDevice for Serial {
+impl MemoryRegion for Serial {
     fn read(&self, addr: Addr) -> Word {
         match addr {
             SERIAL_DATA_REG_ADDR => self.sb,

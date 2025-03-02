@@ -77,6 +77,11 @@ export type ClientSideEvent = {
     ret: undefined
     err: undefined
   }
+  'set-volume': {
+    args: number
+    ret: undefined
+    err: undefined
+  }
 }
 
 export type ServerSideEvent = {

@@ -1,6 +1,6 @@
 import { Client } from './worker/client'
 import { type InjectionKey, inject } from 'vue'
-import Server from './worker/worker?worker'
+import Server from './worker/core.worker?worker'
 import { Err, LogLevel } from './constants'
 import { useConfig } from './config'
 import { createDB } from './persistance/db'
@@ -17,7 +17,7 @@ export const createEmulator = async () => {
   const clientEventChan = new MessageChannel()
   const serverEventChan = new MessageChannel()
   const db = await createDB()
-  const client = new Client({
+  const client = await Client.create({
     db,
     config,
     server: worker,
@@ -30,7 +30,8 @@ export const createEmulator = async () => {
       audioPort: audioChan.port2,
       responsePort: clientEventChan.port2,
       emitPort: serverEventChan.port2,
-      freqScale: config.freqScale.value
+      freqScale: config.freqScale.value,
+      volume: config.volume.value
     },
     [audioChan.port2, clientEventChan.port2, serverEventChan.port2]
   )

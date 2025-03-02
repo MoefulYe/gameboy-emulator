@@ -51,6 +51,7 @@ export const Err = Status.Err
 
 export const TILE_BITMAP_WIDTH = 128
 export const TILE_BITMAP_HEIGHT = 192
+export const BASE_AUDIO_SAMPLE_RATE = 48000
 
 export type SaveMetadata = {
   readonly createdAt?: Date
