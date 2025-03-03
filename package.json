@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "wasm-build": "wasm-pack build emulator --target web",
-    "build": "wasm-pack build emulator --release --target web && run-p type-check \"build-only {@}\" --",
+    "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",

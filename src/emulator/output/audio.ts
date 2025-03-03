@@ -1,7 +1,9 @@
 export class AudioSender {
   constructor(private port: MessagePort) {}
   send(left: Float32Array, right: Float32Array) {
-    this.port.postMessage({ left, right }, [left.buffer, right.buffer])
+    const l = new Float32Array(left)
+    const r = new Float32Array(right)
+    this.port.postMessage({ left: l, right: r }, [l.buffer, r.buffer])
   }
 }
 

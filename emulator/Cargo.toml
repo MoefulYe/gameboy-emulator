@@ -4,6 +4,15 @@ version = "0.1.0"
 authors = ["ashenye <luren145@gmail.com>"]
 edition = "2018"
 
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -28,6 +37,7 @@ web-sys = { version = "0.3.76", features = ["ImageData", "OffscreenCanvasRenderi
 smallvec = { version = "1.14.0", features = ["serde"] }
 bincode = "1.3.3"
 serde_with = "3.12.0"
+gloo-utils = { version = "0.1", features = ["serde"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
@@ -36,3 +46,4 @@ wasm-bindgen-test = "0.3.34"
 strip = true
 opt-level = "s"
 lto = true
+

@@ -56,19 +56,21 @@ impl WebAudioOutput {
 
 impl AudioOutput for WebAudioOutput {
     fn set_samples(&mut self, left: f32, right: f32) {
-        let right = right * self.volume;
-        let left = left * self.volume;
-        let step = 1.0 / self.freq_scale;
-        let mut t = 0.0;
-        while t < 1.0 {
-            let alpha = t;
-            let interpolated_left = self.last_left * (1.0 - alpha) + left * alpha;
-            let interpolated_right = self.last_right * (1.0 - alpha) + right * alpha;
-            self.left_buffer.push(interpolated_left);
-            self.right_buffer.push(interpolated_right);
-            t += step;
-        }
-        self.last_left = left;
-        self.last_right = right;
+        // let right = right * self.volume;
+        // let left = left * self.volume;
+        // let step = 1.0 / self.freq_scale;
+        // let mut t = 0.0;
+        // while t < 1.0 {
+        //     let alpha = t;
+        //     let interpolated_left = self.last_left * (1.0 - alpha) + left * alpha;
+        //     let interpolated_right = self.last_right * (1.0 - alpha) + right * alpha;
+        //     self.left_buffer.push(interpolated_left);
+        //     self.right_buffer.push(interpolated_right);
+        //     t += step;
+        // }
+        // self.last_left = left;
+        // self.last_right = right;
+        self.left_buffer.push(left);
+        self.right_buffer.push(right);
     }
 }

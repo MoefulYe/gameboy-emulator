@@ -17,6 +17,7 @@ class EmuAudioProcessor extends AudioWorkletProcessor {
     parameters: Record<string, Float32Array>
   ): boolean {
     const output = outputs[0]
+    console.log(outputs)
     if (this.queue.length > 0) {
       const [left, right] = this.queue.shift()!
       output[0] = left
@@ -25,7 +26,7 @@ class EmuAudioProcessor extends AudioWorkletProcessor {
       output[0].fill(0)
       output[1].fill(0)
     }
-    return true
+    return false
   }
 }
 

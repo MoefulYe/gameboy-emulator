@@ -139,6 +139,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "console_error_panic_hook",
+ "gloo-utils",
  "js-sys",
  "log",
  "serde",

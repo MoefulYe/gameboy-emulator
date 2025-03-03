@@ -2,6 +2,7 @@ use chan1::Chan1;
 use chan2::Chan2;
 use chan3::Chan3;
 use chan4::Chan4;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use super::{MemoryRegion, Reset};
@@ -186,17 +187,16 @@ impl APU {
         // normalize volume
         let volume = (volume as f32) / 7.0;
         let mut sample = 0.0f32;
-
-        if self.reg_nr51 & flag_offset != 0 {
+        if (self.reg_nr51 & flag_offset) != 0 {
             sample += self.chan1.dac_output();
         }
-        if self.reg_nr51 & (flag_offset << 1) != 0 {
+        if (self.reg_nr51 & (flag_offset << 1)) != 0 {
             sample += self.chan2.dac_output();
         }
-        if self.reg_nr51 & (flag_offset << 2) != 0 {
+        if (self.reg_nr51 & (flag_offset << 2)) != 0 {
             sample += self.chan3.dac_output();
         }
-        if self.reg_nr51 & (flag_offset << 3) != 0 {
+        if (self.reg_nr51 & (flag_offset << 3)) != 0 {
             sample += self.chan4.dac_output();
         }
 

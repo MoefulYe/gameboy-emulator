@@ -61,7 +61,7 @@ export class Client {
   }
 
   static async create(option: CreateOption) {
-    const audioCtx = new AudioContext()
+    const audioCtx = await createAudioCtx()
     const audioWorkletNode = await createAudioWorker(audioCtx)
     return new Client({ ...option, audioCtx, audioWorkletNode })
   }
@@ -263,3 +263,6 @@ const createAudioWorker = async (ctx: AudioContext) => {
   await ctx.audioWorklet.addModule(AUDIO_WORKER_URL)
   return new AudioWorkletNode(ctx, 'audio-processor')
 }
+
+const createAudioCtx = () =>
+  window.navigator.mediaDevices.getUserMedia({ audio: true }).then(() => new AudioContext())
