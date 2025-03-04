@@ -22,10 +22,12 @@ use wasm_bindgen::prelude::*;
 use web_sys::OffscreenCanvasRenderingContext2d;
 
 pub const BASE_CLOCK: u32 = 4_194_304;
+pub const VISUAL_FREQ_HZ: f64 = 59.7;
 
 #[wasm_bindgen(js_name = WasmEmulator)]
 pub struct Emulator {
     core: Core,
+    freq_scale: f64,
     serial_output: WebSerialOutput,
     screen_output: WebScreenOutput,
     tile_output: WebTileOutput,
@@ -58,7 +60,6 @@ mod tsify_derive {
     #[tsify(from_wasm_abi)]
     pub struct EmulatorUpdateInput {
         pub btns: u8,
-        pub cycles: ClockCycle,
         pub timestamp: f64,
     }
 
@@ -75,7 +76,7 @@ pub use tsify_derive::EmulatorUpdateResult;
 #[wasm_bindgen(js_class = WasmEmulator)]
 impl Emulator {
     #[wasm_bindgen(constructor)]
-    pub fn new(freq_scale: f32, volume: f32) -> Emulator {
+    pub fn new(freq_scale: f64, volume: f32) -> Emulator {
         Self {
             core: Core {
                 cpu: CPU::new(),
@@ -86,7 +87,8 @@ impl Emulator {
             serial_output: WebSerialOutput::new(),
             screen_output: WebScreenOutput::new(),
             tile_output: WebTileOutput::new(),
-            audio_output: WebAudioOutput::new(volume, freq_scale),
+            audio_output: WebAudioOutput::new(volume),
+            freq_scale,
         }
     }
     #[wasm_bindgen(js_name = initLogger)]
@@ -97,22 +99,22 @@ impl Emulator {
     #[wasm_bindgen(js_name = update)]
     pub fn update(
         &mut self,
-        EmulatorUpdateInput {
-            btns,
-            cycles,
-            timestamp,
-        }: EmulatorUpdateInput,
+        EmulatorUpdateInput { btns, timestamp }: EmulatorUpdateInput,
     ) -> EmulatorUpdateResult {
         if let Some(cart) = &mut self.core.bus.cart {
             cart.update_rtc(timestamp as _)
         }
         self.core.bus.btns.update(btns);
+        let cycles = ((BASE_CLOCK as f64) * self.freq_scale / VISUAL_FREQ_HZ) as u32;
         let err = self._update(cycles);
         let cpu = self.core.cpu.dump(&mut self.core.bus);
         let cycles = self.core.cycles;
         self.core.bus.ppu.update_tiles(&mut self.tile_output);
         self.core.bus.ppu.update_screen(&mut self.screen_output);
-        self.update_audio();
+        if self.freq_scale == 1.0 {
+            self.audio_output.update();
+        }
+        self.audio_output.clear_buffer();
         self.serial_output.flush();
         log_flush();
         EmulatorUpdateResult { cycles, cpu, err }
@@ -199,8 +201,8 @@ impl Emulator {
     }
 
     #[wasm_bindgen(js_name = setFreqScale)]
-    pub fn set_freq_scale(&mut self, freq_scale: f32) {
-        self.audio_output.set_freq_scale(freq_scale);
+    pub fn set_freq_scale(&mut self, freq_scale: f64) {
+        self.freq_scale = freq_scale;
     }
 
     fn _update(&mut self, cycles: ClockCycle) -> Option<String> {
@@ -245,13 +247,5 @@ impl Emulator {
         self.tick_devices(cycles)?;
         self.core.cycles += cycles;
         Ok(cycles)
-    }
-
-    fn update_audio(&mut self) {
-        unsafe {
-            let (left, right) = self.audio_output.buffer();
-            emulator_audio_callback(left, right);
-            self.audio_output.clear_buffer();
-        }
     }
 }

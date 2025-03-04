@@ -354,8 +354,8 @@ function __wbg_get_imports() {
         const ret = getObject(arg0).buffer;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbg_emulatorAudioCallback_f056f5fa7557ab09 = function(arg0, arg1) {
-        self.emulatorAudioCallback(takeObject(arg0), takeObject(arg1));
+    imports.wbg.__wbg_emulatorAudioCallback_6ea228ddf2ae3f4d = function(arg0) {
+        self.emulatorAudioCallback(takeObject(arg0));
     };
     imports.wbg.__wbg_emulatorLogCallback_1b9d61732ebca96f = function(arg0) {
         self.emulatorLogCallback(takeObject(arg0));

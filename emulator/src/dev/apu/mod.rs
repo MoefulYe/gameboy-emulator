@@ -2,7 +2,6 @@ use chan1::Chan1;
 use chan2::Chan2;
 use chan3::Chan3;
 use chan4::Chan4;
-use log::debug;
 use serde::{Deserialize, Serialize};
 
 use super::{MemoryRegion, Reset};
@@ -216,30 +215,30 @@ impl APU {
     }
 
     pub fn tick(&mut self, speaker: &mut impl AudioOutput) {
-        // self.ticks = self.ticks.wrapping_add(1);
+        self.ticks = self.ticks.wrapping_add(1);
 
-        // self.chan3.wave_just_read = false;
+        self.chan3.wave_just_read = false;
 
-        // self.chan1.tick();
-        // self.chan2.tick();
-        // self.chan3.tick();
-        // self.chan4.tick();
+        self.chan1.tick();
+        self.chan2.tick();
+        self.chan3.tick();
+        self.chan4.tick();
 
-        // // Every 8192 T-cycles, the frame sequencer is stepped
-        // if self.ticks % FRAME_SEQUENCER_PERIOD == 0 {
-        //     self.handle_fs_step();
-        // }
+        // Every 8192 T-cycles, the frame sequencer is stepped
+        if self.ticks % FRAME_SEQUENCER_PERIOD == 0 {
+            self.handle_fs_step();
+        }
 
-        // // Every sample period, we can send the current sample to the speaker
-        // // It's up to the speaker to store an audio buffer and play it a regular interval
-        // if self.ticks % SAMPLE_PERIOD == 0 {
-        //     let left_volume = self.volume_left();
-        //     let right_volume = self.volume_right();
+        // Every sample period, we can send the current sample to the speaker
+        // It's up to the speaker to store an audio buffer and play it a regular interval
+        if self.ticks % SAMPLE_PERIOD == 0 {
+            let left_volume = self.volume_left();
+            let right_volume = self.volume_right();
 
-        //     let s02 = self.mix_channels(0x10, left_volume);
-        //     let s01 = self.mix_channels(0x01, right_volume);
-        //     speaker.set_samples(s02, s01);
-        // }
+            let s02 = self.mix_channels(0x10, left_volume);
+            let s01 = self.mix_channels(0x01, right_volume);
+            speaker.set_samples(s02, s01);
+        }
     }
 }
 
@@ -251,85 +250,85 @@ impl Reset for APU {
 
 impl MemoryRegion for APU {
     fn read(&self, addr: Addr) -> Word {
-        // match addr {
-        //     REG_NR10_ADDR | REG_NR11_ADDR | REG_NR12_ADDR | REG_NR13_ADDR | REG_NR14_ADDR => {
-        //         self.chan1.read(addr)
-        //     }
-        //     REG_NR21_ADDR | REG_NR22_ADDR | REG_NR23_ADDR | REG_NR24_ADDR => self.chan2.read(addr),
-        //     REG_NR30_ADDR
-        //     | REG_NR31_ADDR
-        //     | REG_NR32_ADDR
-        //     | REG_NR33_ADDR
-        //     | REG_NR34_ADDR
-        //     | WAVE_PATTERN_RAM_START..=WAVE_PATTERN_RAM_END => self.chan3.read(addr),
-        //     REG_NR41_ADDR | REG_NR42_ADDR | REG_NR43_ADDR | REG_NR44_ADDR => self.chan4.read(addr),
-        //     REG_NR50_ADDR => self.reg_nr50,
-        //     REG_NR51_ADDR => self.reg_nr51,
-        //     REG_NR52_ADDR => {
-        //         let mut data = (self.reg_nr52 & 0b1000_0000) | 0b0111_0000;
-        //         data |= self.chan1.is_enabled() as Word;
-        //         data |= (self.chan2.is_enabled() as Word) << 1;
-        //         data |= (self.chan3.is_enabled() as Word) << 2;
-        //         data |= (self.chan4.is_enabled() as Word) << 3;
-        //         data
-        //     }
-        //     _ => 0xFF,
-        // }
+        match addr {
+            REG_NR10_ADDR | REG_NR11_ADDR | REG_NR12_ADDR | REG_NR13_ADDR | REG_NR14_ADDR => {
+                self.chan1.read(addr)
+            }
+            REG_NR21_ADDR | REG_NR22_ADDR | REG_NR23_ADDR | REG_NR24_ADDR => self.chan2.read(addr),
+            REG_NR30_ADDR
+            | REG_NR31_ADDR
+            | REG_NR32_ADDR
+            | REG_NR33_ADDR
+            | REG_NR34_ADDR
+            | WAVE_PATTERN_RAM_START..=WAVE_PATTERN_RAM_END => self.chan3.read(addr),
+            REG_NR41_ADDR | REG_NR42_ADDR | REG_NR43_ADDR | REG_NR44_ADDR => self.chan4.read(addr),
+            REG_NR50_ADDR => self.reg_nr50,
+            REG_NR51_ADDR => self.reg_nr51,
+            REG_NR52_ADDR => {
+                let mut data = (self.reg_nr52 & 0b1000_0000) | 0b0111_0000;
+                data |= self.chan1.is_enabled() as Word;
+                data |= (self.chan2.is_enabled() as Word) << 1;
+                data |= (self.chan3.is_enabled() as Word) << 2;
+                data |= (self.chan4.is_enabled() as Word) << 3;
+                data
+            }
+            _ => 0xFF,
+        }
     }
 
     fn write(&mut self, addr: Addr, data: Word) {
-        // if !self.is_enabled()
-        //     && !(WAVE_PATTERN_RAM_START..=WAVE_PATTERN_RAM_START).contains(&addr)
-        //     && addr != REG_NR11_ADDR
-        //     && addr != REG_NR21_ADDR
-        //     && addr != REG_NR31_ADDR
-        //     && addr != REG_NR41_ADDR
-        //     && addr != REG_NR52_ADDR
-        // {
-        //     return;
-        // }
-        // match addr {
-        //     REG_NR10_ADDR | REG_NR11_ADDR | REG_NR12_ADDR | REG_NR13_ADDR | REG_NR14_ADDR => {
-        //         self.chan1.write(addr, data)
-        //     }
-        //     REG_NR21_ADDR | REG_NR22_ADDR | REG_NR23_ADDR | REG_NR24_ADDR => {
-        //         self.chan2.write(addr, data)
-        //     }
-        //     REG_NR30_ADDR
-        //     | REG_NR31_ADDR
-        //     | REG_NR32_ADDR
-        //     | REG_NR33_ADDR
-        //     | REG_NR34_ADDR
-        //     | WAVE_PATTERN_RAM_START..=WAVE_PATTERN_RAM_END => self.chan3.write(addr, data),
-        //     REG_NR41_ADDR | REG_NR42_ADDR | REG_NR43_ADDR | REG_NR44_ADDR => {
-        //         self.chan4.write(addr, data)
-        //     }
-        //     REG_NR50_ADDR => self.reg_nr50 = data,
-        //     REG_NR51_ADDR => self.reg_nr51 = data,
-        //     REG_NR52_ADDR => {
-        //         //let enabled = is_set!(data, 0b1000_0000);
-        //         let enabled = data.test(7);
-        //         let len_ch1 = self.chan1.length_counter();
-        //         let len_ch2 = self.chan2.length_counter();
-        //         let len_ch3 = self.chan3.length_counter();
-        //         let len_ch4 = self.chan4.length_counter();
+        if !self.is_enabled()
+            && !(WAVE_PATTERN_RAM_START..=WAVE_PATTERN_RAM_START).contains(&addr)
+            && addr != REG_NR11_ADDR
+            && addr != REG_NR21_ADDR
+            && addr != REG_NR31_ADDR
+            && addr != REG_NR41_ADDR
+            && addr != REG_NR52_ADDR
+        {
+            return;
+        }
+        match addr {
+            REG_NR10_ADDR | REG_NR11_ADDR | REG_NR12_ADDR | REG_NR13_ADDR | REG_NR14_ADDR => {
+                self.chan1.write(addr, data)
+            }
+            REG_NR21_ADDR | REG_NR22_ADDR | REG_NR23_ADDR | REG_NR24_ADDR => {
+                self.chan2.write(addr, data)
+            }
+            REG_NR30_ADDR
+            | REG_NR31_ADDR
+            | REG_NR32_ADDR
+            | REG_NR33_ADDR
+            | REG_NR34_ADDR
+            | WAVE_PATTERN_RAM_START..=WAVE_PATTERN_RAM_END => self.chan3.write(addr, data),
+            REG_NR41_ADDR | REG_NR42_ADDR | REG_NR43_ADDR | REG_NR44_ADDR => {
+                self.chan4.write(addr, data)
+            }
+            REG_NR50_ADDR => self.reg_nr50 = data,
+            REG_NR51_ADDR => self.reg_nr51 = data,
+            REG_NR52_ADDR => {
+                //let enabled = is_set!(data, 0b1000_0000);
+                let enabled = data.test(7);
+                let len_ch1 = self.chan1.length_counter();
+                let len_ch2 = self.chan2.length_counter();
+                let len_ch3 = self.chan3.length_counter();
+                let len_ch4 = self.chan4.length_counter();
 
-        //         if enabled && !self.is_enabled() {
-        //             self.fs_step = 0;
-        //         } else if !enabled && self.is_enabled() {
-        //             for addr in REG_NR10_ADDR..REG_NR52_ADDR {
-        //                 self.write(addr, 0x00);
-        //             }
-        //         }
-        //         // restore old counters
-        //         self.chan1.set_length_counter(len_ch1);
-        //         self.chan2.set_length_counter(len_ch2);
-        //         self.chan3.set_length_counter(len_ch3);
-        //         self.chan4.set_length_counter(len_ch4);
+                if enabled && !self.is_enabled() {
+                    self.fs_step = 0;
+                } else if !enabled && self.is_enabled() {
+                    for addr in REG_NR10_ADDR..REG_NR52_ADDR {
+                        self.write(addr, 0x00);
+                    }
+                }
+                // restore old counters
+                self.chan1.set_length_counter(len_ch1);
+                self.chan2.set_length_counter(len_ch2);
+                self.chan3.set_length_counter(len_ch3);
+                self.chan4.set_length_counter(len_ch4);
 
-        //         self.reg_nr52 = data & 0x80
-        //     }
-        //     _ => {}
-        // }
+                self.reg_nr52 = data & 0x80
+            }
+            _ => {}
+        }
     }
 }

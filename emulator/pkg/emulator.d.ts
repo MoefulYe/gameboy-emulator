@@ -8,7 +8,6 @@ export interface EmulatorUpdateResult {
 
 export interface EmulatorUpdateInput {
     btns: number;
-    cycles: ClockCycle;
     timestamp: number;
 }
 

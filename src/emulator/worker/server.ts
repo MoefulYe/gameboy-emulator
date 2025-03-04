@@ -1,5 +1,5 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
-import { State, LogLevel, BASE_FREQ_HZ, VISUAL_FREQ_HZ, MS_PER_FRAME } from '../constants'
+import { State, LogLevel, MS_PER_FRAME } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
 import { NONE, Responser, Right, Throw } from '@/utils/event/client_side_event'
@@ -21,11 +21,7 @@ type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEve
 
 export class Server {
   responser: Responser<ClientSideEvent>
-  freqScale = 1.0
   state = State.Shutdown
-  get freqHz() {
-    return BASE_FREQ_HZ * this.freqScale
-  }
   updateInput = {
     btns: 0
   }
@@ -65,12 +61,11 @@ export class Server {
       const $bytes = new Uint8Array(bytes)
       emitter.emit('update', { byte: $bytes }, [$bytes.buffer])
     }
-    self.emulatorAudioCallback = (left, right) => audioSender.send(left, right)
+    self.emulatorAudioCallback = (data) => audioSender.send(data)
     await wasmInit()
     WasmEmulator.initLogger()
-    const core = new WasmEmulator(freqScale, volume)
+    const core = new WasmEmulator(freqScale, volume * 0.01)
     const server = new Server(core, audioSender, emitter, responsePort)
-    server.freqScale = freqScale
     return server
   }
 
@@ -92,7 +87,7 @@ export class Server {
           this.state = State.Paused
           this.emit('update', { state: State.Paused })
         }
-        this.update(1)
+        this._step()
       }
       return NONE
     }
@@ -101,16 +96,14 @@ export class Server {
   private poll() {
     every(() => {
       if (this.state !== State.Running) return
-      const toExec = Math.floor(this.freqHz / VISUAL_FREQ_HZ)
-      this.update(toExec)
+      this.update()
     }, MS_PER_FRAME)
   }
 
-  private update(cyclesToExec: number) {
+  private update() {
     const now = Date.now()
     const { err, cpu, cycles } = this.core.update({
       ...this.updateInput,
-      cycles: cyclesToExec,
       timestamp: now
     })
     if (err === null) {
@@ -206,7 +199,6 @@ export class Server {
 
   private handleSetFScale(): Handler<'set-fscale'> {
     return (scale) => {
-      this.freqScale = scale
       this.core.setFreqScale(scale)
       return NONE
     }

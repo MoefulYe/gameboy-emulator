@@ -43,6 +43,16 @@ watch(popupShow, (show) => {
     popup.value?.update()
   }
 })
+window.addEventListener('keyup', (e) => {
+  switch (e.key) {
+    case 'w':
+      sidebarShow.value = !sidebarShow.value
+      break
+    case 'e':
+      popupShow.value = !popupShow.value
+      break
+  }
+})
 </script>
 
 <script lang="ts">

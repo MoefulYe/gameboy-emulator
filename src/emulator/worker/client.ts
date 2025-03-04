@@ -3,7 +3,15 @@ import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
 import type { ClientSideEvent, ServerSideEvent } from './event'
 import AUDIO_WORKER_URL from './audio.worker?url'
 import { Stat, useStat } from '../stat'
-import { Err, LogLevel, Ok, SaveMode, type Save, type SaveMetadata } from '../constants'
+import {
+  BASE_AUDIO_SAMPLE_RATE,
+  Err,
+  LogLevel,
+  Ok,
+  SaveMode,
+  type Save,
+  type SaveMetadata
+} from '../constants'
 import type { EmuDB } from '../persistance/db'
 import type { Config } from '../config'
 import { EmuGamepad, useGamepad } from '../input/gamepad'
@@ -11,6 +19,7 @@ import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 import { onMounted, watch, type ShallowRef } from 'vue'
 import log, { log_batch } from '../logger'
 import { debounce } from '@/utils/debounce'
+import type { options } from 'floating-vue'
 
 type CreateOption = {
   config: Config
@@ -37,13 +46,12 @@ export class Client {
   constructor({
     listenPort,
     requestPort,
-    audioPort,
     server,
     config,
     db,
     audioCtx,
     audioWorkletNode
-  }: CreateOption & {
+  }: Omit<CreateOption, 'audioPort'> & {
     audioCtx: AudioContext
     audioWorkletNode: AudioWorkletNode
   }) {
@@ -56,14 +64,13 @@ export class Client {
     this.stat = useStat(config)
     this.audioCtx = audioCtx
     this.audioWorkletNode = audioWorkletNode
-    audioWorkletNode.port.postMessage({ port: audioPort }, [audioPort])
     this.init()
   }
 
-  static async create(option: CreateOption) {
+  static async create({ audioPort, ...options }: CreateOption) {
     const audioCtx = await createAudioCtx()
-    const audioWorkletNode = await createAudioWorker(audioCtx)
-    return new Client({ ...option, audioCtx, audioWorkletNode })
+    const audioWorkletNode = await createAudioWorklet(audioCtx, audioPort)
+    return new Client({ ...options, audioCtx, audioWorkletNode })
   }
 
   private init() {
@@ -259,10 +266,18 @@ export class Client {
   }
 }
 
-const createAudioWorker = async (ctx: AudioContext) => {
+const createAudioWorklet = async (ctx: AudioContext, audioPort: MessagePort) => {
   await ctx.audioWorklet.addModule(AUDIO_WORKER_URL)
-  return new AudioWorkletNode(ctx, 'audio-processor')
+  const worklet = new AudioWorkletNode(ctx, 'audio-processor')
+  worklet.port.postMessage({ port: audioPort }, [audioPort])
+  worklet.connect(ctx.destination)
+  return worklet
 }
 
 const createAudioCtx = () =>
-  window.navigator.mediaDevices.getUserMedia({ audio: true }).then(() => new AudioContext())
+  window.navigator.mediaDevices.getUserMedia({ audio: true }).then(
+    () =>
+      new AudioContext({
+        sampleRate: BASE_AUDIO_SAMPLE_RATE
+      })
+  )

@@ -1,32 +1,35 @@
 import { AudioReceiver } from '../output/audio'
 
 class EmuAudioProcessor extends AudioWorkletProcessor {
-  queue: [Float32Array, Float32Array][] = []
+  segments: Float32Array[] = []
   constructor() {
     super()
     this.port.onmessage = (e) => {
       const { port } = e.data
-      new AudioReceiver(port).recv((left, right) => {
-        console.log(left, right)
+      const segment = new Float32Array(128)
+      let offset = 0
+      new AudioReceiver(port).recv((data) => {
+        segment.set(data.subarray(0, 128 - offset), offset)
+        this.segments.push(new Float32Array(segment))
+        data = data.subarray(128 - offset)
+        while (data.length > 128) {
+          const segment = data.subarray(0, 128)
+          this.segments.push(segment)
+          data = data.subarray(128)
+        }
+        offset = data.length
+        segment.set(data)
       })
     }
   }
-  process(
-    inputs: Float32Array[][],
-    outputs: Float32Array[][],
-    parameters: Record<string, Float32Array>
-  ): boolean {
-    const output = outputs[0]
-    console.log(outputs)
-    if (this.queue.length > 0) {
-      const [left, right] = this.queue.shift()!
-      output[0] = left
-      output[1] = right
-    } else {
-      output[0].fill(0)
-      output[1].fill(0)
+
+  process(_: Float32Array[][], outputs: Float32Array[][]): boolean {
+    const segment = this.segments.shift()
+    const output = outputs[0][0]
+    if (segment != undefined) {
+      output.set(segment)
     }
-    return false
+    return true
   }
 }
 

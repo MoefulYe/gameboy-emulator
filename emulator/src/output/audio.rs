@@ -1,25 +1,18 @@
+use crate::external::emulator_audio_callback;
 pub trait AudioOutput {
     fn set_samples(&mut self, left: f32, right: f32);
 }
 
 pub struct WebAudioOutput {
-    left_buffer: Vec<f32>,
-    right_buffer: Vec<f32>,
-    last_left: f32,
-    last_right: f32,
+    buffer: Vec<f32>,
     volume: f32,
-    freq_scale: f32,
 }
 
 impl WebAudioOutput {
-    pub fn new(volume: f32, freq_scale: f32) -> Self {
+    pub fn new(volume: f32) -> Self {
         Self {
-            left_buffer: Vec::with_capacity(1024),
-            right_buffer: Vec::with_capacity(1024),
+            buffer: Vec::with_capacity(1024),
             volume,
-            last_left: 0.0,
-            last_right: 0.0,
-            freq_scale: freq_scale.max(0.0),
         }
     }
 
@@ -31,26 +24,18 @@ impl WebAudioOutput {
         }
     }
 
-    pub fn set_freq_scale(&mut self, freq_scale: f32) {
-        self.freq_scale = freq_scale.max(0.0)
-    }
-
     pub fn clear_buffer(&mut self) {
-        self.left_buffer.clear();
-        self.right_buffer.clear();
+        self.buffer.clear();
+        self.buffer.clear();
     }
 
     pub fn reset(&mut self) {
-        self.left_buffer.clear();
-        self.right_buffer.clear();
-        self.last_left = 0.0;
-        self.last_right = 0.0;
+        self.clear_buffer();
     }
 
-    pub unsafe fn buffer(&self) -> (js_sys::Float32Array, js_sys::Float32Array) {
-        let left = js_sys::Float32Array::view(&self.left_buffer);
-        let right = js_sys::Float32Array::view(&self.right_buffer);
-        (left, right)
+    pub fn update(&mut self) {
+        let buffer = unsafe { js_sys::Float32Array::view(&self.buffer) };
+        emulator_audio_callback(buffer);
     }
 }
 
@@ -70,7 +55,7 @@ impl AudioOutput for WebAudioOutput {
         // }
         // self.last_left = left;
         // self.last_right = right;
-        self.left_buffer.push(left);
-        self.right_buffer.push(right);
+        let sample = (((left + right) / 2.0) * self.volume).max(1.0).min(-1.0);
+        self.buffer.push(sample);
     }
 }
