@@ -88,12 +88,12 @@ export type ServerSideEvent = {
   log: {
     level: LogLevel
     msg: string
-  }
+  }[]
   update: {
     state?: State
     cycles?: number
     cpu?: CPUStateDump
-    byte?: number
+    byte?: Uint8Array
     rom?: CartInfo | null
   }
 }

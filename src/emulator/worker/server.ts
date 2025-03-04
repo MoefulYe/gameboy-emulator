@@ -58,8 +58,13 @@ export class Server {
   }: CreateOption) {
     const audioSender = new AudioSender(audioPort)
     const emitter = new Emitter<ServerSideEvent>(emitPort)
-    self.emulatorLogCallback = (level, msg) => emitter.emit('log', { level: level as any, msg })
-    self.emulatorSerialCallback = (byte) => emitter.emit('update', { byte })
+    self.emulatorLogCallback = (logs) => {
+      emitter.emit('log', logs)
+    }
+    self.emulatorSerialCallback = (bytes) => {
+      const $bytes = new Uint8Array(bytes)
+      emitter.emit('update', { byte: $bytes }, [$bytes.buffer])
+    }
     self.emulatorAudioCallback = (left, right) => audioSender.send(left, right)
     await wasmInit()
     WasmEmulator.initLogger()
@@ -69,13 +74,19 @@ export class Server {
     return server
   }
 
+  private log(level: LogLevel, msg: string) {
+    this.emit('log', [
+      {
+        level,
+        msg
+      }
+    ])
+  }
+
   private handleStep(): Handler<'step'> {
     return () => {
       if (this.state === State.Aborted) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'step when aborted! restart first!'
-        })
+        this.log(LogLevel.Warn, 'step when aborted! restart first!')
       } else {
         if (this.state !== State.Paused) {
           this.state = State.Paused
@@ -107,7 +118,7 @@ export class Server {
     } else {
       this.state = State.Aborted
       this.emit('update', { state: State.Aborted, cycles, cpu })
-      this.emit('log', { level: LogLevel.Error, msg: err })
+      this.log(LogLevel.Error, err)
     }
   }
 
@@ -122,7 +133,7 @@ export class Server {
     } else {
       this.state = State.Aborted
       this.emit('update', { state: State.Aborted, cycles, cpu })
-      this.emit('log', { level: LogLevel.Error, msg: err })
+      this.log(LogLevel.Error, err)
     }
   }
 
@@ -204,15 +215,9 @@ export class Server {
   private handleStart(): Handler<'start'> {
     return () => {
       if (this.state === State.Aborted) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'emulator has been aborted! restart first!'
-        })
+        this.log(LogLevel.Warn, 'emulator has been aborted! restart first!')
       } else if (this.state === State.Running) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'emulator has been started!'
-        })
+        this.log(LogLevel.Warn, 'emulator has been started!')
       } else {
         this.state = State.Running
         this.emit('update', { state: State.Running })
@@ -224,20 +229,11 @@ export class Server {
   private handlePause(): Handler<'pause'> {
     return () => {
       if (this.state === State.Aborted) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'emulator has been aborted! restart first!'
-        })
+        this.log(LogLevel.Warn, 'emulator has been aborted! restart first!')
       } else if (this.state === State.Shutdown) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'emulator has been shutdown! boot first!'
-        })
+        this.log(LogLevel.Warn, 'emulator has been shutdown! boot first!')
       } else if (this.state === State.Paused) {
-        this.emit('log', {
-          level: LogLevel.Warn,
-          msg: 'emulator has been paused!'
-        })
+        this.log(LogLevel.Warn, 'emulator has been paused!')
       } else {
         this.state = State.Paused
         this.emit('update', { state: State.Paused })
@@ -255,10 +251,7 @@ export class Server {
         cycles: 0,
         rom: null
       })
-      this.emit('log', {
-        level: LogLevel.Info,
-        msg: 'emu has been reset'
-      })
+      this.log(LogLevel.Info, 'emu has been reset')
       return NONE
     }
   }

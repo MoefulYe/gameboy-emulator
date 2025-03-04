@@ -34,17 +34,17 @@ export class Stat {
   public readonly state = shallowRef(State.Shutdown)
   public readonly serialBytes = shallowReactive([] as number[])
   public readonly cpu = shallowRef<CPUStateDump>(CPU_STATE_INIT)
-  public readonly actualRate = useActualRate(this.cycles)
-  public readonly frameRate: ComputedRef<number>
+  public readonly actualFPS = useActualFPS(this.cycles)
+  public readonly desiredFPS: ComputedRef<number>
   public readonly saveMetaData = shallowRef<SaveMetadata>()
   public constructor(config: Config) {
-    this.frameRate = computed(() => VISUAL_FREQ_HZ * config.freqScale.value)
+    this.desiredFPS = computed(() => VISUAL_FREQ_HZ * config.freqScale.value)
   }
 }
 
 export const useStat = (config: Config) => new Stat(config)
 
-const useActualRate = (cycles: Ref<number>) => {
+const useActualFPS = (cycles: Ref<number>) => {
   const ret = shallowRef(0)
   let last = performance.now()
   watch(cycles, (newVal, oldVal) => {

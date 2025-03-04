@@ -5,11 +5,11 @@ use crate::{
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
     external::emulator_audio_callback,
-    log,
     output::{
         audio::WebAudioOutput,
+        log::{init_logger, log_flush},
         screen::{WebScreenOutput, WebTileOutput},
-        serial::WebSerialOutput,
+        serial::{SerialOutput, WebSerialOutput},
     },
     types::ClockCycle,
 };
@@ -91,7 +91,7 @@ impl Emulator {
     }
     #[wasm_bindgen(js_name = initLogger)]
     pub fn init_logger() {
-        log::init_logger();
+        init_logger();
     }
 
     #[wasm_bindgen(js_name = update)]
@@ -113,6 +113,8 @@ impl Emulator {
         self.core.bus.ppu.update_tiles(&mut self.tile_output);
         self.core.bus.ppu.update_screen(&mut self.screen_output);
         self.update_audio();
+        self.serial_output.flush();
+        log_flush();
         EmulatorUpdateResult { cycles, cpu, err }
     }
 
@@ -131,6 +133,8 @@ impl Emulator {
         self.core.bus.ppu.update_tiles(&mut self.tile_output);
         self.core.bus.ppu.update_screen(&mut self.screen_output);
         self.audio_output.clear_buffer();
+        self.serial_output.flush();
+        log_flush();
         EmulatorUpdateResult { cycles, cpu, err }
     }
 

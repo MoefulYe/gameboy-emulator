@@ -55,7 +55,6 @@ pub trait Channel: DigitalAmplitude + Clock + Sample + Tick {
     fn dac_output(&self) -> f32 {
         if self.is_enabled() && self.is_dac_enabled() {
             // from [0x0; 0xF] to [-1; 1]
-            debug!("ss");
             (self.digital_amplitude() as f32 / 7.5) - 1.0
         } else {
             0.0

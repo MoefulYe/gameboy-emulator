@@ -29,10 +29,6 @@ function takeObject(idx) {
     return ret;
 }
 
-const cachedTextDecoder = (typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true, fatal: true }) : { decode: () => { throw Error('TextDecoder not available') } } );
-
-if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
-
 let cachedUint8ArrayMemory0 = null;
 
 function getUint8ArrayMemory0() {
@@ -42,9 +38,9 @@ function getUint8ArrayMemory0() {
     return cachedUint8ArrayMemory0;
 }
 
-function getStringFromWasm0(ptr, len) {
+function getArrayU8FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
-    return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 function handleError(f, args) {
@@ -53,6 +49,15 @@ function handleError(f, args) {
     } catch (e) {
         wasm.__wbindgen_export_0(addHeapObject(e));
     }
+}
+
+const cachedTextDecoder = (typeof TextDecoder !== 'undefined' ? new TextDecoder('utf-8', { ignoreBOM: true, fatal: true }) : { decode: () => { throw Error('TextDecoder not available') } } );
+
+if (typeof TextDecoder !== 'undefined') { cachedTextDecoder.decode(); };
+
+function getStringFromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
 }
 
 function debugString(val) {
@@ -194,11 +199,6 @@ function passArray8ToWasm0(arg, malloc) {
     getUint8ArrayMemory0().set(arg, ptr / 1);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
-}
-
-function getArrayU8FromWasm0(ptr, len) {
-    ptr = ptr >>> 0;
-    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 const WasmEmulatorFinalization = (typeof FinalizationRegistry === 'undefined')
@@ -357,11 +357,11 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_emulatorAudioCallback_f056f5fa7557ab09 = function(arg0, arg1) {
         self.emulatorAudioCallback(takeObject(arg0), takeObject(arg1));
     };
-    imports.wbg.__wbg_emulatorLogCallback_27e4885a12440497 = function(arg0, arg1, arg2) {
-        self.emulatorLogCallback(arg0, getStringFromWasm0(arg1, arg2));
+    imports.wbg.__wbg_emulatorLogCallback_1b9d61732ebca96f = function(arg0) {
+        self.emulatorLogCallback(takeObject(arg0));
     };
-    imports.wbg.__wbg_emulatorSerialCallback_0b6909e83995f5cd = function(arg0) {
-        self.emulatorSerialCallback(arg0);
+    imports.wbg.__wbg_emulatorSerialCallback_efe2e529077430f6 = function(arg0, arg1) {
+        self.emulatorSerialCallback(getArrayU8FromWasm0(arg0, arg1));
     };
     imports.wbg.__wbg_newwithbyteoffsetandlength_6d34787141015158 = function(arg0, arg1, arg2) {
         const ret = new Uint8ClampedArray(getObject(arg0), arg1 >>> 0, arg2 >>> 0);

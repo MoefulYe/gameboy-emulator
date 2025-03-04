@@ -1,17 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export type LoadCartResult = { status: "ok"; info: CartInfo } | { status: "error"; msg: string };
-
-export interface CartInfo {
-    title: string;
-    cartType: string;
-    romSize: number;
-    ramSize: number;
-    dest: string;
-    publisher: string;
-    version: number;
-}
-
 export interface EmulatorUpdateResult {
     cycles: ClockCycle;
     cpu: CPUStateDump;
@@ -29,14 +17,10 @@ export interface EmulatorStepInput {
     timestamp: number;
 }
 
-
-export type Byte = number;
-export type Word = number;
-export type DWord = number;
-export type Addr = DWord;
-export type OpCode = Word;
-export type ClockCycle = number;
-
+export interface LogItem {
+    level: number;
+    msg: string;
+}
 
 export interface CPUStateDump {
     ime: boolean;
@@ -62,6 +46,27 @@ export interface CPUStateDump {
     inst: string;
     threeWordsAtPc: [Word, Word, Word];
 }
+
+export type LoadCartResult = { status: "ok"; info: CartInfo } | { status: "error"; msg: string };
+
+export interface CartInfo {
+    title: string;
+    cartType: string;
+    romSize: number;
+    ramSize: number;
+    dest: string;
+    publisher: string;
+    version: number;
+}
+
+
+export type Byte = number;
+export type Word = number;
+export type DWord = number;
+export type Addr = DWord;
+export type OpCode = Word;
+export type ClockCycle = number;
+
 
 export class WasmEmulator {
   free(): void;

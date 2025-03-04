@@ -11,12 +11,12 @@
       <span>{{ freqScale.toFixed(2) }}</span>
     </li>
     <li>
-      <label>frame-rate: </label>
-      <span>{{ frameRate.toFixed(2) }}</span>
+      <label>desired-fps: </label>
+      <span>{{ desiredFPS.toFixed(2) }}</span>
     </li>
     <li>
-      <label>actual-rate: </label>
-      <span>{{ actualRate.toFixed(2) }}</span>
+      <label>actual-fps: </label>
+      <span>{{ actualFPS.toFixed(2) }}</span>
     </li>
     <li>
       <label>cycles: </label> <span>{{ cycles }}</span>
@@ -32,5 +32,5 @@ import { useEmulator } from '@/emulator'
 import { STATE_STR } from '@/emulator/constants'
 const emu = useEmulator()
 const { volume, freqHz, freqScale } = emu.config
-const { cycles, state, frameRate, actualRate } = emu.stat
+const { cycles, state, desiredFPS, actualFPS } = emu.stat
 </script>

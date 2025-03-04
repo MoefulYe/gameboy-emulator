@@ -9,7 +9,7 @@ import type { Config } from '../config'
 import { EmuGamepad, useGamepad } from '../input/gamepad'
 import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 import { onMounted, watch, type ShallowRef } from 'vue'
-import log from '../logger'
+import log, { log_batch } from '../logger'
 import { debounce } from '@/utils/debounce'
 
 type CreateOption = {
@@ -69,7 +69,7 @@ export class Client {
   private init() {
     const { cpu, cycles, state, serialBytes: bytes, rom } = this.stat
     const { freqScale } = this.config
-    this.on('log', ({ level, msg }) => log(level, msg))
+    this.on('log', (logs) => log_batch(logs))
     this.on('update', ({ state: $state, cycles: $cycles, cpu: $cpu, byte: $byte, rom: $rom }) => {
       if ($cycles !== undefined) {
         cycles.value = $cycles
@@ -78,7 +78,7 @@ export class Client {
         state.value = $state
       }
       if ($byte !== undefined) {
-        bytes.push($byte)
+        bytes.push(...$byte)
       }
       if ($cpu !== undefined) {
         cpu.value = $cpu

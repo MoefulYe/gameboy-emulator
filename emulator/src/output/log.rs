@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::cell::UnsafeCell;
 
 use crate::external::emulator_log_callback;
 use log::{LevelFilter, Log};
@@ -29,11 +29,13 @@ mod tsify_derive {
     }
 }
 
-pub struct EmulatorLogger(Mutex<Vec<LogItem>>);
+pub struct EmulatorLogger(UnsafeCell<Vec<LogItem>>);
+
+unsafe impl Sync for EmulatorLogger {}
 
 impl EmulatorLogger {
     const fn new() -> Self {
-        Self(Mutex::new(Vec::new()))
+        Self(UnsafeCell::new(Vec::new()))
     }
 }
 
@@ -43,23 +45,33 @@ impl Log for EmulatorLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        let mut logs = self.0.lock().unwrap();
-        logs.push((record.level(), record.args().to_string()).into());
-        if logs.len() > 64 {
-            emulator_log_callback(JsValue::from_serde(logs.as_slice()).unwrap());
-            logs.clear();
+        unsafe {
+            let logs = &mut *self.0.get();
+            logs.push((record.level(), record.args().to_string()).into());
+            if logs.len() > 64 {
+                emulator_log_callback(JsValue::from_serde(logs.as_slice()).unwrap());
+                logs.clear();
+            }
         }
     }
 
     fn flush(&self) {
-        let mut logs = self.0.lock().unwrap();
-        emulator_log_callback(JsValue::from_serde(logs.as_slice()).unwrap());
-        logs.clear();
+        unsafe {
+            let logs = &mut *self.0.get();
+            if logs.len() > 0 {
+                emulator_log_callback(JsValue::from_serde(logs.as_slice()).unwrap());
+                logs.clear();
+            }
+        }
     }
 }
 
+static LOGGER: EmulatorLogger = EmulatorLogger::new();
+pub fn log_flush() {
+    LOGGER.flush();
+}
+
 pub fn init_logger() {
-    static LOGGER: EmulatorLogger = EmulatorLogger::new();
     log::set_logger(&LOGGER).unwrap();
     log::set_max_level(LevelFilter::Debug)
 }

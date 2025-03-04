@@ -23,7 +23,9 @@ impl SerialOutput for WebSerialOutput {
     }
 
     fn flush(&mut self) {
-        emulator_serial_callback(&self.0);
-        self.0.clear();
+        if self.0.len() > 0 {
+            emulator_serial_callback(&self.0);
+            self.0.clear();
+        }
     }
 }

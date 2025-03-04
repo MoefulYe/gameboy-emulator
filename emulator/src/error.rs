@@ -1,5 +1,3 @@
-use std::{error::Error, fmt::Display};
-
 use crate::types::{Addr, OpCode};
 use thiserror::Error;
 
