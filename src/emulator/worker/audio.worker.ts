@@ -7,7 +7,7 @@ class EmuAudioProcessor extends AudioWorkletProcessor {
     this.port.onmessage = (e) => {
       const { port } = e.data
       new AudioReceiver(port).recv((left, right) => {
-        this.queue.push([left, right])
+        console.log(left, right)
       })
     }
   }

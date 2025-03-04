@@ -12,7 +12,7 @@ const DEFAULT_REG_DMG_NR32: Word = 0x9F;
 const DEFAULT_REG_DMG_NR33: Word = 0xFF;
 const DEFAULT_REG_DMG_NR34: Word = 0xBF;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Chan3 {
     enabled: bool,
     /// Bit 7  : Sound Channel 3 Off  (0=Stop, 1=Playback) (Read/Write)

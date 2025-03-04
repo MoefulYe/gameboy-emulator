@@ -12,7 +12,7 @@ const DEFAULT_REG_DMG_NR12: Word = 0xF3;
 const DEFAULT_REG_DMG_NR13: Word = 0xFF;
 const DEFAULT_REG_DMG_NR14: Word = 0xBF;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Chan1 {
     /// Whether this channel is enabled or not
     enabled: bool,

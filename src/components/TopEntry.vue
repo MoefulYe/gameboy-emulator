@@ -29,7 +29,6 @@ import HeaderBar from './HeaderBar.vue'
 import GameBoy from './GameBoy.vue'
 import SideBar, { sideBarShowKey } from './SideBar'
 import Popup, { popupShowKey } from './Popup'
-import { useDocumentListener } from '@/utils/hooks'
 
 const popup = useTemplateRef('popup')
 const emu = await createEmulator()
@@ -42,18 +41,6 @@ provide(popupShowKey, popupShow)
 watch(popupShow, (show) => {
   if (show) {
     popup.value?.update()
-  }
-})
-
-useDocumentListener('keyup', (e) => {
-  e.stopImmediatePropagation()
-  switch (e.key) {
-    case 'a':
-      popupShow.value = !popupShow.value
-      break
-    case 's':
-      sidebarShow.value = !sidebarShow.value
-      break
   }
 })
 </script>

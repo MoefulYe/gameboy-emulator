@@ -48,7 +48,7 @@ impl Log for EmulatorLogger {
         unsafe {
             let logs = &mut *self.0.get();
             logs.push((record.level(), record.args().to_string()).into());
-            if logs.len() > 64 {
+            if logs.len() > 1024 {
                 emulator_log_callback(JsValue::from_serde(logs.as_slice()).unwrap());
                 logs.clear();
             }

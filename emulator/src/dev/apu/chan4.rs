@@ -11,7 +11,7 @@ const DEFAULT_REG_DMG_NR42: Word = 0x00;
 const DEFAULT_REG_DMG_NR43: Word = 0xFF;
 const DEFAULT_REG_DMG_NR44: Word = 0xBF;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Chan4 {
     enabled: bool,
     /// Bit 5-0: Sound length

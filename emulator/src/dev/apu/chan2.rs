@@ -11,7 +11,7 @@ const DEFAULT_REG_DMG_NR22: Word = 0x00;
 const DEFAULT_REG_DMG_NR23: Word = 0xFF;
 const DEFAULT_REG_DMG_NR24: Word = 0xBF;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Chan2 {
     enabled: bool,
     /// Bit 7-6: Wave Pattern Duty
