@@ -19,7 +19,6 @@ import type { GameboyLayoutButtons } from '../input/gamepad/constants'
 import { onMounted, watch, type ShallowRef } from 'vue'
 import log, { log_batch } from '../logger'
 import { debounce } from '@/utils/debounce'
-import type { options } from 'floating-vue'
 
 type CreateOption = {
   config: Config
@@ -34,7 +33,6 @@ export class Client {
   private readonly requester: Requester<ClientSideEvent>
   private readonly listener: Listener<ServerSideEvent>
   private readonly server: Worker
-  private readonly audioWorkletNode: AudioWorkletNode
   public readonly db: EmuDB
   public readonly config: Config
   public readonly stat: Stat
@@ -49,11 +47,9 @@ export class Client {
     server,
     config,
     db,
-    audioCtx,
-    audioWorkletNode
+    audioCtx
   }: Omit<CreateOption, 'audioPort'> & {
     audioCtx: AudioContext
-    audioWorkletNode: AudioWorkletNode
   }) {
     this.config = config
     this.db = db
@@ -63,37 +59,41 @@ export class Client {
     this.gamepad = useGamepad(config, (btns) => this.btnAction(btns))
     this.stat = useStat(config)
     this.audioCtx = audioCtx
-    this.audioWorkletNode = audioWorkletNode
     this.init()
   }
 
   static async create({ audioPort, ...options }: CreateOption) {
-    const audioCtx = await createAudioCtx()
-    const audioWorkletNode = await createAudioWorklet(audioCtx, audioPort)
-    return new Client({ ...options, audioCtx, audioWorkletNode })
+    const audioCtx = await useAudio(audioPort)
+    return new Client({ ...options, audioCtx })
   }
 
   private init() {
-    const { cpu, cycles, state, serialBytes: bytes, rom } = this.stat
+    const { cpu, cycles, state, serialBytes: bytes, rom, actualFPS: fps } = this.stat
     const { freqScale } = this.config
     this.on('log', (logs) => log_batch(logs))
-    this.on('update', ({ state: $state, cycles: $cycles, cpu: $cpu, byte: $byte, rom: $rom }) => {
-      if ($cycles !== undefined) {
-        cycles.value = $cycles
+    this.on(
+      'update',
+      ({ state: $state, cycles: $cycles, cpu: $cpu, byte: $byte, rom: $rom, fps: $fps }) => {
+        if ($cycles !== undefined) {
+          cycles.value = $cycles
+        }
+        if ($state !== undefined) {
+          state.value = $state
+        }
+        if ($byte !== undefined) {
+          bytes.push(...$byte)
+        }
+        if ($cpu !== undefined) {
+          cpu.value = $cpu
+        }
+        if ($rom !== undefined) {
+          rom.value = $rom
+        }
+        if ($fps !== undefined) {
+          fps.value = $fps
+        }
       }
-      if ($state !== undefined) {
-        state.value = $state
-      }
-      if ($byte !== undefined) {
-        bytes.push(...$byte)
-      }
-      if ($cpu !== undefined) {
-        cpu.value = $cpu
-      }
-      if ($rom !== undefined) {
-        rom.value = $rom
-      }
-    })
+    )
     watch(
       freqScale,
       debounce((scale: number) => this.requester.request('set-fscale', scale))
@@ -266,18 +266,33 @@ export class Client {
   }
 }
 
-const createAudioWorklet = async (ctx: AudioContext, audioPort: MessagePort) => {
+// const createAudioWorklet = async (ctx: AudioContext, audioPort: MessagePort) => {
+//   ctx.createMediaStreamDestination
+//   await ctx.audioWorklet.addModule(AUDIO_WORKER_URL)
+//   const worklet = new AudioWorkletNode(ctx, 'audio-processor')
+//   worklet.port.postMessage({ port: audioPort }, [audioPort])
+//   worklet.connect(ctx.destination)
+//   return worklet
+// }
+
+// const createAudioCtx = () =>
+//   window.navigator.mediaDevices.getUserMedia({ audio: true }).then(
+//     () =>
+//       new AudioContext({
+//         sampleRate: BASE_AUDIO_SAMPLE_RATE
+//       })
+//   )
+
+const useAudio = async (audioPort: MessagePort) => {
+  await window.navigator.mediaDevices.getUserMedia({ audio: true })
+  const ctx = new AudioContext({
+    sampleRate: BASE_AUDIO_SAMPLE_RATE
+  })
   await ctx.audioWorklet.addModule(AUDIO_WORKER_URL)
-  const worklet = new AudioWorkletNode(ctx, 'audio-processor')
+  const worklet = new AudioWorkletNode(ctx, 'audio-processor', {
+    outputChannelCount: [2]
+  })
   worklet.port.postMessage({ port: audioPort }, [audioPort])
   worklet.connect(ctx.destination)
-  return worklet
+  return ctx
 }
-
-const createAudioCtx = () =>
-  window.navigator.mediaDevices.getUserMedia({ audio: true }).then(
-    () =>
-      new AudioContext({
-        sampleRate: BASE_AUDIO_SAMPLE_RATE
-      })
-  )

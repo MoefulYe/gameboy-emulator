@@ -7,6 +7,6 @@ export declare global {
       }[]
     ): void
     emulatorSerialCallback(bytes: Uint8Array): void
-    emulatorAudioCallback(data: Float32Array): void
+    emulatorAudioCallback(left: Float32Array, right: Float32Array): void
   }
 }

@@ -17,6 +17,20 @@ function addHeapObject(obj) {
     return idx;
 }
 
+let cachedFloat32ArrayMemory0 = null;
+
+function getFloat32ArrayMemory0() {
+    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
+        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
+    }
+    return cachedFloat32ArrayMemory0;
+}
+
+function getArrayF32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getFloat32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+
 function dropObject(idx) {
     if (idx < 132) return;
     heap[idx] = heap_next;
@@ -354,8 +368,8 @@ function __wbg_get_imports() {
         const ret = getObject(arg0).buffer;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbg_emulatorAudioCallback_6ea228ddf2ae3f4d = function(arg0) {
-        self.emulatorAudioCallback(takeObject(arg0));
+    imports.wbg.__wbg_emulatorAudioCallback_9c58ff2de4431a15 = function(arg0, arg1, arg2, arg3) {
+        self.emulatorAudioCallback(getArrayF32FromWasm0(arg0, arg1), getArrayF32FromWasm0(arg2, arg3));
     };
     imports.wbg.__wbg_emulatorLogCallback_1b9d61732ebca96f = function(arg0) {
         self.emulatorLogCallback(takeObject(arg0));
@@ -365,10 +379,6 @@ function __wbg_get_imports() {
     };
     imports.wbg.__wbg_newwithbyteoffsetandlength_6d34787141015158 = function(arg0, arg1, arg2) {
         const ret = new Uint8ClampedArray(getObject(arg0), arg1 >>> 0, arg2 >>> 0);
-        return addHeapObject(ret);
-    };
-    imports.wbg.__wbg_newwithbyteoffsetandlength_e6b7e69acd4c7354 = function(arg0, arg1, arg2) {
-        const ret = new Float32Array(getObject(arg0), arg1 >>> 0, arg2 >>> 0);
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_newwithjsu8clampedarrayandsh_7f3fdc36fd8f9d7a = function() { return handleError(function (arg0, arg1, arg2) {
@@ -431,6 +441,7 @@ function __wbg_finalize_init(instance, module) {
     wasm = instance.exports;
     __wbg_init.__wbindgen_wasm_module = module;
     cachedDataViewMemory0 = null;
+    cachedFloat32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
 
 

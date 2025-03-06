@@ -8,5 +8,5 @@ extern "C" {
     #[wasm_bindgen(js_namespace = self, js_name = emulatorSerialCallback)]
     pub fn emulator_serial_callback(byte: &[u8]);
     #[wasm_bindgen(js_namespace = self, js_name = emulatorAudioCallback)]
-    pub fn emulator_audio_callback(data: Float32Array);
+    pub fn emulator_audio_callback(left_buffer: &[f32], right_buffer: &[f32]);
 }

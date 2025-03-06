@@ -95,5 +95,6 @@ export type ServerSideEvent = {
     cpu?: CPUStateDump
     byte?: Uint8Array
     rom?: CartInfo | null
+    fps?: number
   }
 }

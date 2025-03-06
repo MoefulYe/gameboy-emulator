@@ -1,5 +1,5 @@
 import { WasmEmulator } from 'emulator/pkg/emulator'
-import { State, LogLevel, MS_PER_FRAME } from '../constants'
+import { State, LogLevel, MS_PER_FRAME, CYCLES_PER_FRAME } from '../constants'
 import wasmInit from 'emulator/pkg'
 import { every } from '@/utils/timer'
 import { NONE, Responser, Right, Throw } from '@/utils/event/client_side_event'
@@ -22,6 +22,8 @@ type Handlers = import('@/utils/event/client_side_event').Handlers<ClientSideEve
 export class Server {
   responser: Responser<ClientSideEvent>
   state = State.Shutdown
+  lastUpdated = 0
+  lastCycles = 0
   updateInput = {
     btns: 0
   }
@@ -61,7 +63,9 @@ export class Server {
       const $bytes = new Uint8Array(bytes)
       emitter.emit('update', { byte: $bytes }, [$bytes.buffer])
     }
-    self.emulatorAudioCallback = (data) => audioSender.send(data)
+    self.emulatorAudioCallback = (left, right) => {
+      audioSender.send(left, right)
+    }
     await wasmInit()
     WasmEmulator.initLogger()
     const core = new WasmEmulator(freqScale, volume * 0.01)
@@ -100,17 +104,28 @@ export class Server {
     }, MS_PER_FRAME)
   }
 
+  private updateFPSandCycles(cycles: number) {
+    const execed = cycles - this.lastCycles
+    const now = Date.now()
+    const elapsed = (now - this.lastUpdated) / 1000
+    this.lastCycles = cycles
+    this.lastUpdated = now
+    const fps = execed / CYCLES_PER_FRAME / elapsed
+    return fps
+  }
+
   private update() {
     const now = Date.now()
     const { err, cpu, cycles } = this.core.update({
       ...this.updateInput,
       timestamp: now
     })
+    const fps = this.updateFPSandCycles(cycles)
     if (err === null) {
-      this.emit('update', { cpu, cycles })
+      this.emit('update', { cpu, cycles, fps })
     } else {
       this.state = State.Aborted
-      this.emit('update', { state: State.Aborted, cycles, cpu })
+      this.emit('update', { state: State.Aborted, cycles, cpu, fps })
       this.log(LogLevel.Error, err)
     }
   }
@@ -121,11 +136,12 @@ export class Server {
       ...this.updateInput,
       timestamp: now
     })
+    this.lastCycles = cycles
     if (err === null) {
-      this.emit('update', { cpu, cycles })
+      this.emit('update', { cpu, cycles, fps: 0 })
     } else {
       this.state = State.Aborted
-      this.emit('update', { state: State.Aborted, cycles, cpu })
+      this.emit('update', { state: State.Aborted, cycles, cpu, fps: 0 })
       this.log(LogLevel.Error, err)
     }
   }

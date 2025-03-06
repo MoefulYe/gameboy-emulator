@@ -4,14 +4,16 @@ pub trait AudioOutput {
 }
 
 pub struct WebAudioOutput {
-    buffer: Vec<f32>,
+    left_buffer: Vec<f32>,
+    right_buffer: Vec<f32>,
     volume: f32,
 }
 
 impl WebAudioOutput {
     pub fn new(volume: f32) -> Self {
         Self {
-            buffer: Vec::with_capacity(1024),
+            left_buffer: Vec::with_capacity(1024),
+            right_buffer: Vec::with_capacity(1024),
             volume,
         }
     }
@@ -25,8 +27,8 @@ impl WebAudioOutput {
     }
 
     pub fn clear_buffer(&mut self) {
-        self.buffer.clear();
-        self.buffer.clear();
+        self.left_buffer.clear();
+        self.right_buffer.clear();
     }
 
     pub fn reset(&mut self) {
@@ -34,8 +36,9 @@ impl WebAudioOutput {
     }
 
     pub fn update(&mut self) {
-        let buffer = unsafe { js_sys::Float32Array::view(&self.buffer) };
-        emulator_audio_callback(buffer);
+        // let left_buffer = unsafe { js_sys::Float32Array::view(&self.left_buffer) };
+        // let right_buffer = unsafe { js_sys::Float32Array::view(&self.right_buffer) };
+        emulator_audio_callback(&self.left_buffer, &self.right_buffer);
     }
 }
 
@@ -55,7 +58,9 @@ impl AudioOutput for WebAudioOutput {
         // }
         // self.last_left = left;
         // self.last_right = right;
-        let sample = (((left + right) / 2.0) * self.volume).max(1.0).min(-1.0);
-        self.buffer.push(sample);
+        let left_sample = left * self.volume;
+        let right_sample = right * self.volume;
+        self.left_buffer.push(left_sample);
+        self.right_buffer.push(right_sample);
     }
 }
