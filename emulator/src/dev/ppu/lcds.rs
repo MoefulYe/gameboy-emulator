@@ -58,8 +58,12 @@ impl LCDStat {
         self.0 = (self.0 & 0b1111_1100) | (mode as Word)
     }
 
-    pub fn lyc_flag(&mut self) -> BitProxy {
+    pub fn lyc_flag_mut(&mut self) -> BitProxy {
         BitProxy::new(self, 2)
+    }
+
+    pub fn lyc_flag(&self) -> bool {
+        self.test(2)
     }
 
     pub fn hblank_int(&self) -> bool {

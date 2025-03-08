@@ -170,6 +170,7 @@ export class Server {
       const res = this.core.loadCart(rom, now)
       if (res.status === 'ok') {
         const { info } = res
+        this.state = State.Shutdown
         return Right(info)
       } else {
         const { msg } = res

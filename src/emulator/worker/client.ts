@@ -9,6 +9,7 @@ import {
   LogLevel,
   Ok,
   SaveMode,
+  State,
   type Save,
   type SaveMetadata
 } from '../constants'
@@ -143,6 +144,7 @@ export class Client {
       const info = res.ret
       log(LogLevel.Info, `insert rom \`${info.title}\``)
       this.stat.rom.value = info
+      this.stat.state.value = State.Shutdown
       this.stat.saveMetaData.value = {
         cartTitle: info.title,
         createdAt: new Date()
@@ -246,13 +248,14 @@ export class Client {
 
   public async load(save: Save) {
     const { data, state, metadata, id } = save
+    const $data = new Uint8Array(data)
     const res = await this.request(
       'load',
       {
-        data,
+        data: $data,
         state
       },
-      [data.buffer]
+      [$data.buffer]
     )
     if (res.status === Err) {
       return

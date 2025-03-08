@@ -6,30 +6,18 @@
         <span class="diod" :class="LIGHT_COLORS[state]"></span>
       </div>
       <ul class="buttons">
-        <li
-          @mousedown="gamepad.down(GameboyLayoutButton.A)"
-          @mouseup="gamepad.up(GameboyLayoutButton.A)"
-        >
+        <li>
           <span>A</span>
         </li>
-        <li
-          @mousedown="gamepad.down(GameboyLayoutButton.B)"
-          @mouseup="gamepad.up(GameboyLayoutButton.B)"
-        >
+        <li>
           <span>B</span>
         </li>
       </ul>
       <ul id="gamecontrol">
-        <li
-          @mousedown="gamepad.down(GameboyLayoutButton.Select)"
-          @mouseup="gamepad.up(GameboyLayoutButton.Select)"
-        >
+        <li>
           <span>SELECT</span>
         </li>
-        <li
-          @mousedown="gamepad.down(GameboyLayoutButton.Start)"
-          @mouseup="gamepad.up(GameboyLayoutButton.Start)"
-        >
+        <li>
           <span>START</span>
         </li>
       </ul>
@@ -42,22 +30,14 @@
         <li></li>
       </ul>
       <div class="stick">
-        <ul
-          class="left"
-          @mousedown="gamepad.down(GameboyLayoutButton.Left)"
-          @mouseup="gamepad.up(GameboyLayoutButton.Left)"
-        >
+        <ul class="left">
           <li></li>
           <li></li>
           <li></li>
           <li></li>
           <li></li>
         </ul>
-        <ul
-          class="right"
-          @mousedown="gamepad.down(GameboyLayoutButton.Right)"
-          @mouseup="gamepad.up(GameboyLayoutButton.Right)"
-        >
+        <ul class="right">
           <li></li>
           <li></li>
           <li></li>
@@ -67,22 +47,14 @@
         <ul class="circle">
           <li></li>
         </ul>
-        <ul
-          class="top"
-          @mousedown="gamepad.down(GameboyLayoutButton.Up)"
-          @mouseup="gamepad.up(GameboyLayoutButton.Up)"
-        >
+        <ul class="top">
           <li></li>
           <li></li>
           <li></li>
           <li></li>
           <li></li>
         </ul>
-        <ul
-          class="bottom sm:size-12 md:me-4 lg:text-2xl"
-          @mousedown="gamepad.down(GameboyLayoutButton.Down)"
-          @mouseup="gamepad.up(GameboyLayoutButton.Down)"
-        >
+        <ul class="bottom sm:size-12 md:me-4 lg:text-2xl">
           <li></li>
           <li></li>
           <li></li>
@@ -97,7 +69,6 @@
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
 import type { State } from '@/emulator/constants'
-import { GameboyLayoutButton } from '@/emulator/input/gamepad/constants'
 import { debounce } from '@/utils/debounce'
 import { useElementSize } from '@/utils/hooks'
 import { useTemplateRef, watch } from 'vue'
@@ -109,7 +80,6 @@ const gameboy = useTemplateRef('gameboy')
 const emu = useEmulator()
 const state = emu.stat.state
 emu.useCanvas(screen)
-const gamepad = emu.gamepad.virtual
 
 const containerSize = useElementSize(container)
 watch(

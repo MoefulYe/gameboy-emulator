@@ -1,12 +1,7 @@
 use bgp::Palette;
 use dma::DMA;
 use fetcher::{FetchState, FetchType, Fetcher};
-use graphic::{
-    decode_tiles, RGBAPalette, ScreenBitmap, TilesBitmap, NO_COLOR, PALETTE, PPU_CYCLES_PER_LINE,
-    PPU_LINES_PER_FRAME, PPU_XRES, PPU_YRES, SCREEN_HEIGHT, SCREEN_WIDTH, TILES_HEIGHT,
-    TILES_WIDTH,
-};
-use js_sys::Uint8ClampedArray;
+use graphic::{RGBAPalette, PALETTE, PPU_CYCLES_PER_LINE, PPU_LINES_PER_FRAME, PPU_XRES, PPU_YRES};
 use lcd::LCDDriver;
 use lcdc::{LCDControl, PPU_ENABLE_POS};
 use lcds::{LCDStat, WorkMode};
@@ -15,15 +10,11 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::collections::VecDeque;
 use vram::VRAM;
-use web_sys::{ImageData, OffscreenCanvasRenderingContext2d};
 
 use crate::{
     output::screen::{ScreenOutput, TileOutput},
     types::{Addr, Word},
-    utils::{
-        bits::BitMap,
-        bytes::{as_bytes, as_bytes_mut},
-    },
+    utils::bits::BitMap,
 };
 
 use super::{
@@ -51,17 +42,17 @@ const DMA_REG_ADDR: Addr = 0xFF46;
 const BGP_REG_ADDR: Addr = 0xFF47;
 const OBP0_REG_ADDR: Addr = 0xFF48;
 const OBP1_REG_ADDR: Addr = 0xFF49;
-const WX_REG_ADDR: Addr = 0xFF4A;
-const WY_REG_ADDR: Addr = 0xFF4B;
+const WY_REG_ADDR: Addr = 0xFF4A;
+const WX_REG_ADDR: Addr = 0xFF4B;
 
 pub const PPU_ADDR_LOW_BOUND: Addr = LCDC_REG_ADDR;
-pub const PPU_ADDR_HIGH_BOUND_INCLUDED: Addr = WY_REG_ADDR + 1;
+pub const PPU_ADDR_HIGH_BOUND_INCLUDED: Addr = WX_REG_ADDR;
 #[allow(dead_code)]
-pub const PPU_ADDR_HIGH_BOUND: Addr = WY_REG_ADDR + 1;
+pub const PPU_ADDR_HIGH_BOUND: Addr = WX_REG_ADDR + 1;
 
 #[repr(u8)]
 #[allow(dead_code)]
-enum TileAreaType {
+pub enum TileAreaType {
     From8800To97FF = 0,
     From8000To8FFF = 1,
 }
@@ -153,11 +144,6 @@ pub struct PPU {
     fetcher: Fetcher,
     lcd_driver: LCDDriver,
     palette: RGBAPalette,
-
-    #[serde_as(as = "Box<[[_; TILES_WIDTH];TILES_HEIGHT]>")]
-    tiles_buffer: Box<TilesBitmap>,
-    #[serde_as(as = "[Box<[[_; SCREEN_WIDTH];SCREEN_HEIGHT]>; 2]")]
-    screen_buffers: [Box<ScreenBitmap>; 2],
     cur_buf: u8,
 }
 
@@ -183,24 +169,14 @@ impl Reset for PPU {
         self.fetcher.reset();
         self.lcd_driver.reset();
         self.cur_buf = 0;
-        unsafe {
-            as_bytes_mut::<TilesBitmap>(&mut self.tiles_buffer).fill(0);
-            as_bytes_mut::<ScreenBitmap>(&mut self.screen_buffers[0]).fill(0);
-            as_bytes_mut::<ScreenBitmap>(&mut self.screen_buffers[1]).fill(0);
-        }
     }
 }
 
 impl PPU {
     pub fn new() -> Self {
-        let tiles_buffer: Box<TilesBitmap> = Box::new([[NO_COLOR; 128]; 192]);
-        let screen_buffers = [
-            Box::new([[NO_COLOR; 160]; 144]),
-            Box::new([[NO_COLOR; 160]; 144]),
-        ];
         Self {
-            lcdc: LCDControl(0b10010001),
-            lcds: LCDStat(0x2),
+            lcdc: LCDControl(0b1001_0001),
+            lcds: LCDStat(0b0000_0010),
             scy: 0,
             scx: 0,
             ly: 0,
@@ -215,12 +191,10 @@ impl PPU {
             oam: OAM::new(),
             vram: VRAM::new(),
             palette: PALETTE,
-            tiles_buffer,
             bgw_queue: VecDeque::new(),
             obj_queue: VecDeque::new(),
             fetcher: Fetcher::new(),
             lcd_driver: LCDDriver::new(),
-            screen_buffers,
             cur_buf: 0,
         }
     }
@@ -245,33 +219,23 @@ impl PPU {
         self.cur_buf = 1 - self.cur_buf
     }
 
-    fn current_buffer_mut(&mut self) -> &mut ScreenBitmap {
-        unsafe { self.screen_buffers.get_unchecked_mut(self.cur_buf as usize) }
+    fn cur_buf(&self) -> u8 {
+        self.cur_buf
     }
 
-    fn pred_buffer(&self) -> &ScreenBitmap {
-        unsafe {
-            self.screen_buffers
-                .get_unchecked((1 - self.cur_buf) as usize)
-        }
+    fn pred_buf(&self) -> u8 {
+        (self.cur_buf + 1) % 2
     }
 }
 
 impl PPU {
-    pub fn update_tiles(&mut self, output: &mut impl TileOutput) {
-        decode_tiles(
-            self.vram.tiles_matrix(),
-            &self.palette,
-            self.tiles_buffer.as_mut(),
-        );
-        let buffer = as_bytes::<TilesBitmap>(self.tiles_buffer.as_ref());
-        output.put_tile(buffer);
+    pub fn update_tiles(&self, output: &mut impl TileOutput) {
+        output.put_tile(self.vram.tiles_matrix(), &self.palette);
     }
     pub fn update_screen(&self, output: &mut impl ScreenOutput) {
-        let buffer = as_bytes::<ScreenBitmap>(self.pred_buffer());
-        output.put_screen(buffer);
+        output.put_screen(self.pred_buf());
     }
-    pub fn tick(&mut self) -> IRQ {
+    pub fn tick(&mut self, output: &mut impl ScreenOutput) -> IRQ {
         if self.disabled() {
             return IRQ_NONE;
         }
@@ -280,7 +244,7 @@ impl PPU {
             WorkMode::HBlank => self.tick_hblank(),
             WorkMode::VBlank => self.tick_vblank(),
             WorkMode::OAMScan => self.tick_oam_scan(),
-            WorkMode::Drawing => self.tick_drawing(),
+            WorkMode::Drawing => self.tick_drawing(output),
         }
     }
 }
@@ -311,6 +275,7 @@ impl MemoryRegion for PPU {
                     self.set_mode(WorkMode::HBlank);
                     self.ly = 0;
                     self.line_cycles = 0;
+                    self.fetcher.window_line = 0;
                 }
                 *self.lcdc = data
             }
@@ -346,7 +311,7 @@ impl PPU {
         IRQ_NONE
     }
 
-    fn tick_drawing(&mut self) -> IRQ {
+    fn tick_drawing(&mut self, output: &mut impl ScreenOutput) -> IRQ {
         let mut irq = IRQ_NONE;
         if self.line_cycles % 2 == 0 {
             self.fetcher_update();
@@ -355,11 +320,11 @@ impl PPU {
                 if self.lcds.hblank_int() {
                     irq |= IRQ_LCD_STAT;
                 }
-                self.obj_queue.clear();
                 self.bgw_queue.clear();
+                self.obj_queue.clear();
             }
         }
-        self.lcd_draw_pixel();
+        self.lcd_draw_pixel(output);
         irq
     }
 
@@ -394,14 +359,14 @@ impl PPU {
         }
         self.ly += 1;
         if self.ly == self.lyc {
-            self.lcds.lyc_flag().set();
+            self.lcds.lyc_flag_mut().set();
             if self.lcds.lyc_int() {
                 IRQ_LCD_STAT
             } else {
                 IRQ_NONE
             }
         } else {
-            self.lcds.lyc_flag().clear();
+            self.lcds.lyc_flag_mut().clear();
             IRQ_NONE
         }
     }

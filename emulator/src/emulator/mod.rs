@@ -4,7 +4,6 @@ use crate::{
     dev::{Bus, LoadCartResult, Reset, CPU},
     dump::CPUStateDump,
     error::{EmuResult, EmulatorError, RunWhenAborting},
-    external::emulator_audio_callback,
     output::{
         audio::WebAudioOutput,
         log::{init_logger, log_flush},
@@ -15,6 +14,9 @@ use crate::{
 };
 use ::log::error;
 // use brotli::{enc::BrotliEncoderParams, CompressorReader, CompressorWriter};
+use flate2::read::ZlibDecoder;
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use tsify_derive::{EmulatorStepInput, EmulatorUpdateInput};
@@ -145,14 +147,16 @@ impl Emulator {
         if self.core.bus.cart.is_some() {
             self.reset()
         }
+        self.core.aborted = false;
         self.core.bus.load_cart(rom, timestamp as _).into()
     }
 
     #[wasm_bindgen(js_name = save)]
     pub fn save(&self) -> Option<Box<[u8]>> {
         let mut output = Vec::new();
+        let output1 = ZlibEncoder::new(&mut output, Compression::default());
         // let writer = CompressorWriter::new(&mut output, 4096, 9, 21);
-        if let Err(err) = bincode::serialize_into(&mut output, &self.core) {
+        if let Err(err) = bincode::serialize_into(output1, &self.core) {
             error!("{err}");
             None
         } else {
@@ -162,9 +166,10 @@ impl Emulator {
 
     #[wasm_bindgen(js_name = load)]
     pub fn load(&mut self, save: Box<[u8]>) -> bool {
-        let cursor = Cursor::new(save);
+        let input = Cursor::new(save);
         // let reader = CompressorReader::new(cursor, 4096, 9, 21);
-        match bincode::deserialize_from(cursor) {
+        let input = ZlibDecoder::new(input);
+        match bincode::deserialize_from(input) {
             Ok(state) => {
                 self.core = state;
                 true
@@ -235,7 +240,7 @@ impl Emulator {
             let irq0 = self.core.bus.timer.tick();
             let irq1 = self.core.bus.serial.tick(&mut self.serial_output);
             self.core.bus.tick_dma()?;
-            let irq2 = self.core.bus.ppu.tick();
+            let irq2 = self.core.bus.ppu.tick(&mut self.screen_output);
             let irq = irq0 | irq1 | irq2;
             self.core.bus.int_flag_reg.add(irq);
         }

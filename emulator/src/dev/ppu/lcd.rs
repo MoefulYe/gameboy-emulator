@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::Word;
+use crate::{output::screen::ScreenOutput, types::Word};
 
 use super::{graphic::PPU_XRES, PPU};
 
@@ -22,7 +22,7 @@ impl LCDDriver {
 }
 
 impl PPU {
-    pub(super) fn lcd_draw_pixel(&mut self) {
+    pub(super) fn lcd_draw_pixel(&mut self, output: &mut impl ScreenOutput) {
         if self.bgw_queue.len() < 8 {
             return;
         }
@@ -40,8 +40,8 @@ impl PPU {
         let x = self.lcd_driver.draw_x;
         let y = self.ly;
         unsafe {
-            *self
-                .current_buffer_mut()
+            *output
+                .buffer(self.cur_buf())
                 .get_unchecked_mut(y as usize)
                 .get_unchecked_mut(x as usize) = rgba
         };

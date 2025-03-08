@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use smallvec::SmallVec;
 
 use crate::{
@@ -216,7 +215,7 @@ impl PPU {
     fn push_bgw_pixel(&mut self) {
         let [lo, hi] = self.fetcher.bgw_fetched_data;
         for i in 0u8..8u8 {
-            if self.fetcher.tile_x_begin + (i as i16) < 0 {
+            if (self.fetcher.tile_x_begin as i32) + (i as i32) < 0 {
                 continue;
             }
             if self.fetcher.fetch_type == FetchType::FetchBackground
@@ -246,11 +245,11 @@ impl PPU {
 
     fn push_object_pixels(&mut self, push_begin: Word, push_end: Word) {
         for i in push_begin..push_end {
-            let mut pixel = ObjectPixel::new();
-            if self.lcdc.enabled() {
+            let mut pixel = ObjectPixel::default();
+            if self.lcdc.obj_enabled() {
                 for (j, obj) in self.fetcher.objects_to_draw.iter().enumerate() {
-                    let x = (obj.x as i16) - 8;
-                    let offset = (i as i16) - x;
+                    let x = (obj.x as i32) - 8;
+                    let offset = (i as i32) - x;
                     if offset < 0 || offset > 7 {
                         continue;
                     }
@@ -293,8 +292,9 @@ impl PPU {
                 .get_unchecked(tile_idx)
         };
         self.fetcher.bgw_data_idx = (self.lcdc.window_bg_data_area().addr(data_idx), y % 8);
-        let tile_x = (self.fetcher.fetch_x as i16) + (self.scx as i16);
-        self.fetcher.tile_x_begin = (tile_x / 8) * 8 - self.scx as i16;
+        let tile_x = (self.fetcher.fetch_x as i32) + (self.scx as i32);
+        let tile_x = (tile_x / 8) * 8 - (self.scx as i32);
+        self.fetcher.tile_x_begin = tile_x as i16;
     }
 
     fn get_window_tile(&mut self) {
@@ -307,17 +307,18 @@ impl PPU {
                 .get_unchecked(tile_idx)
         };
         self.fetcher.bgw_data_idx = (self.lcdc.window_bg_data_area().addr(data_idx), y % 8);
-        let tile_x = (self.fetcher.fetch_x as i16) - (self.wx as i16 - 7);
-        self.fetcher.tile_x_begin = (tile_x / 8) * 8 + (self.wx as i16) - 7;
+        let tile_x = (self.fetcher.fetch_x as i32) - (self.wx as i32 - 7);
+        let tile_x = (tile_x / 8) * 8 + (self.wx as i32) - 7;
+        self.fetcher.tile_x_begin = tile_x as i16;
     }
 
     fn get_object_tile(&mut self) {
         let fetcher = &mut self.fetcher;
         fetcher.objects_to_draw.clear();
         for obj in &fetcher.row_intersect_objects {
-            let x = (obj.x as i16) - 8;
-            if (x >= fetcher.tile_x_begin && x < fetcher.tile_x_begin + 8)
-                || (x + 7 >= fetcher.tile_x_begin && x + 7 < fetcher.tile_x_begin + 8)
+            let x = (obj.x as i32) - 8;
+            if (x >= fetcher.tile_x_begin as i32 && x < fetcher.tile_x_begin as i32 + 8)
+                || (x + 7 >= fetcher.tile_x_begin as i32 && x + 7 < fetcher.tile_x_begin as i32 + 8)
             {
                 fetcher.objects_to_draw.push(*obj);
                 if fetcher.objects_to_draw.len() >= 3 {
@@ -333,9 +334,6 @@ impl PPU {
         self.fetcher.row_intersect_objects.clear();
         let obj_height = self.lcdc.obj_height();
         for obj in self.oam.as_objs() {
-            if self.fetcher.row_intersect_objects.len() >= 10 {
-                break;
-            }
             // len < 10
             if obj.y <= self.ly + 16 && obj.y + obj_height > self.ly + 16 {
                 let pos = self
@@ -347,6 +345,9 @@ impl PPU {
                     .map(|(idx, _)| idx)
                     .unwrap_or(self.fetcher.row_intersect_objects.len());
                 self.fetcher.row_intersect_objects.insert(pos, obj.clone());
+                if self.fetcher.row_intersect_objects.len() >= 10 {
+                    break;
+                }
             }
         }
     }
