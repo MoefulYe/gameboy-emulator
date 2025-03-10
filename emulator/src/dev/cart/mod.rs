@@ -5,6 +5,7 @@ use crate::{
     types::{Addr, Word},
 };
 use header::MBCType;
+use log::{debug, error};
 use mbc::{mbc1::MBC1, mbc2::MBC2, mbc3::MBC3, no_mbc::NoMBC, MBC};
 use serde::{Deserialize, Serialize};
 

@@ -74,12 +74,10 @@ impl MBC for MBC3 {
             }
             RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => match self.ram_bank_sel {
                 0x00..=0x03 => {
-                    if self.ram_enable {
-                        if let Some(ram) = self.ram() {
-                            ram[(addr - RAM_ADDR_LOW_BOUND) as usize]
-                        } else {
-                            0xFF
-                        }
+                    if self.ram_enable
+                        && let Some(ram) = self.ram()
+                    {
+                        ram[(addr - RAM_ADDR_LOW_BOUND) as usize]
                     } else {
                         0xFF
                     }
@@ -113,19 +111,24 @@ impl MBC for MBC3 {
                     rtc.set_latch(data)
                 }
             }
-            RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => {
-                if self.ram_bank_sel <= 0x03 {
+            RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => match self.ram_bank_sel {
+                0x00..=0x03 => {
                     if self.ram_enable {
                         if let Some(ram) = self.ram_mut() {
                             ram[(addr - RAM_ADDR_LOW_BOUND) as usize] = data;
                         }
                     }
-                } else {
+                }
+                0x08..=0x0C => {
                     if let Some(rtc) = &mut self.rtc {
                         rtc.write(addr, data)
                     }
                 }
-            }
+                _ => warn!(
+                    "illegal write cart at address: 0x{}, ram_bank_sel: 0x{:04X}",
+                    addr, self.ram_bank_sel
+                ),
+            },
             _ => warn!("illegal write cart at address: 0x{addr:04X}"),
         }
     }

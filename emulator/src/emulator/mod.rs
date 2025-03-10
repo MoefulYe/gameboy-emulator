@@ -154,7 +154,7 @@ impl Emulator {
     #[wasm_bindgen(js_name = save)]
     pub fn save(&self) -> Option<Box<[u8]>> {
         let mut output = Vec::new();
-        let output1 = ZlibEncoder::new(&mut output, Compression::default());
+        let output1 = ZlibEncoder::new(&mut output, Compression::best());
         // let writer = CompressorWriter::new(&mut output, 4096, 9, 21);
         if let Err(err) = bincode::serialize_into(output1, &self.core) {
             error!("{err}");

@@ -1,7 +1,7 @@
 use std::cell::UnsafeCell;
 
-use crate::external::emulator_log_callback;
-use log::{LevelFilter, Log};
+use crate::external::{console_log, emulator_log_callback};
+use log::{Level, LevelFilter, Log};
 use serde::Serialize;
 use tsify::{JsValueSerdeExt, Tsify};
 use tsify_derive::LogItem;
@@ -48,7 +48,8 @@ impl Log for EmulatorLogger {
         unsafe {
             let logs = &mut *self.0.get();
             logs.push((record.level(), record.args().to_string()).into());
-            if logs.len() > 1024 {
+            if logs.len() > 1024 || record.level() == Level::Error || record.level() == Level::Debug
+            {
                 emulator_log_callback(JsValue::from_serde(logs.as_slice()).unwrap());
                 logs.clear();
             }

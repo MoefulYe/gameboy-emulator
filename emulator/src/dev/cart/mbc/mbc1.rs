@@ -7,12 +7,12 @@ use crate::error::EmuResult;
 use crate::types::{Addr, Word};
 use crate::utils::bits::BitMap;
 use crate::utils::bytes::{bytes_to_slice, slice_as_bytes};
-use log::warn;
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
-#[derive(PartialEq, Serialize, Deserialize)]
-enum WorkingMode {
+#[derive(PartialEq, Serialize, Deserialize, Debug)]
+pub enum WorkingMode {
     Simple,
     Advanced,
 }
@@ -40,22 +40,20 @@ impl MBC1 {
     }
 
     fn rom0(&self) -> &RomBank {
-        match self.mode {
-            WorkingMode::Advanced => {
-                let bank_idx = self.ram_bank_sel << 5;
-                &self.rom_banks[bank_idx as usize]
-            }
-            WorkingMode::Simple => &self.rom_banks[0],
+        if self.mode == WorkingMode::Advanced && self.rom_banks.len() > 32 {
+            let bank_idx = self.ram_bank_sel << 5;
+            &self.rom_banks[bank_idx as usize]
+        } else {
+            &self.rom_banks[0]
         }
     }
 
     fn rom1(&self) -> &RomBank {
-        match self.mode {
-            WorkingMode::Advanced => {
-                let bank_idx = self.ram_bank_sel << 5 | self.rom_bank_sel;
-                &self.rom_banks[bank_idx as usize]
-            }
-            WorkingMode::Simple => &self.rom_banks[self.rom_bank_sel as usize],
+        if self.mode == WorkingMode::Advanced && self.rom_banks.len() > 32 {
+            let bank_idx = self.ram_bank_sel << 5 | self.rom_bank_sel;
+            &self.rom_banks[bank_idx as usize]
+        } else {
+            &self.rom_banks[self.rom_bank_sel as usize]
         }
     }
 
@@ -63,10 +61,15 @@ impl MBC1 {
         if self.no_ram() {
             return None;
         }
-        let bank = match self.mode {
-            WorkingMode::Simple => &self.ram_banks[self.ram_bank_sel as usize],
-            WorkingMode::Advanced => &self.ram_banks[0],
+        let bank = if self.rom_banks.len() <= 32 && self.mode == WorkingMode::Advanced {
+            &self.ram_banks[self.ram_bank_sel as usize]
+        } else {
+            &self.ram_banks[0]
         };
+        // match self.mode {
+        //     WorkingMode::Simple => &self.ram_banks[self.ram_bank_sel as usize],
+        //     WorkingMode::Advanced => &self.ram_banks[0],
+        // };
         Some(bank)
     }
 
@@ -74,9 +77,14 @@ impl MBC1 {
         if self.no_ram() {
             return None;
         }
-        let bank = match self.mode {
-            WorkingMode::Simple => &mut self.ram_banks[self.ram_bank_sel as usize],
-            WorkingMode::Advanced => &mut self.ram_banks[0],
+        // let bank = match self.mode {
+        //     WorkingMode::Simple => &mut self.ram_banks[self.ram_bank_sel as usize],
+        //     WorkingMode::Advanced => &mut self.ram_banks[0],
+        // };
+        let bank = if self.rom_banks.len() <= 32 && self.mode == WorkingMode::Advanced {
+            &mut self.ram_banks[self.ram_bank_sel as usize]
+        } else {
+            &mut self.ram_banks[0]
         };
         Some(bank)
     }
@@ -147,17 +155,11 @@ impl MBC for MBC1 {
             0x2000..=0x3FFF => self.set_rom_bank_sel(data),
             0x4000..=0x5FFF => self.set_ram_bank_sel(data),
             0x6000..=0x7FFF => self.set_mode(data),
-            RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => {
-                let ram_enable = self.ram_enable;
-                match self.ram_mut() {
-                    Some(ram) => {
-                        if ram_enable {
-                            ram[(addr - RAM_ADDR_LOW_BOUND) as usize] = data
-                        }
-                    }
-                    None => warn!("illegal write no-ram cart at ram area: 0x{addr:04X}"),
-                }
-            }
+            RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => match (self.ram_enable, self.ram_mut()) {
+                (true, Some(ram)) => ram[(addr - RAM_ADDR_LOW_BOUND) as usize] = data,
+                (_, None) => warn!("illegal write no-ram cart at ram area: 0x{addr:04X}"),
+                _ => {}
+            },
             _ => warn!("illegal write cart at address: 0x{addr:04X}"),
         }
     }
@@ -170,18 +172,13 @@ impl MBC for MBC1 {
             ROM1_ADDR_LOW_BOUND..=ROM1_ADDR_HIGH_BOUND => {
                 self.rom1()[(addr - ROM1_ADDR_LOW_BOUND) as usize]
             }
-            RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => match self.ram() {
-                Some(ram) => {
-                    if self.ram_enable {
-                        ram[(addr - RAM_ADDR_LOW_BOUND) as usize]
-                    } else {
-                        0xFF
-                    }
-                }
-                None => {
+            RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => match (self.ram_enable, self.ram()) {
+                (true, Some(ram)) => ram[(addr - RAM_ADDR_LOW_BOUND) as usize],
+                (_, None) => {
                     warn!("illegal read no-ram cart at ram area: 0x{addr:04X}");
                     0xFF
                 }
+                _ => 0xFF,
             },
             _ => {
                 warn!("illegal read cart at address: 0x{addr:04X}");

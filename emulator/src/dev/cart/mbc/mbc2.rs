@@ -61,7 +61,7 @@ impl MBC for MBC2 {
                 self.rom0()[(addr - ROM0_ADDR_LOW_BOUND) as usize]
             }
             ROM1_ADDR_LOW_BOUND..=ROM1_ADDR_HIGH_BOUND => {
-                self.rom1()[(addr - ROM0_ADDR_LOW_BOUND) as usize]
+                self.rom1()[(addr - ROM1_ADDR_LOW_BOUND) as usize]
             }
             RAM_ADDR_LOW_BOUND..=RAM_ADDR_HIGH_BOUND => {
                 if self.ram_enable {
