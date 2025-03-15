@@ -1,7 +1,7 @@
 import { Listener, type EventCallback } from '@/utils/event/server_side_event'
 import { Requester, type ReqArgs } from '@/utils/event/client_side_event'
 import type { ClientSideEvent, ServerSideEvent } from './event'
-import AUDIO_WORKER_URL from './audio.worker?url'
+import AUDIO_WORKER_URL from './audio.worker?worker&url'
 import { Stat, useStat } from '../stat'
 import {
   BASE_AUDIO_SAMPLE_RATE,
