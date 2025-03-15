@@ -41,7 +41,6 @@ impl CPU {
         Default::default()
     }
 
-    /// 返回花费的时钟周期
     pub fn tick(&mut self, bus: &mut Bus) -> EmuResult<ClockCycle> {
         if !self.halted {
             let ime = self.ime.enabled();

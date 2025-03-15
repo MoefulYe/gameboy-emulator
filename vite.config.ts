@@ -14,6 +14,9 @@ export default defineConfig({
       compilerOptions: {}
     }
   },
+  build: {
+    rollupOptions: {}
+  },
   plugins: [vue(), VueDevTools(), UnoCSS(), wasm(), VueI18nPlugin({})],
   resolve: {
     alias: {

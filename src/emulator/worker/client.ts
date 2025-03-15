@@ -291,7 +291,7 @@ const useAudio = async (audioPort: MessagePort) => {
   const ctx = new AudioContext({
     sampleRate: BASE_AUDIO_SAMPLE_RATE
   })
-  await ctx.audioWorklet.addModule(AUDIO_WORKER_URL)
+  await ctx.audioWorklet.addModule(new URL(AUDIO_WORKER_URL, import.meta.url))
   const worklet = new AudioWorkletNode(ctx, 'audio-processor', {
     outputChannelCount: [2]
   })
