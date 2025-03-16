@@ -4,6 +4,13 @@
       ref="content"
       class="bg-coolgray-50 w-5/6 h-11/12 max-w-4xl max-h-6xl rounded-lg shadow-lg p-4 overflow-y-auto"
     >
+      <button
+        type="button"
+        class="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-none focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none dark:text-blue-500 dark:hover:text-blue-400 dark:focus:text-blue-400"
+        @click="upload"
+      >
+        upload
+      </button>
       <div class="flex flex-col">
         <div class="-m-1.5 overflow-x-auto">
           <div class="p-1.5 min-w-full inline-block align-middle">
@@ -72,10 +79,22 @@
                       </button>
                       <button
                         type="button"
-                        class="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-none focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none dark:text-blue-500 dark:hover:text-blue-400 dark:focus:text-blue-400"
+                        class="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-none focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none dark:text-blue-500 dark:hover:text-blue-400 dark:focus:text-blue-400 mr-4"
                         @click.stop="emu.load(save)"
                       >
                         Load
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-none focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none dark:text-blue-500 dark:hover:text-blue-400 dark:focus:text-blue-400"
+                        @click="
+                          () => {
+                            const file = dumpToFile(save)
+                            download(file)
+                          }
+                        "
+                      >
+                        Dump
                       </button>
                     </td>
                   </tr>
@@ -92,7 +111,10 @@
 <script setup lang="ts">
 import { useEmulator } from '@/emulator'
 import type { Save } from '@/emulator/constants'
+import { dumpToFile, loadFromFile } from '@/emulator/persistance/dump'
 import { formatYYYYMMDDHHMMSS } from '@/utils/date'
+import { download } from '@/utils/download'
+import { openFile } from '@/utils/fs'
 import { useWindowListener } from '@/utils/hooks'
 import { shallowRef, triggerRef, useTemplateRef } from 'vue'
 const emit = defineEmits<Emits>()
@@ -114,6 +136,18 @@ const del = (id: number) => {
 const saves = shallowRef<Save[]>([])
 const update = async () => {
   saves.value = await emu.db.getAll('saves')
+}
+
+const upload = async () => {
+  const file = await openFile()
+  const save = await loadFromFile(file)
+  const id = await emu.db.put('saves', save as any)
+  const $save = {
+    ...save,
+    id
+  }
+  saves.value.push($save)
+  triggerRef(saves)
 }
 
 defineExpose({ update })
