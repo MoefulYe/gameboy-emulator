@@ -79,7 +79,7 @@ impl Bus {
         }
     }
 
-    pub fn read(&mut self, addr: Addr) -> EmuResult<Word> {
+    pub fn read(&self, addr: Addr) -> EmuResult<Word> {
         let word = match addr {
             CART_ROM_LOW_BOUND..=CART_ROM_HIGH_BOUND_INCLUDED
             | CART_RAM_LOW_BOUND..=CART_RAM_HIGH_BOUND_INCLUDED => {

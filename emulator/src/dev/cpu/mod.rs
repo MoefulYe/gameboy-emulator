@@ -63,7 +63,7 @@ impl CPU {
         }
     }
 
-    pub fn dump(&self, bus: &mut Bus) -> CPUStateDump {
+    pub fn dump(&self, bus: &Bus) -> CPUStateDump {
         let pc = self.pc();
         let inst = bus
             .read(pc)
